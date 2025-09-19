@@ -1,436 +1,587 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>About The Project & Developers - SK Mambugan</title>
-    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
-    <link rel="stylesheet" href="{% static 'css/index/theproject.css' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
+    <link
+      rel="icon"
+      href="{% static 'assets/logo/logo.png' %}"
+      type="image/png"
+    />
+    <link rel="stylesheet" href="{% static 'css/index/theproject.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
     <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
-                <span>SK Mambugan</span>
-            </div>
-            <div class="nav-menu" id="navMenu">
-                <a href="{% url 'index' %}" class="nav-link ">Home</a>
-                <a href="{% url 'announcement' %}" class="nav-link">Announcements & Events</a>
-                <div class="dropdown">
-                    <a href="#" class="nav-link dropbtn active">About</a>
-                    <div class="dropdown-content active">
-                         <a href="{% url 'the_project' %}">The Project & Developers</a>
-                         <a href="{% url 'the_community' %}">The Sangguniang Kabataan</a>
-                    </div>
-                </div>
-                <a href="{% url 'contact' %}" class="nav-link">Contact</a>
-                <a href="{% url 'login' %}" class="nav-link login-btn">Login</a>
-            </div>
-            <div class="hamburger" id="hamburger">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </div>
+      <div class="nav-container">
+        <div class="nav-logo">
+          <img
+            src="{% static 'assets/logo/logo.png' %}"
+            alt="SK Baranggay Logo"
+          />
+          <span>SK Mambugan</span>
         </div>
+        <div class="nav-menu" id="navMenu">
+          <a href="{% url 'index' %}" class="nav-link">Home</a>
+          <a href="{% url 'announcement' %}" class="nav-link"
+            >Announcements & Events</a
+          >
+          <div class="dropdown">
+            <a href="#" class="nav-link dropbtn active">About</a>
+            <div class="dropdown-content active">
+              <a href="{% url 'the_project' %}">The Project & Developers</a>
+              <a href="{% url 'the_community' %}">The Sangguniang Kabataan</a>
+            </div>
+          </div>
+          <a href="{% url 'contact' %}" class="nav-link">Contact</a>
+          <a href="{% url 'login' %}" class="nav-link login-btn">Login</a>
+        </div>
+        <div class="hamburger" id="hamburger">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+      </div>
     </nav>
 
     <section class="project-hero">
-        <div class="hero-content">
-            <h1>About <span>The Project & Developers</span></h1>
-            <p>Discover the Capstone project developed by 4th Year IT students from Our Lady of Fatima University - Antipolo Campus, created to empower the youth of Barangay Mambugan.</p>
-            <div class="hero-stats">
-                <div class="stat">
-                    <h3>4</h3>
-                    <p>Developers</p>
-                </div>
-                <div class="stat">
-                    <h3>2</h3>
-                    <p>Platforms</p>
-                </div>
-                <div class="stat">
-                    <h3>1</h3>
-                    <p>Capstone Project</p>
-                </div>
-            </div>
+      <div class="hero-content">
+        <h1>About <span>The Project & Developers</span></h1>
+        <p>
+          Discover the Capstone project developed by 4th Year IT students from
+          Our Lady of Fatima University - Antipolo Campus, created to empower
+          the youth of Barangay Mambugan.
+        </p>
+        <div class="hero-stats">
+          <div class="stat">
+            <h3>4</h3>
+            <p>Developers</p>
+          </div>
+          <div class="stat">
+            <h3>2</h3>
+            <p>Platforms</p>
+          </div>
+          <div class="stat">
+            <h3>1</h3>
+            <p>Capstone Project</p>
+          </div>
         </div>
-        <div class="hero-image">
-            <div class="hero-blend"></div>
-            <img src="{% static 'assets/community/olfu.jpg' %}" alt="Our Lady of Fatima University" class="hero-img">
-        </div>
+      </div>
+      <div class="hero-image">
+        <div class="hero-blend"></div>
+        <img
+          src="{% static 'assets/community/olfu.jpg' %}"
+          alt="Our Lady of Fatima University"
+          class="hero-img"
+        />
+      </div>
     </section>
 
     <section class="university-section">
-        <div class="container">
-            <div class="university-content">
-                <div class="university-logo">
-                    <img src="{% static 'assets/community/olfulogo.png' %}" alt="OLFU Logo">
-                </div>
-                <div class="university-info">
-                    <h2>Our Lady of Fatima University</h2>
-                    <h3>Antipolo Campus</h3>
-                    <p>We are proud 4th Year Information Technology students from OLFU Antipolo, dedicated to creating innovative solutions that address real-world challenges through technology.</p>
-                    <div class="university-details">
-                        <div class="detail">
-                            <i class="fas fa-graduation-cap"></i>
-                            <span>BS Information Technology</span>
-                        </div>
-                        <div class="detail">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>4th Year Students</span>
-                        </div>
-                        <div class="detail">
-                            <i class="fas fa-laptop-code"></i>
-                            <span>Capstone Project 2025</span>
-                        </div>
-                    </div>
-                </div>
+      <div class="container">
+        <div class="university-content">
+          <div class="university-logo">
+            <img
+              src="{% static 'assets/community/olfulogo.png' %}"
+              alt="OLFU Logo"
+            />
+          </div>
+          <div class="university-info">
+            <h2>Our Lady of Fatima University</h2>
+            <h3>Antipolo Campus</h3>
+            <p>
+              We are proud 4th Year Information Technology students from OLFU
+              Antipolo, dedicated to creating innovative solutions that address
+              real-world challenges through technology.
+            </p>
+            <div class="university-details">
+              <div class="detail">
+                <i class="fas fa-graduation-cap"></i>
+                <span>BS Information Technology</span>
+              </div>
+              <div class="detail">
+                <i class="fas fa-calendar-alt"></i>
+                <span>4th Year Students</span>
+              </div>
+              <div class="detail">
+                <i class="fas fa-laptop-code"></i>
+                <span>Capstone Project 2025</span>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <section class="project-intro">
-        <div class="container">
-            <div class="section-header">
-                <h2>SK Mambugan Digital Platform</h2>
-                <div class="heading-separator">
-                    <div class="separator-line"></div>
-                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
-                    <div class="separator-line"></div>
-                </div>
-                <p>Our capstone project represents a transformative initiative to modernize community engagement and streamline services for the youth of Barangay Mambugan through technology.</p>
-            </div>
-
-            <div class="intro-content">
-                <div class="intro-text">
-                    <h3>Thesis Project Overview</h3>
-                    <p>As 4th Year IT students, we developed the SK Mambugan Digital Platform to address the evolving needs of the community's youth in the digital age. Recognizing the challenges of traditional communication methods and service delivery, we created a comprehensive digital ecosystem that serves as our thesis project.</p>
-                    
-                    <div class="feature-list">
-                        <div class="feature-item">
-                            <div class="feature-icon">
-                                <i class="fas fa-book"></i>
-                            </div>
-                            <div class="feature-content">
-                                <h4>Capstone Project</h4>
-                                <p>This platform represents our final year thesis project in BS Information Technology</p>
-                            </div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">
-                                <i class="fas fa-handshake"></i>
-                            </div>
-                            <div class="feature-content">
-                                <h4>Community Partnership</h4>
-                                <p>Developed in collaboration with Barangay Mambugan officials and youth leaders</p>
-                            </div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">
-                                <i class="fas fa-rocket"></i>
-                            </div>
-                            <div class="feature-content">
-                                <h4>Real-World Solution</h4>
-                                <p>Addressing actual community needs with practical technology solutions</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="intro-image">
-                    <div class="image-frame">
-                        <img src="{% static 'assets/community/proj.jpg' %}" alt="Capstone Project">
-                        <div class="image-overlay">
-                            <div class="overlay-content">
-                                <h4>Thesis Defense</h4>
-                                <p>Academic project with real community impact</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2>SK Mambugan Digital Platform</h2>
+          <div class="heading-separator">
+            <div class="separator-line"></div>
+            <img
+              src="{% static 'assets/logo/logo.png' %}"
+              alt="SK Logo"
+              class="separator-logo"
+            />
+            <div class="separator-line"></div>
+          </div>
+          <p>
+            Our capstone project represents a transformative initiative to
+            modernize community engagement and streamline services for the youth
+            of Barangay Mambugan through technology.
+          </p>
         </div>
+
+        <div class="intro-content">
+          <div class="intro-text">
+            <h3>Capstone Project Overview</h3>
+            <p>
+              As 4th Year IT students, we developed the SK Mambugan Digital
+              Platform to address the evolving needs of the community's youth in
+              the digital age. Recognizing the challenges of traditional
+              communication methods and service delivery, we created a
+              comprehensive digital ecosystem that serves as our thesis project.
+            </p>
+
+            <div class="feature-list">
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <i class="fas fa-book"></i>
+                </div>
+                <div class="feature-content">
+                  <h4>Capstone Project</h4>
+                  <p>
+                    This platform represents our final year thesis project in BS
+                    Information Technology
+                  </p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <i class="fas fa-handshake"></i>
+                </div>
+                <div class="feature-content">
+                  <h4>Community Partnership</h4>
+                  <p>
+                    Developed in collaboration with Barangay Mambugan officials
+                    and youth leaders
+                  </p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <i class="fas fa-rocket"></i>
+                </div>
+                <div class="feature-content">
+                  <h4>Real-World Solution</h4>
+                  <p>
+                    Addressing actual community needs with practical technology
+                    solutions
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="intro-image">
+            <div class="image-frame">
+              <img
+                src="{% static 'assets/community/proj.jpg' %}"
+                alt="Capstone Project"
+              />
+              <div class="image-overlay">
+                <div class="overlay-content">
+                  <h4>Capstone Defense</h4>
+                  <p>Academic project with real community impact</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="developers-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Meet The Development Team</h2>
-                 <div class="heading-separator">
-                    <div class="separator-line"></div>
-                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
-                    <div class="separator-line"></div>
-                </div>
-                <p>The passionate 4th Year IT students behind the SK Mambugan Digital Platform</p>
-            </div>
-
-            <div class="developers-grid">
-                <div class="developer-card">
-                    <div class="developer-image">
-                        <img src="{% static 'assets/community/D1.jpg' %}" alt="Irish Balana">
-                        <div class="developer-role"> Principal Investigator</div>
-                    </div>
-                    <div class="developer-info">
-                        <h3>IRISH A. BALANA</h3>
-                        <p class="developer-title">BS Information Technology</p>
-                        <p class="developer-bio">Responsible for project research, requirements gathering, and documentation. Ensures the platform meets community needs and academic standards.</p>
-                        <div class="developer-skills">
-                            <span class="skill">Research</span>
-                            <span class="skill">Analysis</span>
-                            <span class="skill">Documentation</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="developer-card">
-                    <div class="developer-image">
-                        <img src="{% static 'assets/community/D2.jpg' %}" alt="Castor Vince">
-                        <div class="developer-role">Lead Programmer</div>
-                    </div>
-                    <div class="developer-info">
-                        <h3>CASTOR VINCE P. CARBONEL</h3>
-                        <p class="developer-title">BS Information Technology</p>
-                        <p class="developer-bio">Leads the development of both web and mobile platforms. Specializes in backend architecture and system integration.</p>
-                        <div class="developer-skills">
-                            <span class="skill">Django</span>
-                            <span class="skill">Python</span>
-                            <span class="skill">React Native</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="developer-card">
-                    <div class="developer-image">
-                        <img src="{% static 'assets/community/D3.jpg' %}" alt="Developer 3">
-                        <div class="developer-role">Frontend Developer</div>
-                    </div>
-                    <div class="developer-info">
-                        <h3>EDGARDO SOBERO I. CARAGAY</h3>
-                        <p class="developer-title">BS Information Technology</p>
-                        <p class="developer-bio">Focuses on creating intuitive user interfaces and ensuring seamless user experiences across both web and mobile platforms.</p>
-                        <div class="developer-skills">
-                            <span class="skill">HTML/CSS</span>
-                            <span class="skill">JavaScript</span>
-                            <span class="skill">UI/UX</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="developer-card">
-                    <div class="developer-image">
-                        <img src="{% static 'assets/community/D4.jpg' %}" alt="Developer 4">
-                        <div class="developer-role">Mobile Developer</div>
-                    </div>
-                    <div class="developer-info">
-                        <h3>JERO ROULLE J. GALFO</h3>
-                        <p class="developer-title">BS Information Technology</p>
-                        <p class="developer-bio">Specializes in mobile application development using React Native, ensuring the platform is accessible on all devices.</p>
-                        <div class="developer-skills">
-                            <span class="skill">React Native</span>
-                            <span class="skill">Mobile UI</span>
-                            <span class="skill">API Integration</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2>Meet The Development Team</h2>
+          <div class="heading-separator">
+            <div class="separator-line"></div>
+            <img
+              src="{% static 'assets/logo/logo.png' %}"
+              alt="SK Logo"
+              class="separator-logo"
+            />
+            <div class="separator-line"></div>
+          </div>
+          <p>
+            The passionate 4th Year IT students behind the SK Mambugan Digital
+            Platform
+          </p>
         </div>
+
+        <div class="developers-grid">
+          <div class="developer-card">
+            <div class="developer-image">
+              <img
+                src="{% static 'assets/community/D1.jpg' %}"
+                alt="Irish Balana"
+              />
+              <div class="developer-role">Principal Investigator</div>
+            </div>
+            <div class="developer-info">
+              <h3>IRISH A. BALANA</h3>
+              <p class="developer-title">BS Information Technology</p>
+              <p class="developer-bio">
+                Oversees the entire research project, defines objectives, and
+                ensures proper execution of all phases. Responsible for
+                coordinating with stakeholders, guiding the research team, and
+                ensuring that the project meets academic and ethical standards.
+              </p>
+              <div class="developer-skills">
+                <span class="skill">Leadership</span>
+                <span class="skill">Research Design</span>
+                <span class="skill">Project Coordination</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="developer-card">
+            <div class="developer-image">
+              <img
+                src="{% static 'assets/community/D2.jpg' %}"
+                alt="Castor Vince"
+              />
+              <div class="developer-role">Backend Programmer</div>
+            </div>
+            <div class="developer-info">
+              <h3>CASTOR VINCE P. CARBONEL</h3>
+              <p class="developer-title">BS Information Technology</p>
+              <p class="developer-bio">
+                Leads the development of both web and mobile platforms.
+                Specializes in backend architecture and system integration.
+              </p>
+              <div class="developer-skills">
+                <span class="skill">Django</span>
+                <span class="skill">Python</span>
+                <span class="skill">React Native</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="developer-card">
+            <div class="developer-image">
+              <img
+                src="{% static 'assets/community/D3.jpg' %}"
+                alt="Developer 3"
+              />
+              <div class="developer-role">Frontend Developer</div>
+            </div>
+            <div class="developer-info">
+              <h3>EDGARDO SOBERO I. CARAGAY</h3>
+              <p class="developer-title">BS Information Technology</p>
+              <p class="developer-bio">
+                Focuses on creating intuitive user interfaces and ensuring
+                seamless user experiences across both web and mobile platforms.
+              </p>
+              <div class="developer-skills">
+                <span class="skill">HTML/CSS</span>
+                <span class="skill">JavaScript</span>
+                <span class="skill">UI/UX</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="developer-card">
+            <div class="developer-image">
+              <img
+                src="{% static 'assets/community/D4.jpg' %}"
+                alt="Documentation Specialist"
+              />
+              <div class="developer-role">Documentation Specialist</div>
+            </div>
+            <div class="developer-info">
+              <h3>JERO ROULLE J. GALFO</h3>
+              <p class="developer-title">BS Information Technology</p>
+              <p class="developer-bio">
+                Focuses on creating and maintaining clear and organized project
+                documentation. Ensures that technical details, workflows, and
+                research findings are properly recorded and accessible to the
+                entire team.
+              </p>
+              <div class="developer-skills">
+                <span class="skill">Technical Writing</span>
+                <span class="skill">Organization</span>
+                <span class="skill">Attention to Detail</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="technology-stack">
-        <div class="container">
-            <div class="section-header">
-                <h2>Technology Stack</h2>
-                 <div class="heading-separator">
-                    <div class="separator-line"></div>
-                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
-                    <div class="separator-line"></div>
-                </div>
-                <p>Modern technologies powering our thesis project for reliability, security, and scalability</p>
-            </div>
-
-            <div class="tech-grid">
-                <div class="tech-category">
-                    <h3>Website Platform</h3>
-                    <div class="tech-items">
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fab fa-python"></i>
-                            </div>
-                            <h4>Django Framework</h4>
-                            <p>High-level Python web framework for rapid development</p>
-                        </div>
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fab fa-python"></i>
-                            </div>
-                            <h4>Python</h4>
-                            <p>Programming language for backend logic and functionality</p>
-                        </div>
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fas fa-database"></i>
-                            </div>
-                            <h4>SQLite3</h4>
-                            <p>Lightweight database for efficient data management</p>
-                        </div>
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <h4>Fern Security</h4>
-                            <p>Advanced security protocols to protect user data</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tech-category">
-                    <h3>Mobile Application</h3>
-                    <div class="tech-items">
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fab fa-react"></i>
-                            </div>
-                            <h4>React Native</h4>
-                            <p>Framework for building native mobile apps using React</p>
-                        </div>
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fab fa-js"></i>
-                            </div>
-                            <h4>JavaScript</h4>
-                            <p>Programming language for mobile app functionality</p>
-                        </div>
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fas fa-mobile-alt"></i>
-                            </div>
-                            <h4>Cross-Platform</h4>
-                            <p>Works on both iOS and Android devices</p>
-                        </div>
-                        <div class="tech-item">
-                            <div class="tech-icon">
-                                <i class="fas fa-sync-alt"></i>
-                            </div>
-                            <h4>API Integration</h4>
-                            <p>Seamless connection with web platform APIs</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2>Technology Stack</h2>
+          <div class="heading-separator">
+            <div class="separator-line"></div>
+            <img
+              src="{% static 'assets/logo/logo.png' %}"
+              alt="SK Logo"
+              class="separator-logo"
+            />
+            <div class="separator-line"></div>
+          </div>
+          <p>
+            Modern technologies powering our thesis project for reliability,
+            security, and scalability
+          </p>
         </div>
+
+        <div class="tech-grid">
+          <div class="tech-category">
+            <h3>Website Platform</h3>
+            <div class="tech-items">
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fab fa-python"></i>
+                </div>
+                <h4>Django Framework</h4>
+                <p>High-level Python web framework for rapid development</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fab fa-python"></i>
+                </div>
+                <h4>Python</h4>
+                <p>Programming language for backend logic and functionality</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fas fa-database"></i>
+                </div>
+                <h4>SQLite3</h4>
+                <p>Lightweight database for efficient data management</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <h4>Fern Security</h4>
+                <p>Advanced security protocols to protect user data</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tech-category">
+            <h3>Mobile Application</h3>
+            <div class="tech-items">
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fab fa-react"></i>
+                </div>
+                <h4>React Native</h4>
+                <p>Framework for building native mobile apps using React</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fab fa-js"></i>
+                </div>
+                <h4>JavaScript</h4>
+                <p>Programming language for mobile app functionality</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fab fa-node-js"></i>
+                </div>
+                <h4>Node.js</h4>
+                <p>
+                  JavaScript runtime environment powering React Native
+                  development tools
+                </p>
+              </div>
+
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fas fa-sync-alt"></i>
+                </div>
+                <h4>API Integration</h4>
+                <p>Seamless connection with web platform APIs</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="project-purpose">
-        <div class="container">
-            <div class="section-header">
-                <h2>Project Purpose & Academic Value</h2>
-                 <div class="heading-separator">
-                    <div class="separator-line"></div>
-                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
-                    <div class="separator-line"></div>
-                </div>
-                <p>Our Capstone project combines academic excellence with real-world community impact</p>
-            </div>
-
-            <div class="purpose-content">
-                <div class="purpose-item">
-                    <div class="purpose-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <h3>Academic Achievement</h3>
-                    <p>This project represents our culmination of four years of IT education, demonstrating our proficiency in software development, project management, and problem-solving.</p>
-                </div>
-                <div class="purpose-item">
-                    <div class="purpose-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>Community Service</h3>
-                    <p>We've applied our technical skills to address real community needs, creating a platform that genuinely benefits the youth of Barangay Mambugan.</p>
-                </div>
-                <div class="purpose-item">
-                    <div class="purpose-icon">
-                        <i class="fas fa-lightbulb"></i>
-                    </div>
-                    <h3>Innovation</h3>
-                    <p>Our project introduces digital transformation to traditional community processes, setting a new standard for youth engagement in barangay governance.</p>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-header">
+          <h2>Project Purpose & Academic Value</h2>
+          <div class="heading-separator">
+            <div class="separator-line"></div>
+            <img
+              src="{% static 'assets/logo/logo.png' %}"
+              alt="SK Logo"
+              class="separator-logo"
+            />
+            <div class="separator-line"></div>
+          </div>
+          <p>
+            Our Capstone project combines academic excellence with real-world
+            community impact
+          </p>
         </div>
+
+        <div class="purpose-content">
+          <div class="purpose-item">
+            <div class="purpose-icon">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h3>Academic Achievement</h3>
+            <p>
+              This project represents our culmination of four years of IT
+              education, demonstrating our proficiency in software development,
+              project management, and problem-solving.
+            </p>
+          </div>
+          <div class="purpose-item">
+            <div class="purpose-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <h3>Community Service</h3>
+            <p>
+              We've applied our technical skills to address real community
+              needs, creating a platform that genuinely benefits the youth of
+              Barangay Mambugan.
+            </p>
+          </div>
+          <div class="purpose-item">
+            <div class="purpose-icon">
+              <i class="fas fa-lightbulb"></i>
+            </div>
+            <h3>Innovation</h3>
+            <p>
+              Our project introduces digital transformation to traditional
+              community processes, setting a new standard for youth engagement
+              in barangay governance.
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="acknowledgement">
-        <div class="container">
-            <div class="acknowledgement-content">
-                <h2>Special Thanks</h2>
-                <p>We extend our sincere gratitude to Our Lady of Fatima University - Antipolo Campus faculty members, our thesis advisors, and the officials of Barangay Mambugan for their guidance and support throughout this project.</p>
-                <div class="thanks-icons">
-                    <div class="thanks-item">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <span>Capstone Advisors</span>
-                    </div>
-                    <div class="thanks-item">
-                        <i class="fas fa-university"></i>
-                        <span>OLFU Faculty</span>
-                    </div>
-                    <div class="thanks-item">
-                        <i class="fas fa-hands-helping"></i>
-                        <span>Barangay Officials</span>
-                    </div>
-                </div>
+      <div class="container">
+        <div class="acknowledgement-content">
+          <h2>Special Thanks</h2>
+          <p>
+            We extend our sincere gratitude to Our Lady of Fatima University -
+            Antipolo Campus faculty members, our thesis advisors, and the
+            officials of Barangay Mambugan for their guidance and support
+            throughout this project.
+          </p>
+          <div class="thanks-icons">
+            <div class="thanks-item">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Capstone Advisors</span>
             </div>
+            <div class="thanks-item">
+              <i class="fas fa-university"></i>
+              <span>OLFU Faculty</span>
+            </div>
+            <div class="thanks-item">
+              <i class="fas fa-hands-helping"></i>
+              <span>Sangguniang Kabataan Officials</span>
+            </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <div class="footer-logo">
-                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
-                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
-                </div>
-                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
-                <div class="social-icons">
-                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
-                </div>
-            </div>
-            <div class="footer-section">
-                <h3>Quick Links</h3>
-                <ul>
-                    <li><a href="{% url 'index' %}">Home</a></li>
-                    <li><a href="{% url 'announcement' %}">Announcements & Events</a></li>
-                    <li><a href="{% url 'the_project' %}">The Project & Developers</a></li>
-                    <li><a href="{% url 'the_community' %}">The Sangguniang Kabataan</a></li>
-                    <li><a href="{% url 'contact' %}">Contact</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>Services</h3>
-                <ul>
-                    <li><a href="{% url 'index' %}#services">Event Registration</a></li>
-                    <li><a href="{% url 'index' %}#services">Community Support</a></li>
-                    <li><a href="{% url 'index' %}#services">Youth Innovation Hub</a></li>
-                    <li><a href="{% url 'contact' %}#services-section">Complaint Portal</a></li>
-                    <li><a href="{% url 'contact' %}#services-section">Suggestion Box</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>Contact Us</h3>
-                <ul class="contact-info">
-                    <li><i class="fas fa-phone"></i> 09564368835</li>
-                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
-                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
-                </ul>
-            </div>
+      <div class="footer-container">
+        <div class="footer-section">
+          <div class="footer-logo">
+            <img
+              src="{% static 'assets/logo/logo.png' %}"
+              alt="SK Baranggay Logo"
+            />
+            <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+          </div>
+          <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+          <div class="social-icons">
+            <a href="https://www.facebook.com/profile.php?id=61553913343661"
+              ><i class="fab fa-facebook-f"></i
+            ></a>
+          </div>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        <div class="footer-section">
+          <h3>Quick Links</h3>
+          <ul>
+            <li><a href="{% url 'index' %}">Home</a></li>
+            <li>
+              <a href="{% url 'announcement' %}">Announcements & Events</a>
+            </li>
+            <li>
+              <a href="{% url 'the_project' %}">The Project & Developers</a>
+            </li>
+            <li>
+              <a href="{% url 'the_community' %}">The Sangguniang Kabataan</a>
+            </li>
+            <li><a href="{% url 'contact' %}">Contact</a></li>
+          </ul>
         </div>
+        <div class="footer-section">
+          <h3>Services</h3>
+          <ul>
+            <li><a href="{% url 'index' %}#services">Event Registration</a></li>
+            <li><a href="{% url 'index' %}#services">Community Support</a></li>
+            <li>
+              <a href="{% url 'index' %}#services">Youth Innovation Hub</a>
+            </li>
+            <li>
+              <a href="{% url 'contact' %}#services-section"
+                >Complaint Portal</a
+              >
+            </li>
+            <li>
+              <a href="{% url 'contact' %}#services-section">Suggestion Box</a>
+            </li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Contact Us</h3>
+          <ul class="contact-info">
+            <li><i class="fas fa-phone"></i> 09564368835</li>
+            <li>
+              <i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay
+              Mambugan, Antipolo City
+            </li>
+            <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>
+          &copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights
+          reserved.
+        </p>
+      </div>
     </footer>
 
     <script src="{% static 'js/index/theproject.js' %}"></script>
-</body>
+  </body>
 </html>
