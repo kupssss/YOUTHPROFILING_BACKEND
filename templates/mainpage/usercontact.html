@@ -1,0 +1,456 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/mainpage/usercontact.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link active">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+
+    <section class="contact-hero">
+        <div class="hero-content">
+            <h1>Get in <span>Touch</span></h1>
+            <p>We're here to help and answer any questions you might have. We look forward to hearing from you.</p>
+            
+            <div class="user-contact-info">
+                <div class="user-contact-card">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <h3>{{ user.first_name }} {{ user.last_name }}</h3>
+                        <p>Member since {{ user.created_at|date:"M Y" }}</p>
+                        <span class="user-status">Verified Member</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-stats">
+                <div class="stat">
+                    <i class="fas fa-phone"></i>
+                    <h3>Call Us</h3>
+                    <p>09564368835</p>
+                </div>
+                <div class="stat">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <h3>Visit Us</h3>
+                    <p>Ruhat 3 Lower Barangay Mambugan, Antipolo City</p>
+                </div>
+                <div class="stat">
+                    <i class="fas fa-envelope"></i>
+                    <h3>Email Us</h3>
+                    <p>skmambugan2023@gmail.com</p>
+                </div>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-blend"></div>
+            <img src="{% static 'assets/community/contact.jpg' %}" alt="Contact SK Mambugan" class="hero-img">
+        </div>
+    </section>
+
+    <section class="contact-main">
+        <div class="container">
+            <div class="section-header">
+                <h2>Contact Information</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Reach out to us through any of the following channels</p>
+            </div>
+
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <h3>Phone</h3>
+                        <p>09564368835</p>
+                        <span>Available from 8:00 AM to 5:00 PM</span>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <h3>Address</h3>
+                        <p>Ruhat 3 Lower Barangay Mambugan, Antipolo City</p>
+                        <span>Visit our office during business hours</span>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h3>Email</h3>
+                        <p>skmambugan2023@gmail.com</p>
+                        <span>We'll respond within 24 hours</span>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3>Technical Support</h3>
+                        <p>youthprofiling.thesis.message@gmail.com</p>
+                        <span>For technical issues with the system</span>
+                    </div>
+                </div>
+
+                <div class="contact-form-container">
+                    <h3>Send us a Message</h3>
+                    <form class="contact-form" id="contactForm">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" value="{{ user.first_name }} {{ user.last_name }}" readonly>
+                            <span class="form-note">Your profile name (can be updated in settings)</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" value="{{ user.email }}" readonly>
+                            <span class="form-note">Your registered email</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" value="{{ user.contact_number }}" readonly>
+                            <span class="form-note">Your registered contact number</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <select id="subject" required>
+                                <option value="">Select a subject</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="technical">Technical Support</option>
+                                <option value="event">Event Registration</option>
+                                <option value="complaint">Complaint</option>
+                                <option value="suggestion">Suggestion</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="5" placeholder="Type your message here..." required></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Message
+                            </button>
+                            <button type="button" class="btn-secondary" id="save-draft">
+                                <i class="fas fa-save"></i> Save Draft
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="services-section" id="services-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Additional Services</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Access our specialized portals for complaints and suggestions</p>
+            </div>
+
+            <div class="services-grid">
+                <div class="service-card" id="complaint">
+                    <div class="service-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h3>Complaint Portal</h3>
+                    <p>Report issues or concerns that need immediate attention from the SK officials.</p>
+                    <div class="service-stats">
+                        <span><i class="fas fa-history"></i> {{ complaint_count }} previous complaints</span>
+                        <span><i class="fas fa-check-circle"></i> {{ resolved_complaints }} resolved</span>
+                    </div>
+                    <button class="btn-service" data-service="complaint">File a Complaint</button>
+                </div>
+
+                <div class="service-card" id="suggest">
+                    <div class="service-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h3>Suggestion Box</h3>
+                    <p>Share your ideas and suggestions to help improve our community programs.</p>
+                    <div class="service-stats">
+                        <span><i class="fas fa-history"></i> {{ suggestion_count }} suggestions submitted</span>
+                        <span><i class="fas fa-star"></i> {{ implemented_suggestions }} implemented</span>
+                    </div>
+                    <button class="btn-service" data-service="suggestion">Make a Suggestion</button>
+                </div>
+
+                
+            </div>
+        </div>
+    </section>
+
+    <section class="modal" id="serviceModal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modalTitle">Service Form</h2>
+            <form id="serviceForm">
+                {% csrf_token %}
+                <input type="hidden" id="serviceType" name="service_type">
+                <div class="form-group">
+                    <label for="serviceName">Full Name</label>
+                    <input type="text" id="serviceName" value="{{ user.first_name }} {{ user.last_name }}" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="serviceContact">Contact Information</label>
+                    <input type="text" id="serviceContact" value="{{ user.email }} | {{ user.contact_number }}" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="serviceTitle">Title</label>
+                    <input type="text" id="serviceTitle" name="title" placeholder="Enter a brief title..." required>
+                </div>
+                <div class="form-group">
+                    <label for="serviceDetails">Details</label>
+                    <textarea id="serviceDetails" name="details" rows="5" placeholder="Please provide details..." required></textarea>
+                </div>
+                <div class="form-group" id="urgencyField" style="display: none;">
+                    <label for="serviceUrgency">Urgency Level</label>
+                    <select id="serviceUrgency" name="urgency">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Submit</button>
+                    <button type="button" class="btn-secondary" id="cancelService">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="contact-map">
+        <div class="container">
+            <div class="section-header">
+                <h2>Find Our Location</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Visit our office at Barangay Mambugan, Antipolo City</p>
+            </div>
+
+            <div class="map-container">
+                <div id="contact-map"></div>
+                <div class="map-info">
+                    <h3>SK Mambugan Office</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</p>
+                    <div class="map-details">
+                        <div class="detail-item">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <h4>Office Hours</h4>
+                                <p>Monday to Friday: 8:00 AM - 5:00 PM</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-phone"></i>
+                            <div>
+                                <h4>Contact Number</h4>
+                                <p>09564368835</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <h4>Email Address</h4>
+                                <p>skmambugan2023@gmail.com</p>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="https://www.google.com/maps/place/Mambugan,+Antipolo,+Rizal" target="_blank" class="btn-primary">
+                        <i class="fas fa-directions"></i> Get Directions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Frequently Asked Questions</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Find answers to common questions about SK Mambugan</p>
+            </div>
+
+            <div class="faq-container">
+                {% for faq in faqs %}
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>{{ faq.question }}</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>{{ faq.answer }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="quick-contact">
+        <div class="container">
+            <div class="section-header">
+                <h2>Quick Contact Options</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Reach us quickly through these direct channels</p>
+            </div>
+            
+            <div class="quick-contact-options">
+                <a href="tel:09564368835" class="quick-contact-card">
+                    <div class="quick-contact-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h3>Call Now</h3>
+                    <p>Direct line to SK office</p>
+                </a>
+                
+                <a href="mailto:skmambugan2023@gmail.com" class="quick-contact-card">
+                    <div class="quick-contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Send Email</h3>
+                    <p>Quick response guaranteed</p>
+                </a>
+                
+                <a href="https://www.facebook.com/profile.php?id=61553913343661" target="_blank" class="quick-contact-card">
+                    <div class="quick-contact-icon">
+                        <i class="fab fa-facebook-messenger"></i>
+                    </div>
+                    <h3>Messenger</h3>
+                    <p>Chat with us on Facebook</p>
+                </a>
+                
+                <a href="https://www.facebook.com/profile.php?id=61553913343661" target="_blank" class="quick-contact-card">
+                    <div class="quick-contact-icon">
+                        <i class="fab fa-facebook"></i>
+                    </div>
+                    <h3>Facebook</h3>
+                    <p>Visit our Facebook page</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'mainpage' %}">Home</a></li>
+                    <li><a href="{% url 'userannouncement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'usercommunity' %}">The Community</a></li>
+                    <li><a href="{% url 'usercontact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Member Services</h3>
+                <ul>
+                    <li><a href="{% url 'userprofile' %}">My Profile</a></li>
+                    <li><a href="{% url 'myevents' %}">My Events</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Confirm Logout</h2>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-buttons">
+                <button id="confirmLogout" class="btn-primary">Yes, Logout</button>
+                <button id="cancelLogout" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="{% static 'js/mainpage/usercontact.js' %}"></script>
+</body>
+</html>

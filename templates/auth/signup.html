@@ -1,0 +1,406 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - SK Mambugan Youth Management System</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/auth/signup.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="signup-container">
+        <div class="signup-left">
+            <div class="signup-content">
+                <a href="{% url 'index' %}" class="back-home">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+                
+                <div class="signup-header">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan Logo" class="signup-logo">
+                    <h1>Youth Registration</h1>
+                    <p>Join the SK Mambugan Youth Management System</p>
+                </div>
+
+                <form class="signup-form" id="registrationForm">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-steps">
+                            <span class="step active" data-step="1">Profile</span>
+                            <span class="step" data-step="2">Demographics</span>
+                            <span class="step" data-step="3">Credentials</span>
+                            <span class="step" data-step="4">Verification</span>
+                            <span class="step" data-step="5">Confirmation</span>
+                        </div>
+                    </div>
+
+                    <!-- Segment 1: Profile Identification -->
+                    <div class="form-segment active" data-segment="1">
+                        <h3 class="segment-title">Profile Identification</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="lastName">Last Name <span class="required">*</span></label>
+                                <input type="text" id="lastName" name="lastName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="firstName">First Name <span class="required">*</span></label>
+                                <input type="text" id="firstName" name="firstName" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="middleName">Middle Name</label>
+                                <input type="text" id="middleName" name="middleName">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="suffix">Suffix</label>
+                                <input type="text" id="suffix" name="suffix" placeholder="Jr, Sr, III">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="address">Address <span class="required">*</span></label>
+                            <input type="text" id="address" name="address" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="purokZone">Sitio/Purok <span class="required">*</span></label>
+                                <select id="purokZone" name="purokZone" required>
+                                    <option value="">Select Zone</option>
+                                    <option value="Zone 1">Zone 1</option>
+                                    <option value="Zone 2">Zone 2</option>
+                                    <option value="Zone 3">Zone 3</option>
+                                    <option value="Zone 4">Zone 4</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="gender">Gender <span class="required">*</span></label>
+                                <select id="gender" name="gender" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="birthdate">Birthdate <span class="required">*</span></label>
+                                <input type="date" id="birthdate" name="birthdate" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="age">Age</label>
+                                <input type="text" id="age" name="age" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="segment-navigation">
+                            <button type="button" class="btn-next">Next: Demographics <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Segment 2: Demographic Characteristics -->
+                    <div class="form-segment" data-segment="2">
+                        <h3 class="segment-title">Demographic Characteristics</h3>
+                        
+                        <div class="form-group">
+                            <label for="civilStatus">Civil Status <span class="required">*</span></label>
+                            <select id="civilStatus" name="civilStatus" required>
+                                <option value="">Select Civil Status</option>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Widowed">Widowed</option>
+                                <option value="Separated">Separated</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="ageGroup">Age Group <span class="required">*</span></label>
+                            <select id="ageGroup" name="ageGroup" required>
+                                <option value="">Select Age Group</option>
+                                <option value="15-17">15-17 years</option>
+                                <option value="18-21">18-21 years</option>
+                                <option value="22-25">22-25 years</option>
+                                <option value="26-30">26-30 years</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="education">Educational Background <span class="required">*</span></label>
+                            <select id="education" name="education" required>
+                                <option value="">Select Education</option>
+                                <option value="Elementary">Elementary</option>
+                                <option value="High School">High School</option>
+                                <option value="College">College</option>
+                                <option value="Vocational">Vocational/Tech</option>
+                                <option value="Postgraduate">Postgraduate</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="youthClassification">Youth Classification <span class="required">*</span></label>
+                            <select id="youthClassification" name="youthClassification" required>
+                                <option value="">Select Classification</option>
+                                <option value="Student">Student</option>
+                                <option value="Working">Working</option>
+                                <option value="Out-of-School">Out-of-School Youth</option>
+                                <option value="NEET">Not in Education, Employment or Training</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workStatus">Work Status <span class="required">*</span></label>
+                            <select id="workStatus" name="workStatus" required>
+                                <option value="">Select Work Status</option>
+                                <option value="Employed">Employed</option>
+                                <option value="Unemployed">Unemployed</option>
+                                <option value="Self-Employed">Self-Employed</option>
+                                <option value="Student">Student</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Registered SK Voter? <span class="required">*</span></label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="skVoter" value="Yes" required>
+                                    <span class="radio-checkmark"></span>
+                                    Yes
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="skVoter" value="No">
+                                    <span class="radio-checkmark"></span>
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="segment-navigation">
+                            <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+                            <button type="button" class="btn-next">Next: Credentials <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Segment 3: Credentials -->
+                    <div class="form-segment" data-segment="3">
+                        <h3 class="segment-title">Account Credentials</h3>
+                        
+                        <div class="form-group">
+                            <label for="registrationNo">Registration Number</label>
+                            <input type="text" id="registrationNo" name="registrationNo" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address <span class="required">*</span></label>
+                            <input type="email" id="email" name="email" required>
+                            <div class="input-hint">Only Gmail or Yahoo emails are allowed</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contactNumber">Contact Number <span class="required">*</span></label>
+                            <input type="tel" id="contactNumber" name="contactNumber" pattern="[0-9]{11}" placeholder="09XXXXXXXXX" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="username">Username <span class="required">*</span></label>
+                            <input type="text" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="password">Password <span class="required">*</span></label>
+                                <div class="password-container">
+                                    <input type="password" id="password" name="password" required>
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+                                <div class="password-container">
+                                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="profilePicture">Profile Picture</label>
+                            <div class="file-upload">
+                                <input type="file" id="profilePicture" name="profilePicture" accept="image/*">
+                                <label for="profilePicture" class="file-upload-label">
+                                    <i class="fas fa-upload"></i> Choose File
+                                </label>
+                                <span class="file-name">No file chosen</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="idType">ID Type <span class="required">*</span></label>
+                            <select id="idType" name="idType" required>
+                                <option value="">Select ID Type</option>
+                                <option value="Passport">Passport</option>
+                                <option value="Driver's License">Driver's License</option>
+                                <option value="UMID">Unified Multi-Purpose ID</option>
+                                <option value="Student ID">Student ID</option>
+                                <option value="Postal ID">Postal ID</option>
+                                <option value="PhilHealth ID">PhilHealth ID</option>
+                                <option value="SSS ID">SSS ID</option>
+                                <option value="PRC ID">PRC ID</option>
+                                <option value="Voter's ID">Voter's ID</option>
+                                <option value="Senior Citizen ID">Senior Citizen ID</option>
+                                <option value="Other">Other Government ID</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="idPicture">ID Picture <span class="required">*</span></label>
+                            <div class="file-upload">
+                                <input type="file" id="idPicture" name="idPicture" accept="image/*" required>
+                                <label for="idPicture" class="file-upload-label">
+                                    <i class="fas fa-upload"></i> Choose File
+                                </label>
+                                <span class="file-name">No file chosen</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="birthCertificate">Birth Certificate</label>
+                            <div class="file-upload">
+                                <input type="file" id="birthCertificate" name="birthCertificate" accept="image/*,.pdf">
+                                <label for="birthCertificate" class="file-upload-label">
+                                    <i class="fas fa-upload"></i> Choose File
+                                </label>
+                                <span class="file-name">No file chosen</span>
+                            </div>
+                        </div>
+                        
+                        <div class="segment-navigation">
+                            <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+                            <button type="button" class="btn-next">Next: Verification <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Segment 4: Email OTP Verification -->
+                    <div class="form-segment" data-segment="4">
+                        <h3 class="segment-title">Email Verification</h3>
+                        
+                        <div class="verification-content">
+                            <div class="verification-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            
+                            <p>We've sent a verification code to your email address. Please check your inbox and enter the code below.</p>
+                            
+                            <div class="otp-container">
+                                <input type="text" id="otp1" class="otp-input" maxlength="1" required>
+                                <input type="text" id="otp2" class="otp-input" maxlength="1" required>
+                                <input type="text" id="otp3" class="otp-input" maxlength="1" required>
+                                <input type="text" id="otp4" class="otp-input" maxlength="1" required>
+                                <input type="text" id="otp5" class="otp-input" maxlength="1" required>
+                                <input type="text" id="otp6" class="otp-input" maxlength="1" required>
+                            </div>
+                            
+                            <div class="verification-actions">
+                                <button type="button" class="btn-resend">Resend Code</button>
+                                <span class="countdown" id="countdown">02:00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="segment-navigation">
+                            <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+                            <button type="button" class="btn-verify">Verify & Continue</button>
+                        </div>
+                    </div>
+
+                    <!-- Segment 5: Confirmation -->
+                    <div class="form-segment" data-segment="5">
+                        <h3 class="segment-title">Registration Complete</h3>
+                        
+                        <div class="confirmation-content">
+                            <div class="confirmation-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            
+                            <h3>Thank You for Registering!</h3>
+                            
+                            <p>Your registration has been successfully submitted. Your account will be activated after verification by our administrators.</p>
+                            
+                            <div class="confirmation-details">
+                                <p><strong>Registration Number:</strong> <span id="confirmRegNo">SKM-2023-001</span></p>
+                                <p><strong>Name:</strong> <span id="confirmName"></span></p>
+                                <p><strong>Email:</strong> <span id="confirmEmail"></span></p>
+                            </div>
+                            
+                            <p>You will receive an email notification once your account is approved.</p>
+                        </div>
+                        
+                        <div class="segment-navigation">
+                            <a href="{% url 'login' %}" class="btn-login">Proceed to Login</a>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="signup-footer">
+                    <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="signup-right">
+            <div class="signup-hero">
+                <div class="hero-content">
+                    <h2>Join Our Youth Community</h2>
+                    <p>Become part of Barangay Mambugan's digital youth management system and access exclusive programs and opportunities.</p>
+                    
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h4>Community Engagement</h4>
+                                <p>Connect with fellow youth in your barangay</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div>
+                                <h4>Event Access</h4>
+                                <p>Get notified about youth programs and activities</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line"></i>
+                            <div>
+                                <h4>Growth Opportunities</h4>
+                                <p>Access skills development and leadership programs</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/auth/signup.js' %}"></script>
+</body>
+</html>

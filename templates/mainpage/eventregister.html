@@ -1,0 +1,367 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register for Event - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/mainpage/eventregister.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="{% url 'logout' %}" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="registration-container" data-event-id="{{ event.id }}">
+        <div class="registration-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-steps">
+                <div class="step active" data-step="1">
+                    <span class="step-number">1</span>
+                    <span class="step-label">Event Details</span>
+                </div>
+                <div class="step" data-step="2">
+                    <span class="step-number">2</span>
+                    <span class="step-label">Your Information</span>
+                </div>
+                <div class="step" data-step="3">
+                    <span class="step-number">3</span>
+                    <span class="step-label">Additional Info</span>
+                </div>
+                <div class="step" data-step="4">
+                    <span class="step-number">4</span>
+                    <span class="step-label">Confirmation</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="registration-content">
+            <div class="event-header">
+                <div class="event-image">
+                    {% if event.image %}
+                    <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                    {% else %}
+                    <img src="{% static 'assets/images/event-default.jpg' %}" alt="Event Image">
+                    {% endif %}
+                    <div class="event-badge">
+                        <i class="fas fa-calendar-alt"></i> Event Registration
+                    </div>
+                </div>
+                <div class="event-details">
+                    <h1>{{ event.title }}</h1>
+                    <div class="event-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>{{ event.start_date|date:"F d, Y" }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>{{ event.start_date|time }} - {{ event.end_date|time }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>{{ event.location }}</span>
+                        </div>
+                        {% if event.maximum_participants %}
+                        <div class="meta-item">
+                            <i class="fas fa-users"></i>
+                            <span>{{ event.current_participants }}/{{ event.maximum_participants }} Registered</span>
+                        </div>
+                        {% endif %}
+                        {% if event.points_reward %}
+                        <div class="meta-item points">
+                            <i class="fas fa-star"></i>
+                            <span>Earn {{ event.points_reward }} Community Points</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <form id="registrationForm" class="registration-form">
+                <div class="form-step active" data-step="1">
+                    <h2>Event Overview</h2>
+                    <div class="readonly-details">
+                        <p>{{ event.description }}</p>
+                        
+                        <div class="detail-card">
+                            <h3>Important Information</h3>
+                            <ul>
+                                <li><strong>Registration Deadline:</strong> 
+                                    {% if event.registration_deadline %}
+                                        {{ event.registration_deadline|date:"F d, Y" }}
+                                    {% else %}
+                                        No deadline specified
+                                    {% endif %}
+                                </li>
+                                <li><strong>Eligibility:</strong> 
+                                    {% if event.is_eligible %}
+                                        You are eligible to participate
+                                    {% else %}
+                                        Please check event requirements
+                                    {% endif %}
+                                </li>
+                                <li><strong>Category:</strong> {{ event.get_category_display }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="step-buttons">
+                        <button type="button" class="btn-next">Continue</button>
+                    </div>
+                </div>
+
+                <div class="form-step" data-step="2">
+                    <h2>Your Information</h2>
+                    <p class="step-description">We'll use this information for your registration and event communication.</p>
+                    
+                    <div class="user-info-summary">
+                        <div class="info-card">
+                            <h3>Personal Details</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Full Name</label>
+                                    <p>{{ user.get_full_name }}</p>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email</label>
+                                    <p>{{ user.email }}</p>
+                                </div>
+                                <div class="info-item">
+                                    <label>Contact Number</label>
+                                    <p>{{ user.contact_number }}</p>
+                                </div>
+                                <div class="info-item">
+                                    <label>Age Group</label>
+                                    <p>{{ user.get_age_group_display }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Emergency Contact</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="emergency_contact_name">Emergency Contact Name *</label>
+                                <input type="text" id="emergency_contact_name" name="emergency_contact_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="emergency_contact_number">Emergency Contact Number *</label>
+                                <input type="tel" id="emergency_contact_number" name="emergency_contact_number" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-buttons">
+                        <button type="button" class="btn-prev">Back</button>
+                        <button type="button" class="btn-next">Continue</button>
+                    </div>
+                </div>
+
+                <div class="form-step" data-step="3">
+                    <h2>Additional Information</h2>
+                    <p class="step-description">Help us make your experience better by providing these details.</p>
+                    
+                    <div class="form-section">
+                        <h3>Preferences & Requirements</h3>
+                        
+                        <div class="form-group">
+                            <label for="special_accommodations">Special Accommodations Needed</label>
+                            <textarea id="special_accommodations" name="special_accommodations" placeholder="e.g., Wheelchair access, hearing assistance, etc." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>How did you hear about this event?</h3>
+                        <div class="form-group">
+                            <select id="how_heard" name="how_heard">
+                                <option value="">Select an option</option>
+                                <option value="social_media">Social Media</option>
+                                <option value="friend">From a Friend</option>
+                                <option value="email">Email Notification</option>
+                                <option value="website">SK Website</option>
+                                <option value="community_board">Community Board</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {% if questions %}
+                    <div class="form-section">
+                        <h3>Event-Specific Questions</h3>
+                        {% for question in questions %}
+                        <div class="form-group">
+                            <label for="question_{{ question.id }}">
+                                {{ question.question_text }}{% if question.is_required %} *{% endif %}
+                            </label>
+                            
+                            {% if question.question_type == 'text' %}
+                            <input type="text" id="question_{{ question.id }}" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                            
+                            {% elif question.question_type == 'textarea' %}
+                            <textarea id="question_{{ question.id }}" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %} rows="3"></textarea>
+                            
+                            {% elif question.question_type == 'radio' %}
+                            <div class="options-group">
+                                {% for option in question.options.split %}
+                                <label class="radio-option">
+                                    <input type="radio" name="question_{{ question.id }}" value="{{ option }}" {% if question.is_required %}required{% endif %}>
+                                    <span class="radio-checkmark"></span>
+                                    {{ option }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                            
+                            {% elif question.question_type == 'checkbox' %}
+                            <div class="options-group">
+                                {% for option in question.options.split %}
+                                <label class="checkbox-option">
+                                    <input type="checkbox" name="question_{{ question.id }}" value="{{ option }}">
+                                    <span class="checkbox-checkmark"></span>
+                                    {{ option }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                            
+                            {% elif question.question_type == 'dropdown' %}
+                            <select id="question_{{ question.id }}" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                <option value="">Select an option</option>
+                                {% for option in question.options.split %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="form-section">
+                        <h3>Permissions</h3>
+                        <div class="checkbox-group">
+                            <label class="checkbox-option large">
+                                <input type="checkbox" id="agree_to_terms" name="agree_to_terms" required>
+                                <span class="checkbox-checkmark"></span>
+                                I agree to the terms and conditions of this event *
+                            </label>
+                            <label class="checkbox-option large">
+                                <input type="checkbox" id="agree_to_photos" name="agree_to_photos">
+                                <span class="checkbox-checkmark"></span>
+                                I give permission to use photos/videos taken during the event for promotional purposes
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="step-buttons">
+                        <button type="button" class="btn-prev">Back</button>
+                        <button type="button" class="btn-next">Continue</button>
+                    </div>
+                </div>
+
+                <div class="form-step" data-step="4">
+                    <h2>Review & Confirm</h2>
+                    <p class="step-description">Please review your information before submitting your registration.</p>
+                    
+                    <div class="confirmation-summary">
+                        <div class="summary-card">
+                            <h3>Registration Summary</h3>
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <strong>Event:</strong> {{ event.title }}
+                                </div>
+                                <div class="summary-item">
+                                    <strong>Date:</strong> {{ event.start_date|date:"F d, Y" }}
+                                </div>
+                                <div class="summary-item">
+                                    <strong>Time:</strong> {{ event.start_date|time }} - {{ event.end_date|time }}
+                                </div>
+                                <div class="summary-item">
+                                    <strong>Location:</strong> {{ event.location }}
+                                </div>
+                                <div class="summary-item full-width">
+                                    <strong>Emergency Contact:</strong> 
+                                    <span id="summary-emergency-name"></span> - 
+                                    <span id="summary-emergency-number"></span>
+                                </div>
+                                {% if questions %}
+                                <div class="summary-item full-width">
+                                    <strong>Your Responses:</strong>
+                                    <div id="summary-responses"></div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-buttons">
+                        <button type="button" class="btn-prev">Back</button>
+                        <button type="submit" class="btn-submit">Submit Registration</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal">
+        <div class="modal-content success-modal">
+            <div class="success-animation">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h2>Registration Successful!</h2>
+            <p id="successMessage">You've successfully registered for {{ event.title }}.</p>
+            <div class="success-actions">
+                <a href="{% url 'userannouncement' %}" class="btn-primary">Back to Events</a>
+                <button id="addToCalendar" class="btn-secondary">Add to Calendar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Processing your registration...</p>
+        </div>
+    </div>
+
+    <script src="{% static 'js/mainpage/eventregister.js' %}"></script>
+</body>
+</html>

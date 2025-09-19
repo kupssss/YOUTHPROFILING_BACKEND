@@ -1,0 +1,294 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sangguniang Kabataan ng Barangay Mambugan - Dashboard</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/mainpage/mainpage.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link active">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="welcome-banner">
+        <div class="welcome-container">
+            <div class="welcome-content">
+                <h1>Welcome back, {{ user.first_name }}!</h1>
+                <p>We're glad to have you back in our community. Check out what's new and get involved in upcoming events.</p>
+                <div class="user-stats">
+                    <div class="user-stat">
+                        <span class="stat-number">{{ upcoming_events_count }}</span>
+                        <span class="stat-label">Upcoming Events</span>
+                    </div>
+                    <div class="user-stat">
+                        <span class="stat-number">{{ user_registered_events_count }}</span>
+                        <span class="stat-label">Registered Activities</span>
+                    </div>
+                    <div class="user-stat">
+                        <span class="stat-number">{{ user_points }}</span>
+                        <span class="stat-label">Community Points</span>
+                    </div>
+                </div>
+            </div>
+            <div class="welcome-image">
+                <img src="{% static 'assets/community/welcome.svg' %}" alt="Welcome illustration">
+            </div>
+        </div>
+    </section>
+
+    <section class="quick-actions">
+        <div class="section-header">
+            <h2>Quick Actions</h2>
+            <p>Access frequently used features quickly</p>
+        </div>
+        <div class="actions-container">
+            <a href="{% url 'userannouncement' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <h3>Register for Events</h3>
+                <p>Sign up for upcoming community activities and workshops</p>
+            </a>
+            <a href="{% url 'userprofile' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-user-edit"></i>
+                </div>
+                <h3>Update Profile</h3>
+                <p>Keep your information current for better service</p>
+            </a>
+            <a href="{% url 'usercontact' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-hands-helping"></i>
+                </div>
+                <h3>Volunteer Opportunities</h3>
+                <p>Find ways to contribute to your community</p>
+            </a>
+            <a href="{% url 'usercontact' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Give Feedback</h3>
+                <p>Share your thoughts and suggestions with us</p>
+            </a>
+        </div>
+    </section>
+
+    <section class="services" id="services">
+        <div class="section-header">
+            <h2>Our Services</h2>
+            <p>We offer various services to support our community members</p>
+        </div>
+        <div class="services-container">
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h3>Event Registration</h3>
+                <p>Register for upcoming community events, workshops, and activities with our easy online system.</p>
+                <a href="{% url 'userannouncement' %}" class="service-link">Explore Events <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-hands-helping"></i>
+                </div>
+                <h3>Community Support</h3>
+                <p>Access various support programs for education, health, and livelihood development.</p>
+                <a href="{% url 'usercommunity' %}" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h3>Youth Innovation Hub</h3>
+                <p>Explore creative programs, leadership training, and skill development workshops.</p>
+                <a href="{% url 'userannouncement' %}" class="service-link">Learn More <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+
+    
+
+    <section class="announcements">
+        <div class="section-header">
+            <h2>Latest Announcements</h2>
+            <p>Stay updated with the latest news from our barangay</p>
+        </div>
+        <div class="announcements-container">
+            {% if announcements %}
+                {% for announcement in announcements|slice:":3" %}
+                <div class="announcement-card">
+                    <div class="announcement-date">
+                        <span class="day">{{ announcement.publish_date|date:"d" }}</span>
+                        <span class="month">{{ announcement.publish_date|date:"M" }}</span>
+                    </div>
+                    <div class="announcement-content">
+                        <h3>{{ announcement.title }}</h3>
+                        <p>{{ announcement.excerpt|default:announcement.content|truncatewords:20 }}</p>
+                        <a href="{% url 'userannouncement' %}" class="announcement-link">Read More</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-content">
+                    <img src="{% static 'assets/images/noannouncement.png' %}" alt="No announcements">
+                    <p>No announcements to show right now</p>
+                </div>
+            {% endif %}
+        </div>
+        <div class="view-all-container">
+            <a href="{% url 'userannouncement' %}" class="view-all-btn">View All Announcements</a>
+        </div>
+    </section>
+
+    <section class="events">
+        <div class="section-header">
+            <h2>Upcoming Events</h2>
+            <p>Join our community events and activities</p>
+        </div>
+        <div class="events-container">
+            {% if upcoming_events %}
+                {% for event in upcoming_events|slice:":3" %}
+                <div class="event-card">
+                    <div class="event-image"style="background: linear-gradient(rgba(30, 64, 175, 0.7), rgba(30, 64, 175, 0.7)), {% if event.image %}url('{{ event.image.url }}'){% else %}url('{% static 'assets/events/default.jpg' %}'){% endif %} center/cover;">
+                        <div class="event-date">
+                            <span>{{ event.start_date|date:"d" }}</span>
+                            <span>{{ event.start_date|date:"M" }}</span>
+                        </div>
+                    </div>
+                    <div class="event-content">
+                        <h3>{{ event.title }}</h3>
+                        <p><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                        <p><i class="fas fa-clock"></i> {{ event.start_date|time }} - {{ event.end_date|time }}</p>
+                        <div class="event-status">
+                            {% if event.id in user_registered_event_ids %}
+                            <span class="status-badge registered"><i class="fas fa-check-circle"></i> Registered</span>
+                            {% elif event.maximum_participants and event.current_participants >= event.maximum_participants %}
+                            <span class="status-badge full"><i class="fas fa-exclamation-circle"></i> Fully Booked</span>
+                            {% else %}
+                            <span class="status-badge available"><i class="fas fa-ticket-alt"></i> Spots Available</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'usereventdetails' event.id %}" class="event-btn">
+                            {% if event.id in user_registered_event_ids %}View Details{% else %}Register Now{% endif %}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-content">
+                    <img src="{% static 'assets/images/noevent.png' %}" alt="No events">
+                    <p>No events to show right now</p>
+                </div>
+            {% endif %}
+        </div>
+        <div class="view-all-container">
+            <a href="{% url 'userannouncement' %}" class="view-all-btn">View All Events</a>
+        </div>
+    </section>
+
+    <section class="community-highlight">
+        <div class="highlight-container">
+            <div class="highlight-content">
+                <h2>Your Community Impact</h2>
+                <p>Since joining our community, you've participated in <strong>{{ user_registered_events_count }} events</strong>, volunteered for <strong>{{ user_volunteer_count }} initiatives</strong>, and earned <strong>{{ user_points }} community points</strong>. Keep up the great work!</p>
+                <a href="{% url 'myevents' %}" class="btn-primary">Track Your Contributions</a>
+            </div>
+            <div class="highlight-image">
+                <img src="{% static 'assets/community/impact.svg' %}" alt="Community impact illustration">
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'mainpage' %}">Home</a></li>
+                    <li><a href="{% url 'userannouncement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'usercommunity' %}">The Community</a></li>
+                    <li><a href="{% url 'usercontact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Member Services</h3>
+                <ul>
+                    <li><a href="{% url 'userprofile' %}">My Profile</a></li>
+                    <li><a href="{% url 'myevents' %}">My Events</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Confirm Logout</h2>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-buttons">
+                <button id="confirmLogout" class="btn-primary">Yes, Logout</button>
+                <button id="cancelLogout" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/mainpage/mainpage.js' %}"></script>
+</body>
+</html>

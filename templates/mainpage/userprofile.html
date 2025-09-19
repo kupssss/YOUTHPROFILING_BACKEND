@@ -1,0 +1,348 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - SK Mambugan</title>
+    <link rel="stylesheet" href="{% static 'css/mainpage/userprofile.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link ">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content ">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user active"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="{% url 'logout' %}" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+
+    <main class="profile-container">
+        <div class="profile-header">
+            <h1><i class="fas fa-user-circle"></i> My Profile</h1>
+            <p>Manage your personal information and access your SK Mambugan ID</p>
+        </div>
+
+        <div class="profile-content">
+            <section class="profile-section personal-details">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-edit"></i> Personal Details</h2>
+                    <p>Update your personal information</p>
+                </div>
+                
+                <form class="profile-form" id="profileForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="first_name">First Name</label>
+                            <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="last_name">Last Name</label>
+                            <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="middle_name">Middle Name</label>
+                            <input type="text" id="middle_name" name="middle_name" value="{{ user.middle_name|default:'' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="suffix">Suffix</label>
+                            <input type="text" id="suffix" name="suffix" value="{{ user.suffix|default:'' }}" placeholder="Jr., Sr., III, etc.">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="address">Complete Address</label>
+                            <textarea id="address" name="address" rows="3" required>{{ user.address }}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="purok_zone">Purok/Zone</label>
+                            <select id="purok_zone" name="purok_zone" required>
+                                <option value="Zone 1" {% if user.purok_zone == "Zone 1" %}selected{% endif %}>Zone 1</option>
+                                <option value="Zone 2" {% if user.purok_zone == "Zone 2" %}selected{% endif %}>Zone 2</option>
+                                <option value="Zone 3" {% if user.purok_zone == "Zone 3" %}selected{% endif %}>Zone 3</option>
+                                <option value="Zone 4" {% if user.purok_zone == "Zone 4" %}selected{% endif %}>Zone 4</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender" required>
+                                <option value="Male" {% if user.gender == "Male" %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if user.gender == "Female" %}selected{% endif %}>Female</option>
+                                <option value="Other" {% if user.gender == "Other" %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="birthdate">Birthdate</label>
+                            <input type="date" id="birthdate" name="birthdate" value="{{ user.birthdate }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="age">Age</label>
+                            <input type="number" id="age" name="age" value="{{ user.age }}" min="15" max="30" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_number">Contact Number</label>
+                            <input type="tel" id="contact_number" name="contact_number" value="{{ user.contact_number }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="civil_status">Civil Status</label>
+                            <select id="civil_status" name="civil_status" required>
+                                <option value="Single" {% if user.civil_status == "Single" %}selected{% endif %}>Single</option>
+                                <option value="Married" {% if user.civil_status == "Married" %}selected{% endif %}>Married</option>
+                                <option value="Widowed" {% if user.civil_status == "Widowed" %}selected{% endif %}>Widowed</option>
+                                <option value="Separated" {% if user.civil_status == "Separated" %}selected{% endif %}>Separated</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="education">Education</label>
+                            <select id="education" name="education" required>
+                                <option value="Elementary" {% if user.education == "Elementary" %}selected{% endif %}>Elementary</option>
+                                <option value="High School" {% if user.education == "High School" %}selected{% endif %}>High School</option>
+                                <option value="College" {% if user.education == "College" %}selected{% endif %}>College</option>
+                                <option value="Vocational" {% if user.education == "Vocational" %}selected{% endif %}>Vocational/Tech</option>
+                                <option value="Postgraduate" {% if user.education == "Postgraduate" %}selected{% endif %}>Postgraduate</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="youth_classification">Youth Classification</label>
+                            <select id="youth_classification" name="youth_classification" required>
+                                <option value="Student" {% if user.youth_classification == "Student" %}selected{% endif %}>Student</option>
+                                <option value="Working" {% if user.youth_classification == "Working" %}selected{% endif %}>Working</option>
+                                <option value="Out-of-School" {% if user.youth_classification == "Out-of-School" %}selected{% endif %}>Out-of-School Youth</option>
+                                <option value="NEET" {% if user.youth_classification == "NEET" %}selected{% endif %}>Not in Education, Employment or Training</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="work_status">Work Status</label>
+                            <select id="work_status" name="work_status" required>
+                                <option value="Employed" {% if user.work_status == "Employed" %}selected{% endif %}>Employed</option>
+                                <option value="Unemployed" {% if user.work_status == "Unemployed" %}selected{% endif %}>Unemployed</option>
+                                <option value="Self-Employed" {% if user.work_status == "Self-Employed" %}selected{% endif %}>Self-Employed</option>
+                                <option value="Student" {% if user.work_status == "Student" %}selected{% endif %}>Student</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sk_voter">SK Voter</label>
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="sk_voter" name="sk_voter" {% if user.sk_voter %}checked{% endif %}>
+                                <label for="sk_voter" class="checkbox-label">Registered SK Voter</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-buttons">
+                        <button type="reset" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Save Changes</button>
+                    </div>
+                </form>
+            </section>
+
+            
+            <section class="profile-section id-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-id-card"></i> SK Mambugan ID</h2>
+                    <p>Your official Sangguniang Kabataan identification</p>
+                </div>
+                
+                <div class="id-card-container">
+                    <div class="id-card-wrapper">
+                        <div class="id-card-front" id="idCardFront">
+                            <div class="id-flag-header">
+                                <div class="flag-stripe blue"></div>
+                                <div class="flag-stripe red"></div>
+                                <div class="flag-stripe blue"></div>
+                                <div class="flag-stripe red"></div>
+                                <div class="flag-stripe blue"></div>
+                            </div>
+                            
+                            <div class="id-content-front">
+                                <div class="id-watermark">
+                                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan Watermark">
+                                </div>
+                                
+                                <div class="id-header-front">
+                                    <div class="id-header-left">
+                                        <div class="id-logo-front">
+                                            <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan Logo">
+                                        </div>
+                                        <div class="id-header-text">
+                                            <div class="republic-text">REPUBLIC OF THE PHILIPPINES</div>
+                                            <div class="city-text">CITY OF ANTIPOLO</div>
+                                            <div class="barangay-text">BARANGAY MAMBUGAN</div>
+                                        </div>
+                                    </div>
+                                    <div class="id-header-right">
+                                        <div class="sk-text">SANGUNIANG KABATAAN</div>
+                                        <div class="id-type">MEMBER IDENTIFICATION CARD</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="id-main-content">
+                                    <div class="id-photo-section">
+                                        <div class="id-photo-front">
+                                            {% if user.profile_picture %}
+                                                <img src="{{ user.profile_picture.url }}" alt="Profile Photo">
+                                            {% else %}
+                                                <div class="default-photo-front">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="id-number-front">
+                                            ID No: {{ user.registration_no }}
+                                        </div>
+                                    </div>
+
+                                    <div class="id-details-front">
+                                        <div class="id-name"> {{ user.last_name|upper }}, {{ user.first_name|upper }} {% if user.middle_name %}{{ user.middle_name|upper|first }}.{% endif %} </div>
+                                        
+                                        <div class="id-detail-grid">
+                                            <div class="id-detail-item">
+                                                <span class="id-detail-label">Address:</span>
+                                                <span class="id-detail-value">{{ user.address }}</span>
+                                            </div>
+                                            <div class="id-detail-item">
+                                                <span class="id-detail-label">Zone:</span>
+                                                <span class="id-detail-value">{{ user.purok_zone }}</span>
+                                            </div>
+                                            <div class="id-detail-item">
+                                                <span class="id-detail-label">Birthdate:</span>
+                                                <span class="id-detail-value">{{ user.birthdate }}</span>
+                                            </div>
+                                            <div class="id-detail-item">
+                                                <span class="id-detail-label">Gender:</span>
+                                                <span class="id-detail-value">{{ user.gender }}</span>
+                                            </div>
+                                            <div class="id-detail-item">
+                                                <span class="id-detail-label">Status:</span>
+                                                <span class="id-detail-value">{{ user.youth_classification }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="id-footer-front">
+                                    <div class="id-issuance">
+                                        <div class="issued-date">Issued: {{ user.created_at|date:"m/d/Y" }}</div>
+                                        <div class="valid-until">Valid until: {{ user.created_at|add_years:3|date:"m/d/Y" }}</div>
+                                    </div>
+                                    <div class="id-signature-front">
+                                        <div class="signature-line"></div>
+                                        <div class="signature-label">SK Chairman Signature</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="id-card-back" id="idCardBack">
+                            <div class="id-background-flag">
+                                <img src="{% static 'assets/logo/flag.png' %}" alt="Philippine Flag">
+                            </div>
+                            
+                            <div class="id-content-back">
+                                <div class="id-back-header">
+                                    <h3>OFFICIAL IDENTIFICATION CARD</h3>
+                                    <p>Sangguniang Kabataan - Barangay Mambugan</p>
+                                </div>
+                                
+                                <div class="antipolo-logo">
+                                    <img src="{% static 'assets/logo/antipolo.png' %}" alt="Antipolo City Logo">
+                                </div>
+                                
+                                <div class="id-qr-section">
+                                    <div class="qr-code">
+                                        <div class="qr-placeholder">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span>QR Code</span>
+                                        </div>
+                                    </div>
+                                    <div class="qr-info">
+                                        <p>Scan to verify membership</p>
+                                        <div class="member-id">ID: {{ user.registration_no }}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="id-terms">
+                                    <h4>TERMS AND CONDITIONS</h4>
+                                    <ul>
+                                        <li>This card is property of SK Mambugan</li>
+                                        <li>Non-transferable</li>
+                                        <li>Must be presented when availing SK services</li>
+                                        <li>Report loss immediately</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="id-contact">
+                                    <p>Contact: SK Mambugan Office, Barangay Hall</p>
+                                    <p>Tel: (02) 8XXX-XXXX</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="id-card-actions">
+                        <button class="flip-id-btn" id="flipIdBtn">
+                            <i class="fas fa-sync-alt"></i> Flip ID Card
+                        </button>
+                        <button class="download-id-btn" id="downloadIdBtn">
+                            <i class="fas fa-download"></i> Download ID as PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Success!</h2>
+            <p>Your profile has been updated successfully.</p>
+            <button class="modal-btn" id="modalOkBtn">OK</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/mainpage/userprofile.js' %}"></script>
+</body>
+</html>

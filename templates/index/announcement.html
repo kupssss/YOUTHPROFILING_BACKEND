@@ -1,0 +1,477 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements & Events - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/index/announcements.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'index' %}" class="nav-link ">Home</a>
+                <a href="{% url 'announcement' %}" class="nav-link active">Announcements & Events</a>
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropbtn">About</a>
+                    <div class="dropdown-content">
+                         <a href="{% url 'the_project' %}">The Project & Developers</a>
+                         <a href="{% url 'the_community' %}">The Sangguniang Kabataan</a>
+                    </div>
+                </div>
+                <a href="{% url 'contact' %}" class="nav-link">Contact</a>
+                <a href="{% url 'login' %}" class="nav-link login-btn">Login</a>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="announcements-events-hero">
+        <div class="hero-content">
+            <h1>Community <span>Updates</span></h1>
+            <p>Stay informed about the latest announcements, upcoming events, and important happenings in Barangay Mambugan.</p>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="all">All</button>
+                <button class="view-btn" data-view="announcements">Announcements</button>
+                <button class="view-btn" data-view="events">Events</button>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-blend"></div>
+            <img src="{% static 'assets/community/events.png' %}" alt="SK Mambugan Community Updates" class="hero-img">
+        </div>
+    </section>
+
+    <section class="updates-filter">
+        <div class="filter-container">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search announcements and events...">
+                <button id="searchButton"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="filter-options">
+                <div class="filter-group">
+                    <label for="category">Category:</label>
+                    <select id="category">
+                        <option value="all">All Categories</option>
+                        <option value="important">Important</option>
+                        <option value="sports">Sports</option>
+                        <option value="education">Education</option>
+                        <option value="environment">Environment</option>
+                        <option value="health">Health</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sort">Sort by:</label>
+                    <select id="sort">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="date">Date</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="timeframe">Timeframe:</label>
+                    <select id="timeframe">
+                        <option value="all">All Time</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="upcoming">Upcoming</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="updates-content">
+        <div class="updates-container">
+            <div class="upcoming-events">
+                <h2 class="section-title">Upcoming Events <i class="fas fa-calendar-alt"></i></h2>
+                
+                {% if upcoming_events %}
+                <div class="events-scroll">
+                    {% for event in upcoming_events|slice:":3" %}
+                    <div class="event-highlight">
+                        <div class="event-date">
+                            <span class="day">{{ event.start_date|date:"d" }}</span>
+                            <span class="month">{{ event.start_date|date:"M" }}</span>
+                        </div>
+                        <div class="event-info">
+                            <h3>{{ event.title }}</h3>
+                            <p><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                            <p><i class="fas fa-clock"></i> {{ event.start_date|time }} - {{ event.end_date|time }}</p>
+                        </div>
+                        <button class="event-action require-login" data-message="Login to register for this exciting event">Register</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="events-scroll">
+                    <div class="event-highlight">
+                        <div class="event-date">
+                            <span class="day">28</span>
+                            <span class="month">Aug</span>
+                        </div>
+                        <div class="event-info">
+                            <h3>Annual Sports Festival</h3>
+                            <p><i class="fas fa-map-marker-alt"></i> Barangay Court</p>
+                            <p><i class="fas fa-clock"></i> 8:00 AM - 5:00 PM</p>
+                        </div>
+                        <button class="event-action require-login" data-message="Login to register for the Sports Festival">Register</button>
+                    </div>
+                    
+                    <div class="event-highlight">
+                        <div class="event-date">
+                            <span class="day">05</span>
+                            <span class="month">Sep</span>
+                        </div>
+                        <div class="event-info">
+                            <h3>Free Medical Check-up</h3>
+                            <p><i class="fas fa-map-marker-alt"></i> Health Center</p>
+                            <p><i class="fas fa-clock"></i> 9:00 AM - 4:00 PM</p>
+                        </div>
+                        <button class="event-action require-login" data-message="Login to learn more about our health services">Learn More</button>
+                    </div>
+                    
+                    <div class="event-highlight">
+                        <div class="event-date">
+                            <span class="day">12</span>
+                            <span class="month">Sep</span>
+                        </div>
+                        <div class="event-info">
+                            <h3>Youth Leadership Camp</h3>
+                            <p><i class="fas fa-map-marker-alt"></i> Community Hall</p>
+                            <p><i class="fas fa-clock"></i> 8:00 AM - 5:00 PM</p>
+                        </div>
+                        <button class="event-action require-login" data-message="Login to join our leadership program">Join Now</button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="updates-list">
+                {% if announcements %}
+                    {% for announcement in announcements %}
+                    <div class="update-card announcement {% if announcement.is_important %}important{% endif %}" data-category="{{ announcement.category|default:'general' }}">
+                        <div class="update-badge">
+                            <i class="fas fa-bullhorn"></i> Announcement
+                        </div>
+                        <div class="update-content">
+                            <div class="update-date">
+                                <span class="day">{{ announcement.publish_date|date:"d" }}</span>
+                                <span class="month">{{ announcement.publish_date|date:"M" }}</span>
+                                <span class="year">{{ announcement.publish_date|date:"Y" }}</span>
+                            </div>
+                            <h3>{{ announcement.title }}</h3>
+                            <p class="update-excerpt">{{ announcement.excerpt|default:announcement.content|truncatewords:30 }}</p>
+                            <div class="update-meta">
+                                {% if announcement.effective_date %}
+                                <span><i class="fas fa-clock"></i> {{ announcement.effective_date|date:"M d, Y" }}</span>
+                                {% endif %}
+                                {% if announcement.location %}
+                                <span><i class="fas fa-map-marker-alt"></i> {{ announcement.location }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="update-actions">
+                                <a href="#" class="update-link require-login" data-message="Login to read the full announcement">Read More <i class="fas fa-arrow-right"></i></a>
+                                <button class="update-save require-login" data-message="Login to save this announcement"><i class="far fa-bookmark"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="update-card announcement important">
+                    <div class="update-badge">
+                        <i class="fas fa-bullhorn"></i> Announcement
+                    </div>
+                    <div class="update-content">
+                        <div class="update-date">
+                            <span class="day">28</span>
+                            <span class="month">Aug</span>
+                            <span class="year">2023</span>
+                        </div>
+                        <h3>Community General Assembly</h3>
+                        <p class="update-excerpt">All youth members are invited to attend our quarterly General Assembly on August 28, 2023 at the Barangay Hall. Important matters regarding upcoming projects and programs will be discussed.</p>
+                        <div class="update-meta">
+                            <span><i class="fas fa-clock"></i> 3:00 PM - 5:00 PM</span>
+                            <span><i class="fas fa-map-marker-alt"></i> Barangay Hall</span>
+                        </div>
+                        <div class="update-actions">
+                            <a href="#" class="update-link require-login" data-message="Login to read the full announcement">Read More <i class="fas fa-arrow-right"></i></a>
+                            <button class="update-save require-login" data-message="Login to save this announcement"><i class="far fa-bookmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="update-card event">
+                    <div class="update-badge">
+                        <i class="fas fa-calendar-alt"></i> Event
+                    </div>
+                    <div class="update-content">
+                        <div class="update-date">
+                            <span class="day">05</span>
+                            <span class="month">Sep</span>
+                            <span class="year">2023</span>
+                        </div>
+                        <h3>Youth Sports Festival 2023</h3>
+                        <p class="update-excerpt">Get ready for the most exciting sports event of the year! Registration for the Youth Sports Festival is now open. Basketball, volleyball, badminton, and more!</p>
+                        <div class="update-meta">
+                            <span><i class="fas fa-clock"></i> 8:00 AM - 6:00 PM</span>
+                            <span><i class="fas fa-map-marker-alt"></i> Barangay Court</span>
+                            <span><i class="fas fa-users"></i> 120+ Participants</span>
+                        </div>
+                        <div class="update-actions">
+                            <a href="#" class="update-link require-login" data-message="Login to register for this event">Register Now <i class="fas fa-arrow-right"></i></a>
+                            <button class="update-save require-login" data-message="Login to save this event"><i class="far fa-bookmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="update-card announcement">
+                    <div class="update-badge">
+                        <i class="fas fa-bullhorn"></i> Announcement
+                    </div>
+                    <div class="update-content">
+                        <div class="update-date">
+                            <span class="day">12</span>
+                            <span class="month">Sep</span>
+                            <span class="year">2023</span>
+                        </div>
+                        <h3>Educational Assistance Program</h3>
+                        <p class="update-excerpt">Applications for the Educational Assistance Program for the second semester of Academic Year 2023-2024 are now being accepted. Limited slots available.</p>
+                        <div class="update-meta">
+                            <span><i class="fas fa-deadline"></i> Deadline: Sep 10, 2023</span>
+                            <span><i class="fas fa-map-marker-alt"></i> SK Office</span>
+                        </div>
+                        <div class="update-actions">
+                            <a href="#" class="update-link require-login" data-message="Login to apply for this program">Apply Now <i class="fas fa-arrow-right"></i></a>
+                            <button class="update-save require-login" data-message="Login to save this announcement"><i class="far fa-bookmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="update-card announcement">
+                    <div class="update-badge">
+                        <i class="fas fa-bullhorn"></i> Announcement
+                    </div>
+                    <div class="update-content">
+                        <div class="update-date">
+                            <span class="day">20</span>
+                            <span class="month">Aug</span>
+                            <span class="year">2023</span>
+                        </div>
+                        <h3>New SK Office Hours</h3>
+                        <p class="update-excerpt">Please be informed that the SK Office will have new operating hours starting next week. Monday to Friday, 8:00 AM to 5:00 PM with lunch break from 12:00 PM to 1:00 PM.</p>
+                        <div class="update-meta">
+                            <span><i class="fas fa-clock"></i> Effective: Aug 25, 2023</span>
+                        </div>
+                        <div class="update-actions">
+                            <a href="#" class="update-link require-login" data-message="Login to read the full announcement">Read More <i class="fas fa-arrow-right"></i></a>
+                            <button class="update-save require-login" data-message="Login to save this announcement"><i class="far fa-bookmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="update-card announcement important">
+                    <div class="update-badge">
+                        <i class="fas fa-bullhorn"></i> Announcement
+                    </div>
+                    <div class="update-content">
+                        <div class="update-date">
+                            <span class="day">15</span>
+                            <span class="month">Aug</span>
+                            <span class="year">2023</span>
+                        </div>
+                        <h3>Clean-Up Drive Schedule Change</h3>
+                        <p class="update-excerpt">Please note that the monthly clean-up drive originally scheduled for August 15 has been moved to August 22 due to inclement weather forecast.</p>
+                        <div class="update-meta">
+                            <span><i class="fas fa-clock"></i> 7:00 AM - 10:00 AM</span>
+                            <span><i class="fas fa-map-marker-alt"></i> Meeting at Barangay Hall</span>
+                        </div>
+                        <div class="update-actions">
+                            <a href="#" class="update-link require-login" data-message="Login to read the full announcement">Read More <i class="fas fa-arrow-right"></i></a>
+                            <button class="update-save require-login" data-message="Login to save this announcement"><i class="far fa-bookmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="update-card event">
+                    <div class="update-badge">
+                        <i class="fas fa-calendar-alt"></i> Event
+                    </div>
+                    <div class="update-content">
+                        <div class="update-date">
+                            <span class="day">30</span>
+                            <span class="month">Aug</span>
+                            <span class="year">2023</span>
+                        </div>
+                        <h3>Leadership Training Workshop</h3>
+                        <p class="update-excerpt">Enhance your leadership skills and become a more effective community leader. Registration for our Leadership Training Workshop is now open to all youth members.</p>
+                        <div class="update-meta">
+                            <span><i class="fas fa-clock"></i> 9:00 AM - 4:00 PM</span>
+                            <span><i class="fas fa-map-marker-alt"></i> Community Center</span>
+                            <span><i class="fas fa-users"></i> 50 Seats Available</span>
+                        </div>
+                        <div class="update-actions">
+                            <a href="#" class="update-link require-login" data-message="Login to register for this workshop">Register Now <i class="fas fa-arrow-right"></i></a>
+                            <button class="update-save require-login" data-message="Login to save this event"><i class="far fa-bookmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="pagination">
+            <button class="page-btn disabled"><i class="fas fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </section>
+
+    <section class="calendar-section">
+        <div class="section-header">
+            <h2>Community Calendar</h2>
+            <p>View all upcoming events and important dates at a glance</p>
+        </div>
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="calendar-nav"><i class="fas fa-chevron-left"></i></button>
+                <h3>{{ current_month }} {{ current_year }}</h3>
+                <button class="calendar-nav"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="calendar-grid">
+                <div class="calendar-weekdays">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div class="calendar-days">
+                    {% for day in calendar_days %}
+                        {% if day == 0 %}
+                            <div class="empty"></div>
+                        {% else %}
+                            <div class="calendar-day 
+                                {% if day in event_days %}event-day{% endif %}
+                                {% if day in announcement_days %}event-day important{% endif %}">
+                                {{ day }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <span class="legend-color event"></span>
+                    <span>Events</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color announcement"></span>
+                    <span>Announcements</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color important"></span>
+                    <span>Important</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="newsletter">
+        <div class="newsletter-container">
+            <div class="newsletter-content">
+                <h2>Never Miss an Update</h2>
+                <p>Subscribe to our newsletter and get the latest announcements and event invitations directly to your inbox.</p>
+            </div>
+            <div class="newsletter-form">
+                <input type="email" placeholder="Enter your email address">
+                <button class="btn-primary require-login" data-message="Login to subscribe to our newsletter">Subscribe</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-modal-content">
+            <span class="login-modal-close">&times;</span>
+            <div class="login-modal-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>Authentication Required</h2>
+            <p id="loginModalMessage">You need to be logged in to access this content.</p>
+            <div class="login-modal-buttons">
+                <a href="{% url 'login' %}" class="login-modal-btn login-modal-btn-primary">Login Now</a>
+                <button class="login-modal-btn login-modal-btn-secondary" id="loginModalCancel">Not Now</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="{% url 'announcement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'the_project' %}">The Project & Developers</a></li>
+                    <li><a href="{% url 'the_community' %}">The Sangguniang Kabataan</a></li>
+                    <li><a href="{% url 'contact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Services</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}#services">Event Registration</a></li>
+                    <li><a href="{% url 'index' %}#services">Community Support</a></li>
+                    <li><a href="{% url 'index' %}#services">Youth Innovation Hub</a></li>
+                    <li><a href="{% url 'contact' %}#services-section">Complaint Portal</a></li>
+                    <li><a href="{% url 'contact' %}#services-section">Suggestion Box</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/index/announcements.js' %}"></script>
+  
+</body>
+</html>

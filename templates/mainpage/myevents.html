@@ -1,0 +1,300 @@
+<!-- templates/mainpage/myevents.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Events - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/mainpage/myevents.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="{% url 'logout' %}" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="events-container">
+        <div class="events-header">
+            <div class="header-content">
+                <h1><i class="fas fa-calendar-alt"></i> My Events</h1>
+                <p>Track your event participation and history with SK Mambugan</p>
+                <div class="header-gradient"></div>
+            </div>
+        </div>
+
+        <div class="events-content">
+            <div class="events-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">{{ events_attended }}</span>
+                        <span class="stat-label">Events Attended</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">{{ achievements|length }}</span>
+                        <span class="stat-label">Achievements</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">{{ upcoming_count }}</span>
+                        <span class="stat-label">Upcoming Events</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">{{ total_points }}</span>
+                        <span class="stat-label">Community Points</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="events-filters">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search events..." id="eventsSearch">
+                </div>
+                
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All Events</button>
+                    <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+                    <button class="filter-btn" data-filter="past">Past</button>
+                    <button class="filter-btn" data-filter="registered">Registered</button>
+                </div>
+            </div>
+
+            <div class="events-timeline">
+                <div class="timeline-container">
+                    {% if upcoming_events %}
+                    <div class="timeline-section">
+                        <div class="timeline-header">
+                            <h3><i class="fas fa-clock"></i> Upcoming Events</h3>
+                            <span class="events-count">{{ upcoming_events|length }} events</span>
+                        </div>
+                        
+                        <div class="events-grid">
+                            {% for registration in upcoming_events %}
+                            <div class="event-card upcoming" data-status="{{ registration.status }}">
+                                <div class="event-date">
+                                    <span class="date-day">{{ registration.event.start_date|date:"d" }}</span>
+                                    <span class="date-month">{{ registration.event.start_date|date:"M"|upper }}</span>
+                                </div>
+                                <div class="event-content">
+                                    <h4 class="event-title">{{ registration.event.title }}</h4>
+                                    <p class="event-description">{{ registration.event.description|truncatewords:20 }}</p>
+                                    <div class="event-details">
+                                        <span class="event-time"><i class="fas fa-clock"></i> {{ registration.event.start_date|time }} - {{ registration.event.end_date|time }}</span>
+                                        <span class="event-location"><i class="fas fa-map-marker-alt"></i> {{ registration.event.location }}</span>
+                                    </div>
+                                    <div class="event-status">
+                                        <span class="status-badge {{ registration.status }}">{{ registration.status|title }}</span>
+                                        <button class="event-action-btn" data-event-id="{{ registration.event.id }}">View Details</button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if past_events %}
+                    <div class="timeline-section">
+                        <div class="timeline-header">
+                            <h3><i class="fas fa-history"></i> Past Events</h3>
+                            <span class="events-count">{{ past_events|length }} events</span>
+                        </div>
+                        
+                        <div class="events-grid">
+                            {% for registration in past_events|slice:":3" %}
+                            <div class="event-card past" data-status="{{ registration.status }}">
+                                <div class="event-date">
+                                    <span class="date-day">{{ registration.event.start_date|date:"d" }}</span>
+                                    <span class="date-month">{{ registration.event.start_date|date:"M"|upper }}</span>
+                                </div>
+                                <div class="event-content">
+                                    <h4 class="event-title">{{ registration.event.title }}</h4>
+                                    <p class="event-description">{{ registration.event.description|truncatewords:20 }}</p>
+                                    <div class="event-details">
+                                        <span class="event-time"><i class="fas fa-clock"></i> {{ registration.event.start_date|time }} - {{ registration.event.end_date|time }}</span>
+                                        <span class="event-location"><i class="fas fa-map-marker-alt"></i> {{ registration.event.location }}</span>
+                                    </div>
+                                    <div class="event-status">
+                                        <span class="status-badge attended">Attended</span>
+                                        <div class="event-rating">
+                                            <div class="star-rating" data-rating="5">
+                                                <i class="fas fa-star"></i>
+                                                <i class="fas fa-star"></i>
+                                                <i class="fas fa-star"></i>
+                                                <i class="fas fa-star"></i>
+                                                <i class="fas fa-star"></i>
+                                            </div>
+                                            <button class="event-action-btn">View Certificate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if past_events|length > 3 %}
+                        <div class="view-more-container">
+                            <button class="view-more-btn">View More Past Events</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if achievements %}
+            <div class="achievements-section">
+                <h2 class="achievements-title"><i class="fas fa-trophy"></i> Your Achievements</h2>
+                
+                <div class="achievements-grid">
+                    {% for achievement in achievements %}
+                    <div class="achievement-card">
+                        <div class="achievement-icon {% cycle 'gold' 'silver' 'bronze' %}">
+                            <i class="fas fa-{% cycle 'star' 'users' 'calendar' 'seedling' %}"></i>
+                        </div>
+                        <h4>{{ achievement }}</h4>
+                        <p>{% cycle 'Participated in 10+ community events' 'Joined 5+ group activities' 'Consistent event attendance' 'Joined environmental initiatives' %}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <div class="modal" id="eventModal">
+        <div class="modal-content event-modal">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2 id="modalEventTitle">Event Title</h2>
+                <div class="modal-event-date">
+                    <i class="fas fa-calendar"></i>
+                    <span id="modalEventDate">December 15, 2023</span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-event-details">
+                    <div class="detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span id="modalEventTime">2:00 PM - 6:00 PM</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span id="modalEventLocation">Barangay Hall</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-users"></i>
+                        <span id="modalEventParticipants">1 participants registered</span>
+                    </div>
+                </div>
+                <div class="modal-event-description">
+                    <h3>About This Event</h3>
+                    <p id="modalEventDescription">Event description goes here...</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" id="modalCancelBtn">Cancel Registration</button>
+                    <button class="modal-btn primary" id="modalRegisterBtn">Register for Event</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'mainpage' %}">Home</a></li>
+                    <li><a href="{% url 'userannouncement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'usercommunity' %}">The Community</a></li>
+                    <li><a href="{% url 'usercontact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Member Services</h3>
+                <ul>
+                    <li><a href="{% url 'userprofile' %}">My Profile</a></li>
+                    <li><a href="{% url 'myevents' %}">My Events</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/mainpage/myevents.js' %}"></script>
+</body>
+</html>

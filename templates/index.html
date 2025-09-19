@@ -1,0 +1,322 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sangguniang Kabataan ng Barangay Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'index' %}" class="nav-link active">Home</a>
+                <a href="{% url 'announcement' %}" class="nav-link">Announcements & Events</a>
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropbtn">About</a>
+                    <div class="dropdown-content">
+                         <a href="{% url 'the_project' %}">The Project & Developers</a>
+                         <a href="{% url 'the_community' %}">The Sangguniang Kabataan</a>
+                    </div>
+                </div>
+                <a href="{% url 'contact' %}" class="nav-link">Contact</a>
+                <a href="{% url 'login' %}" class="nav-link login-btn">Login</a>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Empowering the Youth of <span>Barangay Mambugan</span></h1>
+            <p>Building a brighter future through community engagement, leadership development, and innovative programs designed for the next generation of leaders.</p>
+            <div class="hero-buttons">
+                <a href="#" class="btn-primary require-login" data-message="Join our community to get involved!">Get Involved</a>
+                <a href="#" class="btn-secondary require-login" data-message="Create an account to learn more about our initiatives">Learn More</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-blend"></div>
+            <img src="{% static 'assets/community/community.jpg' %}" alt="SK Mambugan Youth Community" class="hero-img">
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="stat-number">{{ total_members|default:"5000" }}{% if total_members > 5000 %}+{% endif %}</h3>
+                <p>Community Members</p>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <h3 class="stat-number">{{ total_events|default:"120" }}{% if total_events > 120 %}+{% endif %}</h3>
+                <p>Events Yearly</p>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h3 class="stat-number">{{ total_events|default:"120" }}{% if total_events > 120 %}+{% endif %}</h3>
+                <p>Programs & Projects</p>
+            </div>
+            
+        </div>
+    </section>
+
+    <section class="services" id="services">
+        <div class="section-header">
+            <h2>Our Services</h2>
+            <p>We offer various services to support our community members</p>
+        </div>
+        <div class="services-container">
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h3>Event Registration</h3>
+                <p>Register for upcoming community events, workshops, and activities with our easy online system.</p>
+                <a href="#" class="service-link require-login" data-message="Login to explore and register for exciting events">Explore Events <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-hands-helping"></i>
+                </div>
+                <h3>Community Support</h3>
+                <p>Access various support programs for education, health, and livelihood development.</p>
+                <a href="#" class="service-link require-login" data-message="Sign in to learn about our community support programs">Learn More <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h3>Youth Innovation Hub</h3>
+                <p>Explore creative programs, leadership training, and skill development workshops.</p>
+                <a href="#" class="service-link require-login" data-message="Join our community to access innovation programs">Learn More <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="announcements">
+        <div class="section-header">
+            <h2>Latest Announcements</h2>
+            <p>Stay updated with the latest news from our barangay</p>
+        </div>
+        <div class="announcements-container">
+            {% if announcements %}
+                {% for announcement in announcements|slice:":3" %}
+                <div class="announcement-card">
+                    <div class="announcement-date">
+                        <span class="day">{{ announcement.publish_date|date:"d" }}</span>
+                        <span class="month">{{ announcement.publish_date|date:"M" }}</span>
+                    </div>
+                    <div class="announcement-content">
+                        <h3>{{ announcement.title }}</h3>
+                        <p>{{ announcement.excerpt|default:announcement.content|truncatewords:20 }}</p>
+                        <a href="#" class="announcement-link require-login" data-message="Login to read the full announcement">Read More</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="announcement-card">
+                    <div class="announcement-date">
+                        <span class="day">15</span>
+                        <span class="month">Jul</span>
+                    </div>
+                    <div class="announcement-content">
+                        <h3>Community Clean-up Drive</h3>
+                        <p>Join us this Saturday for our monthly community clean-up drive. All volunteers are welcome!</p>
+                        <a href="#" class="announcement-link require-login" data-message="Login to read the full announcement">Read More</a>
+                    </div>
+                </div>
+                <div class="announcement-card">
+                    <div class="announcement-date">
+                        <span class="day">20</span>
+                        <span class="month">Jul</span>
+                    </div>
+                    <div class="announcement-content">
+                        <h3>Youth Leadership Workshop</h3>
+                        <p>Registration is now open for our Youth Leadership Workshop on July 20-21, 2023.</p>
+                        <a href="#" class="announcement-link require-login" data-message="Login to read the full announcement">Read More</a>
+                    </div>
+                </div>
+                <div class="announcement-card">
+                    <div class="announcement-date">
+                        <span class="day">25</span>
+                        <span class="month">Jul</span>
+                    </div>
+                    <div class="announcement-content">
+                        <h3>Barangay Assembly Meeting</h3>
+                        <p>The quarterly barangay assembly meeting will be held on July 25 at the barangay hall.</p>
+                        <a href="#" class="announcement-link require-login" data-message="Login to read the full announcement">Read More</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="events">
+        <div class="section-header">
+            <h2>Upcoming Events</h2>
+            <p>Join our community events and activities</p>
+        </div>
+        <div class="events-container">
+            {% if upcoming_events %}
+                {% for event in upcoming_events|slice:":3" %}
+                <div class="event-card">
+                    <div class="event-image"style="background: linear-gradient(rgba(30, 64, 175, 0.7), rgba(30, 64, 175, 0.7)), {% if event.image %}url('{{ event.image.url }}'){% else %}url('{% static 'assets/events/default.jpg' %}'){% endif %} center/cover;">
+                        <div class="event-date">
+                            <span>{{ event.start_date|date:"d" }}</span>
+                            <span>{{ event.start_date|date:"M" }}</span>
+                        </div>
+                    </div>
+                    <div class="event-content">
+                        <h3>{{ event.title }}</h3>
+                        <p><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                        <p><i class="fas fa-clock"></i> {{ event.start_date|time }} - {{ event.end_date|time }}</p>
+                        <a href="#" class="event-btn require-login" data-message="Login to register for this exciting event">Register Now</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="event-card">
+                    <div class="event-image"style="background: linear-gradient(rgba(30, 64, 175, 0.7), rgba(30, 64, 175, 0.7)), url('{% static 'assets/events/sports.jpg' %}') center/cover;">
+                        <div class="event-date">
+                            <span>28</span>
+                            <span>Jul</span>
+                        </div>
+                    </div>
+                    <div class="event-content">
+                        <h3>Annual Sports Festival</h3>
+                        <p><i class="fas fa-map-marker-alt"></i> Barangay Court</p>
+                        <p><i class="fas fa-clock"></i> 8:00 AM - 5:00 PM</p>
+                        <a href="#" class="event-btn require-login" data-message="Login to register for the Sports Festival">Register Now</a>
+                    </div>
+                </div>
+                <div class="event-card">
+                    <div class="event-image"style="background: linear-gradient(rgba(30, 64, 175, 0.7), rgba(30, 64, 175, 0.7)), url('{% static 'assets/events/medical.jpg' %}') center/cover;">
+                        <div class="event-date">
+                            <span>05</span>
+                            <span>Aug</span>
+                        </div>
+                    </div>
+                    <div class="event-content">
+                        <h3>Free Medical Check-up</h3>
+                        <p><i class="fas fa-map-marker-alt"></i> Health Center</p>
+                        <p><i class="fas fa-clock"></i> 9:00 AM - 4:00 PM</p>
+                        <a href="#" class="event-btn require-login" data-message="Login to learn more about our health services">Learn More</a>
+                    </div>
+                </div>
+                <div class="event-card">
+                    <div class="event-image"style="background: linear-gradient(rgba(30, 64, 175, 0.7), rgba(30, 64, 175, 0.7)), url('{% static 'assets/events/leadership.jpg' %}') center/cover;">
+                        <div class="event-date">
+                            <span>12</span>
+                            <span>Aug</span>
+                        </div>
+                    </div>
+                    <div class="event-content">
+                        <h3>Youth Leadership Camp</h3>
+                        <p><i class="fas fa-map-marker-alt"></i> Community Hall</p>
+                        <p><i class="fas fa-clock"></i> 8:00 AM - 5:00 PM</p>
+                        <a href="#" class="event-btn require-login" data-message="Login to join our leadership program">Join Now</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="cta-container">
+            <div class="cta-content">
+                <h2>Join Our Community Today</h2>
+                <p>Be part of our growing community and enjoy exclusive benefits, updates, and services.</p>
+                <a href="{% url 'login' %}" class="btn-primary">Create Account</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="{% url 'announcement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'the_project' %}">The Project & Developers</a></li>
+                    <li><a href="{% url 'the_community' %}">The Sangguniang Kabataan</a></li>
+                    <li><a href="{% url 'contact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Services</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}#services">Event Registration</a></li>
+                    <li><a href="{% url 'index' %}#services">Community Support</a></li>
+                    <li><a href="{% url 'index' %}#services">Youth Innovation Hub</a></li>
+                    <li><a href="{% url 'contact' %}#services-section">Complaint Portal</a></li>
+                    <li><a href="{% url 'contact' %}#services-section">Suggestion Box</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="loginModal" class="login-modal">
+        <div class="login-modal-content">
+            <span class="login-modal-close">&times;</span>
+            <div class="login-modal-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>Authentication Required</h2>
+            <p id="loginModalMessage">You need to be logged in to access this content.</p>
+            <div class="login-modal-buttons">
+                <a href="{% url 'login' %}" class="login-modal-btn login-modal-btn-primary">Login Now</a>
+                <button class="login-modal-btn login-modal-btn-secondary" id="loginModalCancel">Not Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/index.js' %}"></script>
+  
+</body>
+</html>

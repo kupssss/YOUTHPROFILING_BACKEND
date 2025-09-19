@@ -1,0 +1,482 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements & Events - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/mainpage/userannouncement.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+     <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link active">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="announcements-events-hero">
+        <div class="hero-content">
+            <h1>Community <span>Updates</span></h1>
+            <p>Stay informed about the latest announcements, upcoming events, and important happenings in Barangay Mambugan.</p>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="all">All</button>
+                <button class="view-btn" data-view="announcements">Announcements</button>
+                <button class="view-btn" data-view="events">Events</button>
+                <button class="view-btn" data-view="registered">My Registered Events</button>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-blend"></div>
+            <img src="{% static 'assets/community/events1.png' %}" alt="SK Mambugan Community Updates" class="hero-img">
+        </div>
+    </section>
+
+    <section class="user-announcement-stats">
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ user_registered_events_count }}</h3>
+                    <p>Events Registered</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ announcements_count }}</h3>
+                    <p>Announcements</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ upcoming_events_count }}</h3>
+                    <p>Upcoming Events</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ user_points }}</h3>
+                    <p>Community Points</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="updates-filter">
+        <div class="filter-container">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search announcements and events...">
+                <button id="searchButton"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="filter-options">
+                <div class="filter-group">
+                    <label for="category">Category:</label>
+                    <select id="category">
+                        <option value="all">All Categories</option>
+                        <option value="important">Important</option>
+                        <option value="sports">Sports</option>
+                        <option value="education">Education</option>
+                        <option value="environment">Environment</option>
+                        <option value="health">Health</option>
+                        <option value="community">Community</option>
+                        <option value="cultural">Cultural</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sort">Sort by:</label>
+                    <select id="sort">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="date">Date</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="timeframe">Timeframe:</label>
+                    <select id="timeframe">
+                        <option value="all">All Time</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="upcoming">Upcoming</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="updates-content">
+        <div class="updates-container">
+            <div class="upcoming-events">
+                <h2 class="section-title">Upcoming Events <i class="fas fa-calendar-alt"></i></h2>
+                
+                {% if upcoming_events %}
+                <div class="events-scroll">
+                    {% for event in upcoming_events|slice:":3" %}
+                    <div class="event-highlight">
+                        <div class="event-date">
+                            <span class="day">{{ event.start_date|date:"d" }}</span>
+                            <span class="month">{{ event.start_date|date:"M" }}</span>
+                        </div>
+                        <div class="event-info">
+                            <h3>{{ event.title }}</h3>
+                            <p><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                            <p><i class="fas fa-clock"></i> {{ event.start_date|time }} - {{ event.end_date|time }}</p>
+                        </div>
+                        {% if event.id in user_registered_event_ids %}
+                        <button class="event-action registered"><i class="fas fa-check-circle"></i> Registered</button>
+                        {% else %}
+                        <a href="{% url 'usereventdetails' event.id %}" class="event-action">
+    Register
+</a>
+
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="no-content">
+                    <img src="{% static 'assets/images/noevent.png' %}" alt="No events">
+                    <p>No events to show right now</p>
+                </div>
+                {% endif %}
+                
+                <div class="quick-links">
+                    <h3>Quick Access</h3>
+                    <a href="{% url 'userannouncement' %}#calendar" class="quick-link">
+                        <i class="fas fa-calendar"></i>
+                        <span>My Event Calendar</span>
+                    </a>
+                    <a href="{% url 'myevents' %}" class="quick-link">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>My Registrations</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="updates-list">
+                {% if announcements %}
+                    {% for announcement in announcements %}
+                    <div class="update-card announcement {% if announcement.is_important %}important{% endif %}" data-category="{{ announcement.category }}">
+                        <div class="update-badge">
+                            <i class="fas fa-bullhorn"></i> Announcement
+                        </div>
+                        {% if announcement.id in user_saved_announcement_ids %}
+                        <div class="user-indicator">
+                            <i class="fas fa-bookmark saved"></i>
+                        </div>
+                        {% endif %}
+                        
+                        {% if announcement.image %}
+                        <div class="update-image">
+                            <img src="{{ announcement.image.url }}" alt="{{ announcement.title }}" class="enlargeable-image">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="update-content">
+                            <div class="update-date">
+                                <span class="day">{{ announcement.publish_date|date:"d" }}</span>
+                                <span class="month">{{ announcement.publish_date|date:"M" }}</span>
+                                <span class="year">{{ announcement.publish_date|date:"Y" }}</span>
+                            </div>
+                            <h3>{{ announcement.title }}</h3>
+                            <p class="update-excerpt">{{ announcement.excerpt|default:announcement.content|truncatewords:30 }}</p>
+                            <div class="update-meta">
+                                {% if announcement.effective_date %}
+                                <span><i class="fas fa-clock"></i> {{ announcement.effective_date|date:"M d, Y" }}</span>
+                                {% endif %}
+                                {% if announcement.location %}
+                                <span><i class="fas fa-map-marker-alt"></i> {{ announcement.location }}</span>
+                                {% endif %}
+                                {% if announcement.id in user_attending_announcement_ids %}
+                                <span class="attendance-status"><i class="fas fa-user-check"></i> You plan to attend</span>
+                                {% endif %}
+                            </div>
+                            <div class="update-actions">
+                                <a href="#" class="update-link">Read More <i class="fas fa-arrow-right"></i></a>
+                                <div class="action-buttons">
+                                    <button class="update-save {% if announcement.id in user_saved_announcement_ids %}saved{% endif %}">
+                                        <i class="{% if announcement.id in user_saved_announcement_ids %}fas{% else %}far{% endif %} fa-bookmark"></i>
+                                    </button>
+                                    {% if announcement.effective_date %}
+                                    <button class="attendance-btn {% if announcement.id in user_attending_announcement_ids %}attending{% endif %}">
+                                        <i class="fas fa-calendar-check"></i> 
+                                        {% if announcement.id in user_attending_announcement_ids %}Attending{% else %}Attend{% endif %}
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="no-content">
+                    <img src="{% static 'assets/images/noannouncement.png' %}" alt="No announcements">
+                    <p>No announcements to show right now</p>
+                </div>
+                {% endif %}
+                
+                {% if events %}
+                    {% for event in events %}
+                    <div class="update-card event" data-category="{{ event.category }}">
+                        <div class="update-badge">
+                            <i class="fas fa-calendar-alt"></i> Event
+                        </div>
+                        {% if event.id in user_registered_event_ids %}
+                        <div class="user-indicator">
+                            <i class="fas fa-check-circle registered"></i>
+                        </div>
+                        {% endif %}
+                        
+                        {% if event.image %}
+                        <div class="update-image">
+                            <img src="{{ event.image.url }}" alt="{{ event.title }}" class="enlargeable-image">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="update-content">
+                            <div class="update-date">
+                                <span class="day">{{ event.start_date|date:"d" }}</span>
+                                <span class="month">{{ event.start_date|date:"M" }}</span>
+                                <span class="year">{{ event.start_date|date:"Y" }}</span>
+                            </div>
+                            <h3>{{ event.title }}</h3>
+                            <p class="update-excerpt">{{ event.excerpt|default:event.description|truncatewords:30 }}</p>
+                            <div class="update-meta">
+                                <span><i class="fas fa-clock"></i> {{ event.start_date|time }} - {{ event.end_date|time }}</span>
+                                <span><i class="fas fa-map-marker-alt"></i> {{ event.location }}</span>
+                                {% if event.maximum_participants %}
+                                <span><i class="fas fa-users"></i> {{ event.current_participants }}/{{ event.maximum_participants }} Participants</span>
+                                {% endif %}
+                                {% if event.id in user_registered_event_ids %}
+                                <span class="registration-status"><i class="fas fa-check-circle"></i> Registered</span>
+                                {% endif %}
+                            </div>
+
+                            {% if event.id in user_registered_event_ids %}
+    <button class="event-action registered" disabled>
+        <i class="fas fa-check-circle"></i> Already Registered
+    </button>
+{% else %}
+    {% if event.is_eligible %}
+        <a href="{% url 'event_register' event.id %}" class="event-action">
+            Register
+        </a>
+    {% else %}
+        <button class="event-action not-eligible" disabled>
+            Not Eligible
+        </button>
+    {% endif %}
+{% endif %}
+
+                            
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="no-content">
+                    <img src="{% static 'assets/images/noevent.png' %}" alt="No events">
+                    <p>No events to show right now</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="pagination">
+            <button class="page-btn disabled"><i class="fas fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </section>
+
+    <section class="calendar-section" id="calendar">
+        <div class="section-header">
+            <h2>My Event Calendar</h2>
+            <p>View all your registered events and important dates at a glance</p>
+        </div>
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="calendar-nav"><i class="fas fa-chevron-left"></i></button>
+                <h3>{{ current_month }} {{ current_year }}</h3>
+                <button class="calendar-nav"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="calendar-grid">
+                <div class="calendar-weekdays">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div class="calendar-days">
+                    {% for day in calendar_days %}
+                        {% if day == 0 %}
+                            <div class="empty"></div>
+                        {% else %}
+                            <div class="calendar-day 
+                                {% if day in registered_event_days %}event-day registered{% endif %}
+                                {% if day in announcement_days %}event-day important{% endif %}">
+                                {{ day }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <span class="legend-color registered"></span>
+                    <span>Registered Events</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color important"></span>
+                    <span>Announcements</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="personalized-recommendations">
+        <div class="section-header">
+            <h2>Recommended For You</h2>
+            <p>Events and announcements we think you'll be interested in</p>
+        </div>
+        <div class="recommendations-container">
+            {% if recommended_events %}
+                {% for event in recommended_events|slice:":3" %}
+                <div class="recommendation-card">
+                    <div class="recommendation-badge">
+                        <i class="fas fa-star"></i> Matching your profile
+                    </div>
+                    {% if event.image %}
+                    <div class="recommendation-image">
+                        <img src="{{ event.image.url }}" alt="{{ event.title }}" class="enlargeable-image">
+                    </div>
+                    {% endif %}
+                    <h3>{{ event.title }}</h3>
+                    <p>{{ event.excerpt|default:event.description|truncatewords:20 }}</p>
+                    <div class="recommendation-meta">
+                        <span><i class="fas fa-calendar"></i> {{ event.start_date|date:"M d, Y" }}</span>
+                        <span><i class="fas fa-clock"></i> {{ event.start_date|time }}</span>
+                    </div>
+                   <a href="{% url 'usereventdetails' event.id %}" class="recommendation-btn">
+    Learn More
+</a>
+
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-content">
+                    <img src="{% static 'assets/images/noevent.png' %}" alt="No recommendations">
+                    <p>No specific recommendations for you at the moment</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <div id="imageModal" class="modal">
+        <div class="modal-content image-modal">
+            <span class="close">&times;</span>
+            <img id="modalImage" src="" alt="Enlarged image">
+        </div>
+    </div>
+
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Confirm Logout</h2>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-buttons">
+                <button id="confirmLogout" class="btn-primary">Yes, Logout</button>
+                <button id="cancelLogout" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'mainpage' %}">Home</a></li>
+                    <li><a href="{% url 'userannouncement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'usercommunity' %}">The Community</a></li>
+                    <li><a href="{% url 'usercontact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Member Services</h3>
+                <ul>
+                    <li><a href="{% url 'userprofile' %}">My Profile</a></li>
+                    <li><a href="{% url 'myevents' %}">My Events</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/mainpage/userannouncement.js' %}"></script>
+</body>
+</html>

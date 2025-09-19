@@ -1,0 +1,483 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About The Community - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/index/thecommunity.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'index' %}" class="nav-link ">Home</a>
+                <a href="{% url 'announcement' %}" class="nav-link">Announcements & Events</a>
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropbtn active">About</a>
+                    <div class="dropdown-content active">
+                         <a href="{% url 'the_project' %}">The Project & Developers</a>
+                         <a href="{% url 'the_community' %}">The Sangguniang Kabataan</a>
+                    </div>
+                </div>
+                <a href="{% url 'contact' %}" class="nav-link">Contact</a>
+                <a href="{% url 'login' %}" class="nav-link login-btn">Login</a>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="community-hero">
+        <div class="hero-content">
+            <h1>Barangay <span>Mambugan</span></h1>
+            <p>Discover the vibrant community of Mambugan in Antipolo City, where tradition meets progress and youth empowerment drives community development.</p>
+        </div>
+        <div class="hero-image">
+            <div class="hero-blend"></div>
+            <img src="{% static 'assets/community/community3.jpg' %}" alt="Barangay Mambugan" class="hero-img">
+        </div>
+    </section>
+
+    <section class="community-intro">
+        <div class="container">
+            <div class="section-header">
+                <h2>Welcome to Our Community</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Barangay Mambugan is a vibrant community in Antipolo City where tradition meets progress and youth empowerment drives community development.</p>
+            </div>
+
+            <div class="intro-content">
+                <div class="intro-text">
+                    <h3>Our Community</h3>
+                    <p>Youth participation plays a vital role in community development, particularly at the barangay level where local government units directly interact with their constituents. However, many barangays still rely on manual processes such as paper-based profiling, handwritten reports, and face-to-face communication, which can be inefficient, prone to errors, and difficult to maintain over time.</p>
+                    <p>As the number of youth continues to grow, there is a growing need for an organized and technology-driven approach to manage youth-related information and activities. This capstone project introduces a Mobile and Web-Based Youth Management System specifically designed for Brgy. Mambugan, Antipolo City.</p>
+                </div>
+                <div class="intro-image">
+                    <div class="image-frame">
+                        <img src="{% static 'assets/community/community1.jpg' %}" alt="Mambugan Community">
+                        <div class="image-overlay">
+                            <div class="overlay-content">
+                                <h4>Mambugan Community</h4>
+                                <p>A place where youth thrives</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="sk-members">
+        <div class="container">
+            <div class="section-header">
+                <h2>Sangguniang Kabataan Officials</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Meet the dedicated youth leaders serving Barangay Mambugan</p>
+            </div>
+
+            <div class="sk-group-photo">
+                <img src="{% static 'assets/community/sk.png' %}" alt="SK Mambugan Members">
+            </div>
+
+            <div class="sk-members-grid">
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/1BD9AUiHGp/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk1.jpg' %}" alt="HON. KRISTINE M. NICOLAS">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. KRISTINE M. NICOLAS</h3>
+                        <p class="sk-position">SK Chairperson</p>
+                        <p class="sk-committee">Overall Committee Head and Committee on Youth and Sports Development</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/1Esm4bXFpx/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk2.jpg' %}" alt="HON. EMILY L. AZUR">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. EMILY L. AZUR</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Governance</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/1JisvzKLp5/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk3.jpg' %}" alt="HON. KYLA T. BOZAR">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. KYLA T. BOZAR</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Active Citizenship</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/14M5ssxpdqd/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk4.jpg' %}" alt="HON. AMY V. AUSTRIA">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. AMY V. AUSTRIA</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Environment and Committee on Economic Empowerment</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/17XkKDKFVC/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk5.jpg' %}" alt="HON. IRISH A. BALANA">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. IRISH A. BALANA</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Education</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/19XJS1PZGv/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk6.jpg' %}" alt="HON. CARL JAMIR T. BADAJOS">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. CARL JAMIR T. BADAJOS</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Social Inclusion and Equity</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/1Az7zAybnt/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk7.jpg' %}" alt="HON. LUCKY JUSTINE A. INLAYO">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. LUCKY JUSTINE A. INLAYO</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Peace Building and Security, Committee on Global Mobility</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/1AyTa7zG4x/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk8.jpg' %}" alt="HON. PRINCESS MAE G. TAN">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. PRINCESS MAE G. TAN</h3>
+                        <p class="sk-position">SK Kagawad</p>
+                        <p class="sk-committee">Committee on Health</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sk9.jpg' %}" alt="HON. IAN GUILLEN">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>HON. IAN GUILLEN</h3>
+                        <p class="sk-position">SK Secretary</p>
+                    </div>
+                </div>
+
+                <div class="sk-member-card" onclick="window.open('https://www.facebook.com/share/1DFhNYc8gP/?mibextid=wwXIfr', '_blank')">
+                    <div class="sk-member-image">
+                        <img src="{% static 'assets/community/sK10.jpg' %}" alt="HON. IAN GUILLEN">
+                    </div>
+                    <div class="sk-member-info">
+                        <h3>MS. ERIKA REPEDRO</h3>
+                        <p class="sk-position">SK Treasurer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="community-mission">
+        <div class="container">
+            <div class="mission-vision-container">
+                <div class="mission-card">
+                    <div class="mv-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <h3>Our Mission</h3>
+                    <p>To build a platform that effectively manages youth profiles and promotes their active involvement in community activities.</p>
+                    <div class="mv-highlights">
+                        <div class="highlight">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Youth Profile Management</span>
+                        </div>
+                        <div class="highlight">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Active Community Involvement</span>
+                        </div>
+                        <div class="highlight">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Digital Transformation</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vision-card">
+                    <div class="mv-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <h3>Our Vision</h3>
+                    <p>To create a well-organized, connected, and empowered youth community in Barangay Mambugan, where young individuals can thrive, engage, and contribute to community development.</p>
+                    <div class="mv-highlights">
+                        <div class="highlight">
+                            <i class="fas fa-star"></i>
+                            <span>Organized Community</span>
+                        </div>
+                        <div class="highlight">
+                            <i class="fas fa-star"></i>
+                            <span>Youth Empowerment</span>
+                        </div>
+                        <div class="highlight">
+                            <i class="fas fa-star"></i>
+                            <span>Sustainable Development</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="community-gallery">
+        <div class="container">
+            <div class="section-header">
+                <h2>Community Gallery</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Explore the beauty and vibrancy of Barangay Mambugan through our community gallery</p>
+            </div>
+
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="{% static 'assets/community/act.jpg' %}" alt="Community Activity">
+                    <div class="gallery-overlay">
+                        <h4>Community Events</h4>
+                        <p>Youth participating in barangay activities</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{% static 'assets/community/brgy.jpg' %}" alt="Barangay Center">
+                    <div class="gallery-overlay">
+                        <h4>Barangay Center</h4>
+                        <p>Our community hub for gatherings</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{% static 'assets/community/env.jpg' %}" alt="Local Environment">
+                    <div class="gallery-overlay">
+                        <h4>Natural Beauty</h4>
+                        <p>Scenic views of Mambugan</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{% static 'assets/community/community2.jpg' %}" alt="Youth Programs">
+                    <div class="gallery-overlay">
+                        <h4>Youth Programs</h4>
+                        <p>SK initiatives for the youth</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{% static 'assets/community/sk.png' %}" alt="Community Leaders">
+                    <div class="gallery-overlay">
+                        <h4>Community Leaders</h4>
+                        <p>Dedicated officials serving Mambugan</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="{% static 'assets/community/culture.jpg' %}" alt="Local Culture">
+                    <div class="gallery-overlay">
+                        <h4>Local Culture</h4>
+                        <p>Celebrating Mambugan's traditions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="community-map">
+        <div class="container">
+            <div class="section-header">
+                <h2>Visit Barangay Mambugan</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Located in Antipolo City, Rizal Province, Philippines</p>
+            </div>
+
+            <div class="map-container">
+                <div id="mambugan-map"></div>
+                <div class="map-info">
+                    <h3>Barangay Mambugan</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> Antipolo City, Rizal Province, Philippines</p>
+                    <div class="map-details">
+                        <div class="detail-item">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h4>Population</h4>
+                                <p>Approximately 5,000+ residents</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div>
+                                <h4>Established</h4>
+                                <p>Over 25 years of community history</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-heart"></i>
+                            <div>
+                                <h4>Community Spirit</h4>
+                                <p>Known for strong community bonds</p>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="https://www.google.com/maps/place/Mambugan,+Antipolo,+Rizal" target="_blank" class="btn-primary">
+                        <i class="fas fa-directions"></i> Get Directions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="community-features">
+        <div class="container">
+            <div class="section-header">
+                <h2>What Makes Mambugan Special</h2>
+                <div class="heading-separator">
+                    <div class="separator-line"></div>
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Logo" class="separator-logo">
+                    <div class="separator-line"></div>
+                </div>
+                <p>Discover the unique characteristics that define our community</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <h3>Strong Community Bonds</h3>
+                    <p>Mambugan is known for its close-knit community where neighbors support each other and work together for common goals.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-seedling"></i>
+                    </div>
+                    <h3>Natural Beauty</h3>
+                    <p>Nestled in Antipolo, our community enjoys scenic views and a peaceful environment that blends urban and natural elements.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Youth Engagement</h3>
+                    <p>With a strong Sangguniang Kabataan, youth participation in community affairs is encouraged and valued.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h3>Rich Heritage</h3>
+                    <p>Mambugan respects its traditions while embracing progress, creating a balance between heritage and innovation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="community-cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Become Part of Our Community</h2>
+                <p>Join us in building a stronger, more connected Barangay Mambugan where every youth has the opportunity to thrive and contribute.</p>
+                <div class="cta-buttons">
+                    <a href="#" class="btn-primary">Get Involved</a>
+                    <a href="#" class="btn-secondary">Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="{% url 'announcement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'the_project' %}">The Project & Developers</a></li>
+                    <li><a href="{% url 'the_community' %}">The Sangguniang Kabataan</a></li>
+                    <li><a href="{% url 'contact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Services</h3>
+                <ul>
+                    <li><a href="{% url 'index' %}#services">Event Registration</a></li>
+                    <li><a href="{% url 'index' %}#services">Community Support</a></li>
+                    <li><a href="{% url 'index' %}#services">Youth Innovation Hub</a></li>
+                    <li><a href="{% url 'contact' %}#services-section">Complaint Portal</a></li>
+                    <li><a href="{% url 'contact' %}#services-section">Suggestion Box</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="{% static 'js/index/thecommunity.js' %}"></script>
+</body>
+</html>

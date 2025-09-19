@@ -1,0 +1,356 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event.title }} - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/mainpage/usereventdetails.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                <span>SK Mambugan</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="{% url 'mainpage' %}" class="nav-link">Home</a>
+                <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
+                <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
+                <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
+                
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ user.first_name }}
+                    </a>
+                    <div class="dropdown-content user-dropdown-content">
+                         <a href="{% url 'userprofile' %}"><i class="fas fa-user"></i> My Profile</a>
+                         <a href="{% url 'myevents' %}"><i class="fas fa-calendar"></i> My Events</a>
+                         <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+
+    <section class="event-hero">
+        <div class="hero-background">
+            {% if event.image %}
+            <img src="{{ event.image.url }}" alt="{{ event.title }}" class="hero-bg-image">
+            {% else %}
+            <img src="{% static 'assets/community/event-default.jpg' %}" alt="Event Background" class="hero-bg-image">
+            {% endif %}
+            <div class="hero-overlay"></div>
+        </div>
+        <div class="hero-content">
+            <div class="event-breadcrumb">
+                <a href="{% url 'userannouncement' %}"><i class="fas fa-arrow-left"></i> Back to Events</a>
+            </div>
+            <div class="event-header">
+                <div class="event-badge">
+                    <i class="fas fa-calendar-alt"></i> {{ event.category|default:"Community Event" }}
+                </div>
+                <h1>{{ event.title }}</h1>
+                <div class="event-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ event.start_date|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ event.start_date|time }} - {{ event.end_date|time }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ event.location }}</span>
+                    </div>
+                </div>
+                {% if event.id in user_registered_event_ids %}
+                <div class="registration-status-badge registered">
+                    <i class="fas fa-check-circle"></i> You're Registered
+                </div>
+                {% elif not event.is_eligible %}
+                <div class="registration-status-badge not-eligible">
+                    <i class="fas fa-exclamation-circle"></i> Not Eligible
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="event-details-container">
+        <div class="event-main-content">
+            <div class="event-description">
+    <h2>About This Event</h2>
+    <p>{{ event.description|linebreaks }}</p>
+    
+    {% if event.objectives_list %}
+    <div class="event-objectives">
+        <h3>Event Objectives</h3>
+        <ul>
+            {% for objective in event.objectives_list %}
+            <li>{{ objective }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+            
+            <div class="event-gallery">
+                {% if event.images.all %}
+                <h2>Event Gallery</h2>
+                <div class="gallery-grid">
+                    {% for image in event.images.all %}
+                    <div class="gallery-item">
+                        <img src="{{ image.image.url }}" alt="Event image {{ forloop.counter }}" class="enlargeable-image">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="event-location">
+                <h2>Location</h2>
+                <div class="location-details">
+                    <p><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                    {% if event.location_details %}
+                    <p class="location-instructions">{{ event.location_details }}</p>
+                    {% endif %}
+                </div>
+                <div class="map-container" id="map">
+                    <div class="map-placeholder">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <p>Map loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="event-sidebar">
+            <div class="registration-card">
+                <div class="card-header">
+                    <h3>Event Registration</h3>
+                    {% if event.maximum_participants %}
+                    <div class="spots-remaining">
+                        <span class="spots-count">{{ event.remaining_spots }}</span>
+                        <span>spots remaining</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="registration-details">
+                    <div class="detail-item">
+                        <i class="fas fa-users"></i>
+                        <div class="detail-content">
+                            <span class="label">Participants</span>
+                            <span class="value">{{ event.current_participants }}{% if event.maximum_participants %}/{{ event.maximum_participants }}{% endif %}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <i class="fas fa-tag"></i>
+                        <div class="detail-content">
+                            <span class="label">Category</span>
+                            <span class="value">{{ event.category|default:"Community" }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <i class="fas fa-user-clock"></i>
+                        <div class="detail-content">
+                            <span class="label">Age Requirement</span>
+                            <span class="value">{{ event.age_requirement|default:"All ages" }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if event.registration_deadline %}
+                    <div class="detail-item">
+                        <i class="fas fa-hourglass-end"></i>
+                        <div class="detail-content">
+                            <span class="label">Registration Deadline</span>
+                            <span class="value">{{ event.registration_deadline|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="registration-action">
+                    {% if event.id in user_registered_event_ids %}
+                    <button class="btn-registered" disabled>
+                        <i class="fas fa-check-circle"></i> Already Registered
+                    </button>
+                    <a href="#" class="btn-calendar">
+                        <i class="fas fa-calendar-plus"></i> Add to Calendar
+                    </a>
+                    {% elif not event.is_eligible %}
+                    <button class="btn-not-eligible" disabled>
+                        <i class="fas fa-exclamation-circle"></i> Not Eligible
+                    </button>
+                    <p class="eligibility-note">You don't meet the requirements for this event</p>
+                    {% elif event.registration_open %}
+                    <a href="{% url 'event_register' event.id %}" class="btn-register">
+                        <i class="fas fa-ticket-alt"></i> Register Now
+                    </a>
+                    <p class="registration-note">Registration ends on {{ event.registration_deadline|date:"M d, Y" }}</p>
+                    {% else %}
+                    <button class="btn-registration-closed" disabled>
+                        <i class="fas fa-clock"></i> Registration Closed
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="organizer-card">
+                <h3>Organized By</h3>
+                <div class="organizer-info">
+                    <div class="organizer-avatar">
+                        <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan">
+                    </div>
+                    <div class="organizer-details">
+                        <h4>SK Mambugan</h4>
+                        <p>Youth Council of Barangay Mambugan</p>
+                    </div>
+                </div>
+                <a href="{% url 'usercontact' %}" class="btn-contact">
+                    <i class="fas fa-envelope"></i> Contact Organizer
+                </a>
+            </div>
+            
+            <div class="share-card">
+                <h3>Share This Event</h3>
+                <div class="share-buttons">
+                    <a href="#" class="share-btn facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="share-btn twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="share-btn whatsapp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="#" class="share-btn link" id="copy-link">
+                        <i class="fas fa-link"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if related_events %}
+    <section class="related-events">
+        <div class="section-header">
+            <h2>You Might Also Like</h2>
+            <p>Other events that might interest you</p>
+        </div>
+        <div class="related-events-grid">
+            {% for related_event in related_events %}
+            <div class="event-card">
+                <div class="event-card-image">
+                    {% if related_event.image %}
+                    <img src="{{ related_event.image.url }}" alt="{{ related_event.title }}">
+                    {% else %}
+                    <img src="{% static 'assets/community/event-default.jpg' %}" alt="{{ related_event.title }}">
+                    {% endif %}
+                    <div class="event-card-badge">
+                        {{ related_event.category|default:"Event" }}
+                    </div>
+                    {% if related_event.id in user_registered_event_ids %}
+                    <div class="event-card-registered">
+                        <i class="fas fa-check-circle"></i> Registered
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="event-card-content">
+                    <h3>{{ related_event.title }}</h3>
+                    <div class="event-card-meta">
+                        <span><i class="fas fa-calendar"></i> {{ related_event.start_date|date:"M d, Y" }}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> {{ related_event.location }}</span>
+                    </div>
+                    <a href="{% url 'usereventdetails' related_event.id %}" class="event-card-link">View Details <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <div id="imageModal" class="modal">
+        <div class="modal-content image-modal">
+            <span class="close">&times;</span>
+            <img id="modalImage" src="" alt="Enlarged image">
+        </div>
+    </div>
+
+    <div id="logoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Confirm Logout</h2>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="modal-buttons">
+                <button id="confirmLogout" class="btn-primary">Yes, Logout</button>
+                <button id="cancelLogout" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <span>Sangguniang Kabataan ng Barangay Mambugan</span>
+                </div>
+                <p>Empowering the youth, building the future of Barangay Mambugan.</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/profile.php?id=61553913343661"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{% url 'mainpage' %}">Home</a></li>
+                    <li><a href="{% url 'userannouncement' %}">Announcements & Events</a></li>
+                    <li><a href="{% url 'usercommunity' %}">The Community</a></li>
+                    <li><a href="{% url 'usercontact' %}">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Member Services</h3>
+                <ul>
+                    <li><a href="{% url 'userprofile' %}">My Profile</a></li>
+                    <li><a href="{% url 'myevents' %}">My Events</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="contact-info">
+                    <li><i class="fas fa-phone"></i> 09564368835</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ruhat 3 Lower Barangay Mambugan, Antipolo City</li>
+                    <li><i class="fas fa-envelope"></i> skmambugan2023@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Sangguniang Kabataan ng Barangay Mambugan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/mainpage/usereventdetails.js' %}"></script>
+</body>
+</html>

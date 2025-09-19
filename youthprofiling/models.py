@@ -1,0 +1,848 @@
+# models.py
+from django.db import models
+from django.conf import settings
+from cryptography.fernet import Fernet
+import base64
+import os
+from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
+
+
+def get_encryption_key():
+    key = getattr(settings, 'ENCRYPTION_KEY', None)
+    if key is None:
+        key = Fernet.generate_key()
+    return key
+
+fernet = Fernet(get_encryption_key())
+
+class EncryptedField(models.TextField):
+    """Custom field for encrypted data storage"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def get_prep_value(self, value):
+        """Encrypt value before saving to database"""
+        if value is None:
+            return value
+        if isinstance(value, str):
+            value = value.encode()
+        encrypted_value = fernet.encrypt(value)
+        return base64.urlsafe_b64encode(encrypted_value).decode()
+    
+    def from_db_value(self, value, expression, connection):
+        """Decrypt value when retrieving from database"""
+        if value is None:
+            return value
+        try:
+            decoded_value = base64.urlsafe_b64decode(value)
+            decrypted_value = fernet.decrypt(decoded_value)
+            return decrypted_value.decode()
+        except Exception:
+            return value
+
+class YouthUser(models.Model):
+    """Main user model for youth members - NO connection to Django admin users"""
+    
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128) 
+    
+    first_name = EncryptedField(max_length=100)
+    last_name = EncryptedField(max_length=100)
+    middle_name = EncryptedField(max_length=100, blank=True, null=True)
+    suffix = EncryptedField(max_length=10, blank=True, null=True)
+    address = EncryptedField(max_length=255)
+    
+    PUROK_ZONE_CHOICES = [
+        ('Zone 1', 'Zone 1'),
+        ('Zone 2', 'Zone 2'),
+        ('Zone 3', 'Zone 3'),
+        ('Zone 4', 'Zone 4'),
+    ]
+    purok_zone = models.CharField(max_length=10, choices=PUROK_ZONE_CHOICES, default='Zone 1')
+    
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
+    
+    birthdate = EncryptedField(max_length=10)  
+    age = models.PositiveIntegerField(default=0)
+    contact_number = EncryptedField(max_length=15)
+    
+    CIVIL_STATUS_CHOICES = [
+        ('Single', 'Single'),
+        ('Married', 'Married'),
+        ('Widowed', 'Widowed'),
+        ('Separated', 'Separated'),
+    ]
+    civil_status = models.CharField(max_length=10, choices=CIVIL_STATUS_CHOICES, default='Single')
+    
+    AGE_GROUP_CHOICES = [
+        ('15-17', '15-17 years'),
+        ('18-21', '18-21 years'),
+        ('22-25', '22-25 years'),
+        ('26-30', '26-30 years'),
+    ]
+    age_group = models.CharField(max_length=10, choices=AGE_GROUP_CHOICES, default='15-17')
+    
+    EDUCATION_CHOICES = [
+        ('Elementary', 'Elementary'),
+        ('High School', 'High School'),
+        ('College', 'College'),
+        ('Vocational', 'Vocational/Tech'),
+        ('Postgraduate', 'Postgraduate'),
+    ]
+    education = models.CharField(max_length=20, choices=EDUCATION_CHOICES, default='High School')
+    
+    YOUTH_CLASS_CHOICES = [
+        ('Student', 'Student'),
+        ('Working', 'Working'),
+        ('Out-of-School', 'Out-of-School Youth'),
+        ('NEET', 'Not in Education, Employment or Training'),
+    ]
+    youth_classification = models.CharField(max_length=20, choices=YOUTH_CLASS_CHOICES, default='Student')
+    
+    WORK_STATUS_CHOICES = [
+        ('Employed', 'Employed'),
+        ('Unemployed', 'Unemployed'),
+        ('Self-Employed', 'Self-Employed'),
+        ('Student', 'Student'),
+    ]
+    work_status = models.CharField(max_length=15, choices=WORK_STATUS_CHOICES, default='Student')
+    
+    sk_voter = models.BooleanField(default=False)
+    
+    registration_no = models.CharField(max_length=20, unique=True)
+    
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    
+    ID_TYPE_CHOICES = [
+        ('Passport', 'Passport'),
+        ('Driver\'s License', 'Driver\'s License'),
+        ('UMID', 'Unified Multi-Purpose ID'),
+        ('Student ID', 'Student ID'),
+        ('Postal ID', 'Postal ID'),
+        ('PhilHealth ID', 'PhilHealth ID'),
+        ('SSS ID', 'SSS ID'),
+        ('PRC ID', 'PRC ID'),
+        ('Voter\'s ID', 'Voter\'s ID'),
+        ('Senior Citizen ID', 'Senior Citizen ID'),
+        ('Other', 'Other Government ID'),
+    ]
+    id_type = models.CharField(max_length=50, choices=ID_TYPE_CHOICES, default='Student ID')
+    id_picture = models.ImageField(upload_to='id_pictures/')
+    birth_certificate = models.FileField(upload_to='birth_certificates/', blank=True, null=True)
+
+    is_email_verified = models.BooleanField(default=False)
+    email_verification_date = models.DateTimeField(blank=True, null=True)
+    
+    is_admin_verified = models.BooleanField(default=False)
+    admin_verification_date = models.DateTimeField(blank=True, null=True)
+    
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_login = models.DateTimeField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Youth User"
+        verbose_name_plural = "Youth Users"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.registration_no}"
+    
+    def get_full_name(self):
+        """Return full name with suffix if available"""
+        name_parts = [self.first_name]
+        if self.middle_name:
+            name_parts.append(self.middle_name)
+        if self.last_name:
+            name_parts.append(self.last_name)
+        if self.suffix:
+            name_parts.append(self.suffix)
+        return " ".join(name_parts)
+    
+    def get_encrypted_data(self):
+        """Return a dictionary of encrypted field values (for admin purposes)"""
+        return {
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'middle_name': self.middle_name,
+            'suffix': self.suffix,
+            'address': self.address,
+            'birthdate': self.birthdate,
+            'contact_number': self.contact_number,
+        }
+    
+    def verify_email(self):
+        """Mark email as verified"""
+        self.is_email_verified = True
+        self.email_verification_date = timezone.now()
+        self.save()
+    
+    def verify_by_admin(self):
+        """Mark account as verified by admin"""
+        self.is_admin_verified = True
+        self.admin_verification_date = timezone.now()
+        self.save()
+    
+    def set_password(self, raw_password):
+        """Hash and set the password"""
+        self.password = make_password(raw_password)
+        self.save()
+    
+    def check_password(self, raw_password):
+        """Check if the password is correct"""
+        return check_password(raw_password, self.password)
+    
+    @classmethod
+    def get_admin_user(cls):
+        """Get or create a special admin user for auto-posting announcements"""
+        try:
+            # Try to get the admin user
+            admin_user = cls.objects.get(username='sk_mambugan_admin')
+        except cls.DoesNotExist:
+            # Create the admin user if it doesn't exist
+            admin_user = cls.objects.create(
+                username='sk_mambugan_admin',
+                email='admin@skmambugan.ph',
+                first_name='Sangguniang Kabataan',
+                last_name='ng Barangay Mambugan',
+                address='Barangay Mambugan',
+                password='admin_auto_post_password_123',
+                gender='Male',
+                birthdate='2000-01-01',
+                age=25,
+                contact_number='00000000000',
+                civil_status='Single',
+                age_group='26-30',
+                education='College',
+                youth_classification='Working',
+                work_status='Employed',
+                sk_voter=True,
+                registration_no='SK-ADMIN-001',
+                id_type='Other',
+                is_email_verified=True,
+                is_admin_verified=True
+            )
+        return admin_user
+
+class OTPVerification(models.Model):
+    """Model for storing OTP verification attempts for email verification"""
+    email = models.EmailField()
+    otp_code = EncryptedField(max_length=6, default='')
+    is_verified = models.BooleanField(default=False)
+    attempts = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        verbose_name = "OTP Verification"
+        verbose_name_plural = "OTP Verifications"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"OTP for {self.email} - {self.created_at}"
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+class AuditLog(models.Model):
+    """Model for tracking access to encrypted data"""
+    admin_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    youth_user = models.ForeignKey(YouthUser, on_delete=models.CASCADE)
+    action = models.CharField(max_length=50, choices=[
+        ('VIEW', 'View Encrypted Data'),
+        ('UPDATE', 'Update Encrypted Data'),
+        ('DECRYPT', 'Decrypt Data'),
+    ], default='VIEW')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        username = self.admin_user.username if self.admin_user else 'System'
+        return f"{self.action} on {self.youth_user} by {username} at {self.timestamp}"
+    
+
+
+
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+class Gender(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    
+    def __str__(self):
+        return self.name
+
+class CivilStatus(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    
+    def __str__(self):
+        return self.name
+
+class AgeGroup(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    
+    def __str__(self):
+        return self.name
+
+class EducationLevel(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    
+    def __str__(self):
+        return self.name
+
+class YouthClassification(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    
+    def __str__(self):
+        return self.name
+
+class WorkStatus(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    
+    def __str__(self):
+        return self.name
+
+class Announcement(models.Model):
+    ANNOUNCEMENT_CATEGORIES = [
+        ('important', 'Important'),
+        ('sports', 'Sports'),
+        ('education', 'Education'),
+        ('environment', 'Environment'),
+        ('health', 'Health'),
+        ('general', 'General'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    excerpt = models.CharField(max_length=300, blank=True)
+    category = models.CharField(max_length=20, choices=ANNOUNCEMENT_CATEGORIES, default='general')
+    image = models.ImageField(upload_to='announcements/', blank=True, null=True)
+    publish_date = models.DateTimeField(auto_now_add=True)
+    effective_date = models.DateTimeField(blank=True, null=True)
+    deadline = models.DateTimeField(blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True)
+    is_important = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.title
+    
+    class Meta:
+        ordering = ['-publish_date']
+
+class Event(models.Model):
+    EVENT_CATEGORIES = [
+        ('sports', 'Sports'),
+        ('education', 'Education'),
+        ('health', 'Health'),
+        ('community', 'Community'),
+        ('cultural', 'Cultural'),
+        ('environment', 'Environment'),
+    ]
+    
+    ACCESS_ALL = 'all'
+    ACCESS_NONE = 'none'
+    ACCESS_SPECIFIC = 'specific'
+    ACCESS_CHOICES = [
+        (ACCESS_ALL, 'Everyone in this group can join'),
+        (ACCESS_NONE, 'Nobody in this group can join'),
+        (ACCESS_SPECIFIC, 'Specific selection only'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    excerpt = models.CharField(max_length=300, blank=True)
+    category = models.CharField(max_length=20, choices=EVENT_CATEGORIES)
+    image = models.ImageField(upload_to='events/', blank=True, null=True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    location = models.CharField(max_length=100)
+    maximum_participants = models.PositiveIntegerField(blank=True, null=True)
+    current_participants = models.PositiveIntegerField(default=0)
+    registration_deadline = models.DateTimeField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    requires_registration = models.BooleanField(default=False)
+    
+    gender_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
+    target_genders = models.ManyToManyField(Gender, blank=True)
+    
+    civil_status_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
+    target_civil_statuses = models.ManyToManyField(CivilStatus, blank=True)
+    
+    age_group_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
+    target_age_groups = models.ManyToManyField(AgeGroup, blank=True)
+    
+    education_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
+    target_education_levels = models.ManyToManyField(EducationLevel, blank=True)
+    
+    youth_classification_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
+    target_youth_classifications = models.ManyToManyField(YouthClassification, blank=True)
+    
+    work_status_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
+    target_work_statuses = models.ManyToManyField(WorkStatus, blank=True)
+    
+    age_min = models.PositiveIntegerField(blank=True, null=True)
+    age_max = models.PositiveIntegerField(blank=True, null=True)
+    
+    points_reward = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.title
+    
+    @property
+    def is_upcoming(self):
+        return self.start_date > timezone.now()
+    
+    @property
+    def seats_available(self):
+        if self.maximum_participants:
+            return self.maximum_participants - self.current_participants
+        return None
+    
+    def is_eligible(self, user):
+        """
+        Check if a user is eligible to register for this event
+        based on the target audience specifications
+        """
+        if not self._check_eligibility_for_field(
+            self.gender_access, 
+            self.target_genders.all(), 
+            user.gender if hasattr(user, 'gender') else None
+        ):
+            return False
+        
+        if not self._check_eligibility_for_field(
+            self.civil_status_access, 
+            self.target_civil_statuses.all(), 
+            user.civil_status if hasattr(user, 'civil_status') else None
+        ):
+            return False
+        
+        if not self._check_eligibility_for_field(
+            self.age_group_access, 
+            self.target_age_groups.all(), 
+            user.age_group if hasattr(user, 'age_group') else None
+        ):
+            return False
+        
+        if not self._check_eligibility_for_field(
+            self.education_access, 
+            self.target_education_levels.all(), 
+            user.education if hasattr(user, 'education') else None
+        ):
+            return False
+        
+        if not self._check_eligibility_for_field(
+            self.youth_classification_access, 
+            self.target_youth_classifications.all(), 
+            user.youth_classification if hasattr(user, 'youth_classification') else None
+        ):
+            return False
+        
+        if not self._check_eligibility_for_field(
+            self.work_status_access, 
+            self.target_work_statuses.all(), 
+            user.work_status if hasattr(user, 'work_status') else None
+        ):
+            return False
+        
+        if self.age_min and hasattr(user, 'age') and user.age < self.age_min:
+            return False
+        
+        if self.age_max and hasattr(user, 'age') and user.age > self.age_max:
+            return False
+        
+        return True
+    
+    def _check_eligibility_for_field(self, access_type, target_items, user_value):
+        """
+        Helper method to check eligibility for a specific field
+        """
+        if access_type == self.ACCESS_ALL:
+            return True
+        elif access_type == self.ACCESS_NONE:
+            return False
+        elif access_type == self.ACCESS_SPECIFIC:
+            if not user_value:
+                return False
+            return any(target_item.name.lower() == user_value.lower() for target_item in target_items)
+        return True
+    
+    class Meta:
+        ordering = ['start_date']
+
+
+
+class AnnouncementInteraction(models.Model):
+    INTERACTION_TYPES = [
+        ('saved', 'Saved'),
+        ('attending', 'Plan to Attend'),
+        ('applied', 'Application Started'),
+        ('volunteered', 'Volunteered'),
+    ]
+    
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE)
+    user = models.ForeignKey('YouthUser', on_delete=models.CASCADE)
+    interaction_type = models.CharField(max_length=20, choices=INTERACTION_TYPES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['announcement', 'user', 'interaction_type']
+
+class EventRegistration(models.Model):
+    REGISTRATION_STATUS = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('waitlisted', 'Waitlisted'),
+        ('cancelled', 'Cancelled'),
+        ('attended', 'Attended'),
+        ('no_show', 'No Show'),
+    ]
+    
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE)
+    registration_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=REGISTRATION_STATUS, default='pending')
+    check_in_time = models.DateTimeField(blank=True, null=True)
+    points_earned = models.PositiveIntegerField(default=0)
+    feedback_provided = models.BooleanField(default=False)
+    certificate_issued = models.BooleanField(default=False)
+    
+    emergency_contact_name = EncryptedField(max_length=100, blank=True, null=True)
+    emergency_contact_number = EncryptedField(max_length=15, blank=True, null=True)
+    dietary_restrictions = models.TextField(blank=True, null=True)
+    special_accommodations = models.TextField(blank=True, null=True)
+    skills_interests = models.TextField(blank=True, null=True)  
+    how_heard = models.CharField(max_length=100, blank=True, null=True, choices=[
+        ('social_media', 'Social Media'),
+        ('friend', 'Friend'),
+        ('email', 'Email'),
+        ('website', 'Website'),
+        ('community_board', 'Community Board'),
+        ('other', 'Other'),
+    ])
+    agree_to_terms = models.BooleanField(default=False)
+    agree_to_photos = models.BooleanField(default=False)
+    
+    class Meta:
+        unique_together = ['event', 'user']
+        ordering = ['-registration_date']
+    
+    def __str__(self):
+        return f"{self.user} - {self.event}"
+    
+    @property
+    def can_check_in(self):
+        return self.status == 'confirmed' and not self.check_in_time
+    
+    @property
+    def is_active(self):
+        return self.status in ['pending', 'confirmed', 'waitlisted']
+    
+    def generate_qr_code(self):
+        pass
+
+class EventQuestion(models.Model):
+    QUESTION_TYPES = [
+        ('text', 'Short Text'),
+        ('textarea', 'Long Text'),
+        ('radio', 'Single Choice'),
+        ('checkbox', 'Multiple Choice'),
+        ('dropdown', 'Dropdown'),
+    ]
+    
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.CharField(max_length=255)
+    question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='text')
+    is_required = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    options = models.TextField(blank=True, null=True)  
+
+    class Meta:
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.event}: {self.question_text}"
+
+class EventRegistrationResponse(models.Model):
+    registration = models.ForeignKey(EventRegistration, on_delete=models.CASCADE, related_name='responses')
+    question = models.ForeignKey(EventQuestion, on_delete=models.CASCADE)
+    response = models.TextField()
+    
+    class Meta:
+        unique_together = ['registration', 'question']
+    
+    def __str__(self):
+        return f"{self.registration} - {self.question}"
+
+
+
+class CommunityPost(models.Model):
+    POST_TYPES = [
+        ('text', 'Text Post'),
+        ('image', 'Image Post'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='community_posts')
+    content = models.TextField()
+    post_type = models.CharField(max_length=10, choices=POST_TYPES, default='text')
+    image = models.ImageField(upload_to='community_posts/images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    privacy = models.CharField(max_length=10, choices=[
+        ('public', 'Public'),
+        ('community', 'SK Members Only'),
+    ], default='public')
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Post by {self.user} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+    
+    @property
+    def like_count(self):
+        return self.likes.filter(is_active=True).count()
+    
+    @property
+    def comment_count(self):
+        return self.comments.filter(is_active=True).count()
+
+
+class PostLike(models.Model):
+    post = models.ForeignKey(CommunityPost, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='post_likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ['post', 'user']
+    
+    def __str__(self):
+        return f"{self.user} liked {self.post}"
+
+
+class PostComment(models.Model):
+    post = models.ForeignKey(CommunityPost, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='post_comments')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    
+    class Meta:
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"Comment by {self.user} on {self.post}"
+    
+    @property
+    def like_count(self):
+        return self.comment_likes.filter(is_active=True).count()
+
+
+class CommentLike(models.Model):
+    comment = models.ForeignKey(PostComment, on_delete=models.CASCADE, related_name='comment_likes')
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='comment_likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ['comment', 'user']
+    
+    def __str__(self):
+        return f"{self.user} liked comment by {self.comment.user}"
+
+
+class TrendingTopic(models.Model):
+    name = models.CharField(max_length=100)
+    post_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-post_count']
+    
+    def __str__(self):
+        return f"#{self.name} ({self.post_count} posts)"
+
+
+class CommunityGuideline(models.Model):
+    content = models.TextField()
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"Guideline {self.order}"
+    
+
+class ContactMessage(models.Model):
+    SUBJECT_CHOICES = [
+        ('general', 'General Inquiry'),
+        ('technical', 'Technical Support'),
+        ('event', 'Event Registration'),
+        ('complaint', 'Complaint'),
+        ('suggestion', 'Suggestion'),
+        ('other', 'Other'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='contact_messages')
+    subject = models.CharField(max_length=20, choices=SUBJECT_CHOICES)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.get_subject_display()} from {self.user}"
+
+
+class Complaint(models.Model):
+    URGENCY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='complaints')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    urgency = models.CharField(max_length=10, choices=URGENCY_CHOICES, default='medium')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+    is_anonymous = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Complaint: {self.title}"
+
+
+class Suggestion(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('under_consideration', 'Under Consideration'),
+        ('implemented', 'Implemented'),
+        ('rejected', 'Not Feasible'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='suggestions')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_anonymous = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    implemented_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Suggestion: {self.title}"
+
+
+class SupportTicket(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='support_tickets')
+    subject = models.CharField(max_length=200)
+    description = models.TextField()
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='open')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Support Ticket: {self.subject}"
+
+
+class CallbackRequest(models.Model):
+    TIME_CHOICES = [
+        ('morning', 'Morning (8AM-12PM)'),
+        ('afternoon', 'Afternoon (1PM-5PM)'),
+        ('evening', 'Evening (6PM-8PM)'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='callback_requests')
+    phone_number = models.CharField(max_length=15)
+    preferred_time = models.CharField(max_length=10, choices=TIME_CHOICES)
+    reason = models.TextField()
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Callback for {self.user}"
+
+
+class FAQ(models.Model):
+    question = models.CharField(max_length=255)
+    answer = models.TextField()
+    category = models.CharField(max_length=50, default='General')
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['order', 'created_at']
+    
+    def __str__(self):
+        return self.question

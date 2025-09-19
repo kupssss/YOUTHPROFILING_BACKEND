@@ -1,0 +1,978 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #F8FAFC;
+    color: #1F2937;
+    line-height: 1.6;
+}
+
+.navbar {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 70px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #1E40AF;
+}
+
+.nav-logo img {
+    height: 40px;
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-link {
+    color: #4B5563;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #1E40AF;
+    background-color: #EFF6FF;
+}
+
+.user-dropdown {
+    position: relative;
+}
+
+.user-welcome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white !important;
+    padding: 10px 20px;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.user-welcome:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(30, 64, 175, 0.3);
+}
+
+.user-dropdown-content {
+    position: absolute;
+    right: 0;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    padding: 10px 0;
+    min-width: 200px;
+    transform: translateY(10px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    display: none;
+    z-index: 1001;
+}
+
+.user-dropdown:hover .user-dropdown-content {
+    display: block;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.user-dropdown-content a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    color: #4B5563;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.user-dropdown-content a:hover {
+    background-color: #EFF6FF;
+    color: #1E40AF;
+}
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.bar {
+    width: 25px;
+    height: 3px;
+    background-color: #1F2937;
+    margin: 3px 0;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.profile-container {
+    max-width: 1200px;
+    margin: 100px auto 50px;
+    padding: 0 20px;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.profile-header h1 {
+    font-size: 2.5rem;
+    color: #1E40AF;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.profile-header p {
+    font-size: 1.1rem;
+    color: #6B7280;
+}
+
+.profile-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.profile-section {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+    transition: all 0.3s ease;
+}
+
+.profile-section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(30, 64, 175, 0.15);
+}
+
+.section-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.section-header h2 {
+    font-size: 1.5rem;
+    color: #1E40AF;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-header p {
+    color: #6B7280;
+    margin-top: 5px;
+}
+
+.profile-form {
+    margin-top: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
+}
+
+.checkbox-label {
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 20px;
+    grid-column: 1 / -1;
+}
+
+.cancel-btn, .save-btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn {
+    background-color: #F3F4F6;
+    color: #374151;
+}
+
+.cancel-btn:hover {
+    background-color: #E5E7EB;
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+}
+
+/* ID Card Styles - Fixed Layout */
+.id-card-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    perspective: 1000px;
+}
+
+.id-card-wrapper {
+    width: 100%;
+    max-width: 600px;
+    height: 380px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s;
+    margin-bottom: 25px;
+}
+
+.id-card-wrapper.flipped {
+    transform: rotateY(180deg);
+}
+
+.id-card-front, .id-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    background: white;
+}
+
+.id-card-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Front of ID Card - Fixed Layout */
+.id-flag-header {
+    display: flex;
+    height: 10px;
+}
+
+.flag-stripe {
+    flex: 1;
+}
+
+.flag-stripe.blue {
+    background-color: #0038a8;
+}
+
+.flag-stripe.red {
+    background-color: #ce1126;
+}
+
+.id-content-front {
+    padding: 15px;
+    position: relative;
+    height: calc(100% - 10px);
+    display: flex;
+    flex-direction: column;
+}
+
+.id-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.05;
+    z-index: 0;
+}
+
+.id-watermark img {
+    width: 250px;
+    height: 250px;
+}
+
+.id-header-front {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    z-index: 1;
+}
+
+.id-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.id-logo-front img {
+    height: 50px;
+}
+
+.id-header-text {
+    font-size: 0.65rem;
+    line-height: 1.2;
+}
+
+.republic-text {
+    font-weight: 700;
+    color: #0038a8;
+}
+
+.city-text {
+    font-weight: 600;
+    color: #333;
+}
+
+.barangay-text {
+    font-weight: 600;
+    color: #ce1126;
+}
+
+.id-header-right {
+    text-align: right;
+}
+
+.sk-text {
+    font-weight: 800;
+    color: #0038a8;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.id-type {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.id-main-content {
+    display: flex;
+    flex: 1;
+    gap: 15px;
+    z-index: 1;
+    margin-bottom: 10px;
+}
+
+.id-photo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 35%;
+}
+
+.id-photo-front {
+    width: 100px;
+    height: 125px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 2px solid #0038a8;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.id-photo-front img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.default-photo-front {
+    font-size: 2.5rem;
+    color: #0038a8;
+}
+
+.id-number-front {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+}
+
+.id-details-front {
+    flex: 1;
+    overflow: hidden;
+}
+
+.id-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0038a8;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #ce1126;
+    padding-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.id-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+
+.id-detail-item {
+    display: flex;
+}
+
+.id-detail-label {
+    font-weight: 600;
+    color: #333;
+    min-width: 65px;
+    font-size: 0.7rem;
+}
+
+.id-detail-value {
+    font-size: 0.7rem;
+    color: #555;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.id-footer-front {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 1;
+    padding-top: 5px;
+    border-top: 1px solid #eee;
+}
+
+.id-issuance {
+    font-size: 0.65rem;
+}
+
+.issued-date, .valid-until {
+    margin-bottom: 2px;
+}
+
+.id-signature-front {
+    text-align: center;
+}
+
+.signature-line {
+    width: 120px;
+    height: 1px;
+    background-color: #333;
+    margin-bottom: 3px;
+}
+
+.signature-label {
+    font-size: 0.65rem;
+    font-style: italic;
+}
+
+/* Back of ID Card - Fixed Layout */
+.id-background-flag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.08;
+    z-index: 0;
+}
+
+.id-background-flag img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.id-content-back {
+    position: relative;
+    z-index: 1;
+    padding: 15px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.id-back-header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.id-back-header h3 {
+    color: #0038a8;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+.id-back-header p {
+    font-size: 0.7rem;
+    color: #555;
+}
+
+.antipolo-logo {
+    text-align: center;
+    margin: 8px 0;
+}
+
+.antipolo-logo img {
+    height: 50px;
+}
+
+.id-qr-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.qr-code {
+    width: 100px;
+    height: 100px;
+    background: white;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-placeholder {
+    text-align: center;
+    color: #777;
+    font-size: 0.7rem;
+}
+
+.qr-placeholder i {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.qr-info {
+    text-align: center;
+}
+
+.qr-info p {
+    font-size: 0.7rem;
+    margin-bottom: 3px;
+}
+
+.member-id {
+    font-weight: 600;
+    color: #0038a8;
+    font-size: 0.7rem;
+}
+
+.id-terms {
+    margin: 8px 0;
+}
+
+.id-terms h4 {
+    font-size: 0.75rem;
+    color: #0038a8;
+    margin-bottom: 3px;
+    text-align: center;
+}
+
+.id-terms ul {
+    padding-left: 18px;
+    margin: 0;
+}
+
+.id-terms li {
+    font-size: 0.65rem;
+    margin-bottom: 2px;
+    color: #555;
+}
+
+.id-contact {
+    margin-top: auto;
+    text-align: center;
+    font-size: 0.65rem;
+    color: #555;
+    padding-top: 5px;
+    border-top: 1px solid #eee;
+}
+
+.id-contact p {
+    margin: 2px 0;
+}
+
+/* ID Card Actions */
+.id-card-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.flip-id-btn, .download-id-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.flip-id-btn:hover, .download-id-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+}
+
+@media (max-width: 768px) {
+    .id-card-wrapper {
+        height: 340px;
+        max-width: 100%;
+    }
+    
+    .id-header-front {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .id-header-right {
+        text-align: center;
+    }
+    
+    .id-main-content {
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .id-photo-section {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .id-photo-front {
+        width: 90px;
+        height: 115px;
+        margin-bottom: 0;
+    }
+    
+    .id-card-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .flip-id-btn, .download-id-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .id-card-wrapper {
+        height: 320px;
+    }
+    
+    .id-content-front, .id-content-back {
+        padding: 12px;
+    }
+    
+    .id-logo-front img {
+        height: 45px;
+    }
+    
+    .sk-text {
+        font-size: 0.85rem;
+    }
+    
+    .id-name {
+        font-size: 0.9rem;
+    }
+    
+    .id-photo-front {
+        width: 80px;
+        height: 100px;
+    }
+    
+    .default-photo-front {
+        font-size: 2rem;
+    }
+    
+    .id-detail-label, .id-detail-value {
+        font-size: 0.65rem;
+    }
+    
+    .qr-code {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .qr-placeholder i {
+        font-size: 35px;
+    }
+}
+
+.download-id-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.download-id-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+}
+
+.modal-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.modal-icon.success {
+    color: #10B981;
+}
+
+.modal-content h2 {
+    color: #1E40AF;
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    margin-bottom: 25px;
+    color: #4B5563;
+}
+
+.modal-btn {
+    padding: 10px 25px;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #1E40AF;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .profile-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .id-card {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-menu {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+    }
+    
+    .nav-menu.active {
+        display: flex;
+    }
+    
+    .hamburger {
+        display: flex;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-container {
+        margin-top: 80px;
+    }
+    
+    .profile-header h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .profile-section {
+        padding: 20px;
+    }
+    
+    .id-content {
+        padding: 15px;
+    }
+    
+    .id-title {
+        font-size: 1.2rem;
+    }
+    
+    .id-subtitle {
+        font-size: 1rem;
+    }
+    
+    .id-photo {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .default-photo {
+        font-size: 2.5rem;
+    }
+    
+    .id-detail-row {
+        flex-direction: column;
+    }
+    
+    .id-label {
+        margin-bottom: 5px;
+    }
+}

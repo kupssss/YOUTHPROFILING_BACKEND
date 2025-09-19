@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #4F46E5; color: white; padding: 20px; text-align: center; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .otp-code { 
+            font-size: 32px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin: 20px 0;
+            color: #4F46E5;
+        }
+        .footer { 
+            text-align: center; 
+            margin-top: 20px; 
+            font-size: 12px; 
+            color: #666; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SK Mambugan Youth Management System</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Email Verification</h2>
+            <p>Hello,</p>
+            <p>Thank you for registering with SK Mambugan Youth Management System. Please use the following verification code to complete your registration:</p>
+            
+            <div class="otp-code">{{ otp_code }}</div>
+            
+            <p>This code will expire in {{ expires_in }}. If you didn't request this verification, please ignore this email.</p>
+            
+            <p>Best regards,<br>SK Mambugan Administration</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© {% now "Y" %} SK Mambugan. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
