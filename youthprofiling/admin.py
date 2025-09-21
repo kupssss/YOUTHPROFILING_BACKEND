@@ -237,7 +237,106 @@ admin.site.register(YouthUser, YouthUserAdmin)
 admin.site.register(OTPVerification, OTPVerificationAdmin)
 admin.site.register(AuditLog, AuditLogAdmin)
 
+from .models import YouthAdmin
 
+class YouthAdminAdmin(admin.ModelAdmin):
+    list_display = ('username', 'get_full_name', 'email', 'role', 'is_active', 'last_login')
+    list_filter = ('role', 'is_active', 'is_super_admin', 'date_joined')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    readonly_fields = ('date_joined', 'last_login', 'get_encrypted_data_display')
+    
+    fieldsets = (
+        ('Login Credentials', {
+            'fields': ('username', 'email', 'password')
+        }),
+        ('Personal Information', {
+            'fields': ('get_encrypted_data_display', 'first_name', 'last_name', 'middle_name')
+        }),
+        ('Admin Details', {
+            'fields': ('role', 'department', 'contact_number', 'profile_picture')
+        }),
+        ('Permissions', {
+            'fields': ('is_super_admin', 'can_manage_users', 'can_manage_announcements', 
+                      'can_manage_events', 'can_view_reports', 'can_manage_settings')
+        }),
+        ('Status', {
+            'fields': ('is_active',)
+        }),
+        ('Timestamps', {
+            'fields': ('date_joined', 'last_login')
+        }),
+    )
+    
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+    get_full_name.short_description = 'Full Name'
+    
+    def get_encrypted_data_display(self, obj):
+        """Display encrypted data with decryption option (similar to YouthUser)"""
+        decryption_key = getattr(self, '_decryption_key', None)
+        
+        if decryption_key:
+            try:
+                temp_fernet = Fernet(decryption_key.encode())
+                decrypted_data = {}
+                encrypted_fields = ['first_name', 'last_name', 'middle_name', 'contact_number']
+                
+                for field in encrypted_fields:
+                    value = getattr(obj, field)
+                    if value:
+                        try:
+                            if not value.startswith('gAAAAA'):
+                                decrypted_data[field] = value
+                            else:
+                                decoded_value = base64.urlsafe_b64decode(value)
+                                decrypted_value = temp_fernet.decrypt(decoded_value).decode()
+                                decrypted_data[field] = decrypted_value
+                        except (InvalidToken, ValueError, TypeError):
+                            decrypted_data[field] = "Decryption failed"
+                    else:
+                        decrypted_data[field] = "Not provided"
+                
+                result = "<div style='background-color: #f0f8ff; padding: 10px; border-radius: 5px;'>"
+                result += "<h4>Decrypted Data (Using Provided Key)</h4>"
+                field_labels = {
+                    'first_name': 'First Name',
+                    'last_name': 'Last Name',
+                    'middle_name': 'Middle Name',
+                    'contact_number': 'Contact Number',
+                }
+                
+                for field, value in decrypted_data.items():
+                    result += f"<p><strong>{field_labels[field]}:</strong> {value}</p>"
+                result += "</div>"
+                return format_html(result)
+                
+            except Exception as e:
+                return format_html(f"<div style='color: red;'>Decryption error: {str(e)}</div>")
+        else:
+            form = DecryptionForm()
+            return format_html(f"""
+            <div style='background-color: #fff3cd; padding: 10px; border-radius: 5px;'>
+                <h4>Encrypted Data</h4>
+                <p>Data is encrypted for security. To view decrypted data:</p>
+                <form method="post" action="">
+                    <input type="hidden" name="action" value="decrypt">
+                    {form.as_p()}
+                    <button type="submit" class="button">Decrypt Data</button>
+                </form>
+                <p style='margin-top: 10px; font-size: 0.9em; color: #856404;'>
+                    <strong>Note:</strong> You need the correct decryption key to view clean data.
+                </p>
+            </div>
+            """)
+    get_encrypted_data_display.short_description = 'Encrypted Personal Data'
+
+    def save_model(self, request, obj, form, change):
+        if 'password' in form.changed_data:
+            obj.set_password(form.cleaned_data['password'])
+        
+        super().save_model(request, obj, form, change)
+
+admin.site.register(YouthAdmin, YouthAdminAdmin)
 
 
 
@@ -576,3 +675,45 @@ class FAQAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'category')
     search_fields = ('question', 'answer')
     ordering = ('order',)
+
+
+from django.contrib import admin
+from .models import UserRegistrationAnalytics, EventParticipationAnalytics
+
+
+@admin.register(UserRegistrationAnalytics)
+class UserRegistrationAnalyticsAdmin(admin.ModelAdmin):
+    list_display = ("date", "registrations_count", "created_at", "updated_at")
+    list_filter = ("date",)
+    search_fields = ("date",)
+    ordering = ("-date",)
+    date_hierarchy = "date"
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(EventParticipationAnalytics)
+class EventParticipationAnalyticsAdmin(admin.ModelAdmin):
+    list_display = ("event", "category", "participation_count", "date_recorded")
+    list_filter = ("category", "date_recorded")
+    search_fields = ("event__title", "category")
+    ordering = ("-date_recorded",)
+    date_hierarchy = "date_recorded"
+
+
+from django.contrib import admin
+from .models import EncryptionKeyAttempt
+
+
+@admin.register(EncryptionKeyAttempt)
+class EncryptionKeyAttemptAdmin(admin.ModelAdmin):
+    list_display = (
+        "admin_user",
+        "attempted_key",
+        "is_successful",
+        "ip_address",
+        "timestamp",
+    )
+    list_filter = ("is_successful", "timestamp")
+    search_fields = ("admin_user__username", "attempted_key", "ip_address")
+    ordering = ("-timestamp",)
+    readonly_fields = ("timestamp",)

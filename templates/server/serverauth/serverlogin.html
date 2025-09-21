@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Login - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serverauth/serverlogin.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-login-container">
+        <div class="background-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+        </div>
+
+        <div class="server-login-card">
+            <div class="server-login-header">
+                <div class="server-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="server-logo-text">
+                        <h1>SK Mambugan</h1>
+                        <span>Administration Portal</span>
+                    </div>
+                </div>
+                <div class="server-login-badge">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Secure Server Access</span>
+                </div>
+            </div>
+
+            <div class="server-login-content">
+                <h2>Server Authentication</h2>
+                <p>Access the administrative dashboard with authorized credentials</p>
+                
+                <form class="server-login-form" id="serverLoginForm">
+                    <div class="server-form-group">
+                        <label for="serverUsername">Administrator ID</label>
+                        <div class="server-input-group">
+                            <i class="fas fa-user-shield"></i>
+                            <input type="text" id="serverUsername" name="username" placeholder="Enter your administrator ID" required>
+                        </div>
+                    </div>
+                    
+                    <div class="server-form-group">
+                        <label for="serverPassword">Security Key</label>
+                        <div class="server-input-group">
+                            <i class="fas fa-key"></i>
+                            <input type="password" id="serverPassword" name="password" placeholder="Enter your security key" required>
+                            <button type="button" class="server-toggle-password" id="serverTogglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="server-form-options">
+                        <label class="server-checkbox-container">
+                            <input type="checkbox" id="serverRemember" name="remember">
+                            <span class="server-checkmark"></span>
+                            Maintain secure session
+                        </label>
+                        <a href="#" class="server-forgot-password">Recover Access</a>
+                    </div>
+                    
+                    <button type="submit" class="server-login-btn">
+                        <span>Authenticate</span>
+                        <i class="fas fa-fingerprint"></i>
+                    </button>
+                </form>
+
+                <div class="server-security-indicators">
+                    <div class="security-indicator">
+                        <i class="fas fa-lock"></i>
+                        <span>256-bit SSL Encryption</span>
+                    </div>
+                    <div class="security-indicator">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Multi-factor Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="server-login-footer">
+                <p>© 2025 SK Mambugan Administration System. All access attempts are logged.</p>
+                <div class="server-version">v2.1.0</div>
+            </div>
+        </div>
+
+        <div class="server-login-sidepanel">
+            <div class="sidepanel-content">
+                <h3>Administrative Control Center</h3>
+                <p>Manage youth data, announcements, events, and generate comprehensive reports for Barangay Mambugan</p>
+                
+                <div class="admin-features-grid">
+                    <div class="admin-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <h4>User Management</h4>
+                        <p>Oversight of registered youth members with advanced filtering</p>
+                    </div>
+                    
+                    <div class="admin-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <h4>Announcements</h4>
+                        <p>Broadcast important community updates efficiently</p>
+                    </div>
+                    
+                    <div class="admin-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h4>Event Coordination</h4>
+                        <p>Schedule and manage youth activities and programs</p>
+                    </div>
+                    
+                    <div class="admin-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h4>Analytics Dashboard</h4>
+                        <p>Comprehensive reporting and data visualization tools</p>
+                    </div>
+                </div>
+                
+                <div class="system-status">
+                    <h4>System Status</h4>
+                    <div class="status-indicators">
+                        <div class="status-indicator online">
+                            <span class="status-dot"></span>
+                            Authentication Service
+                        </div>
+                        <div class="status-indicator online">
+                            <span class="status-dot"></span>
+                            Database Connection
+                        </div>
+                        <div class="status-indicator online">
+                            <span class="status-dot"></span>
+                            Encryption Module
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/server/serverauth/serverlogin.js' %}"></script>
+</body>
+</html>

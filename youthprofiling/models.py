@@ -275,6 +275,112 @@ class AuditLog(models.Model):
     def __str__(self):
         username = self.admin_user.username if self.admin_user else 'System'
         return f"{self.action} on {self.youth_user} by {username} at {self.timestamp}"
+
+
+    
+
+class YouthAdmin(models.Model):
+    """Server-side admin model for SK Mambugan management - separate from Django admin"""
+    
+    ADMIN_ROLE_CHOICES = [
+        ('super_admin', 'Super Administrator'),
+        ('sk_chairman', 'SK Chairman'),
+        ('sk_secretary', 'SK Secretary'),
+        ('sk_treasurer', 'SK Treasurer'),
+        ('sk_councilor', 'SK Councilor'),
+        ('staff', 'Staff Member'),
+    ]
+    
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)
+    
+    first_name = EncryptedField(max_length=100)
+    last_name = EncryptedField(max_length=100)
+    middle_name = EncryptedField(max_length=100, blank=True, null=True)
+    
+    role = models.CharField(max_length=20, choices=ADMIN_ROLE_CHOICES, default='staff')
+    department = models.CharField(max_length=100, blank=True, null=True)
+    contact_number = EncryptedField(max_length=15)
+    
+    profile_picture = models.ImageField(upload_to='admin_profiles/', blank=True, null=True)
+    
+    is_active = models.BooleanField(default=True)
+    is_super_admin = models.BooleanField(default=False)
+    
+    last_login = models.DateTimeField(blank=True, null=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
+    
+    can_manage_users = models.BooleanField(default=False)
+    can_manage_announcements = models.BooleanField(default=False)
+    can_manage_events = models.BooleanField(default=False)
+    can_view_reports = models.BooleanField(default=False)
+    can_manage_settings = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Youth Administrator"
+        verbose_name_plural = "Youth Administrators"
+        ordering = ['-date_joined']
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.get_role_display()}"
+    
+    def get_full_name(self):
+        """Return full name with middle name if available"""
+        name_parts = [self.first_name]
+        if self.middle_name:
+            name_parts.append(self.middle_name)
+        name_parts.append(self.last_name)
+        return " ".join(name_parts)
+    
+    def set_password(self, raw_password):
+        """Hash and set the password"""
+        self.password = make_password(raw_password)
+        self.save()
+    
+    def check_password(self, raw_password):
+        """Check if the password is correct"""
+        return check_password(raw_password, self.password)
+    
+    def has_perm(self, perm_codename):
+        """Check if admin has specific permission"""
+        if self.is_super_admin:
+            return True
+            
+        perm_map = {
+            'manage_users': self.can_manage_users,
+            'manage_announcements': self.can_manage_announcements,
+            'manage_events': self.can_manage_events,
+            'view_reports': self.can_view_reports,
+            'manage_settings': self.can_manage_settings,
+        }
+        
+        return perm_map.get(perm_codename, False)
+    
+
+class EncryptionKeyAttempt(models.Model):
+    """Model to track encryption key attempts"""
+    admin_user = models.ForeignKey(YouthAdmin, on_delete=models.CASCADE)
+    attempted_key = models.CharField(max_length=255)
+    is_successful = models.BooleanField(default=False)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Encryption Key Attempt"
+        verbose_name_plural = "Encryption Key Attempts"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        status = "Success" if self.is_successful else "Failed"
+        return f"{self.admin_user} - {status} - {self.timestamp}"
+    
+    
+
+
+
+
     
 
 
@@ -340,7 +446,7 @@ class Announcement(models.Model):
     location = models.CharField(max_length=100, blank=True)
     is_important = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(YouthAdmin, on_delete=models.CASCADE)
     
     def __str__(self):
         return self.title
@@ -403,7 +509,7 @@ class Event(models.Model):
     age_max = models.PositiveIntegerField(blank=True, null=True)
     
     points_reward = models.PositiveIntegerField(default=0)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(YouthAdmin, on_delete=models.CASCADE)
     
     def __str__(self):
         return self.title
@@ -525,7 +631,8 @@ class EventRegistration(models.Model):
     check_in_time = models.DateTimeField(blank=True, null=True)
     points_earned = models.PositiveIntegerField(default=0)
     feedback_provided = models.BooleanField(default=False)
-    certificate_issued = models.BooleanField(default=False)
+    rating = models.PositiveIntegerField(blank=True, null=True, choices=[(i, f'{i} Star') for i in range(1, 6)])  
+    certificate_issued = models.BooleanField(default=False)  # Remove the duplicate line
     
     emergency_contact_name = EncryptedField(max_length=100, blank=True, null=True)
     emergency_contact_number = EncryptedField(max_length=15, blank=True, null=True)
@@ -846,3 +953,34 @@ class FAQ(models.Model):
     
     def __str__(self):
         return self.question
+    
+
+class UserRegistrationAnalytics(models.Model):
+    """Model to track user registration statistics for analytics"""
+    date = models.DateField(unique=True)
+    registrations_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "User Registration Analytics"
+        verbose_name_plural = "User Registration Analytics"
+        ordering = ['-date']
+    
+    def __str__(self):
+        return f"{self.date}: {self.registrations_count} registrations"
+
+class EventParticipationAnalytics(models.Model):
+    """Model to track event participation statistics"""
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    category = models.CharField(max_length=20)
+    participation_count = models.PositiveIntegerField(default=0)
+    date_recorded = models.DateField()
+    
+    class Meta:
+        verbose_name = "Event Participation Analytics"
+        verbose_name_plural = "Event Participation Analytics"
+        ordering = ['-date_recorded']
+    
+    def __str__(self):
+        return f"{self.event.title}: {self.participation_count} participants"

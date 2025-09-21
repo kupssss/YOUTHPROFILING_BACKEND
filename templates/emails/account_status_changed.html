@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Status Update - SK Mambugan</title>
+    <style>
+        body { 
+            font-family: 'Poppins', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f9f9f9;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%); 
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center; 
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .content { 
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .welcome-text {
+            font-size: 18px;
+            color: #1a237e;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status-box {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #ccc;
+        }
+        .status-box.activated {
+            border-left-color: #4CAF50;
+        }
+        .status-box.deactivated {
+            border-left-color: #F44336;
+        }
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            background: #ccc;
+        }
+        .icon-circle.activated {
+            background: #4CAF50;
+        }
+        .icon-circle.deactivated {
+            background: #F44336;
+        }
+        .icon-circle i {
+            font-size: 40px;
+            color: white;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .footer { 
+            text-align: center; 
+            margin-top: 30px; 
+            font-size: 12px; 
+            color: #666; 
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SK Mambugan Youth Management System</h1>
+        </div>
+        
+        <div class="content">
+            <div class="icon-circle {% if status == 'activated' %}activated{% else %}deactivated{% endif %}">
+                <i class="fas fa-{% if status == 'activated' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+            </div>
+            
+            <h2 style="text-align: center; color: #1a237e;">
+                Account {{ status|capfirst }}
+            </h2>
+            
+            <p class="welcome-text">Hello {{ user.get_full_name }},</p>
+            
+            <div class="status-box {% if status == 'activated' %}activated{% else %}deactivated{% endif %}">
+                <p>Your account has been <strong>{{ status }}</strong> on {{ status_date }}.</p>
+                
+                {% if status == 'activated' %}
+                <p>You now have full access to the SK Mambugan Youth Management System.</p>
+                {% else %}
+                <p>You currently cannot access the SK Mambugan Youth Management System. If you believe this is an error, please contact our support team.</p>
+                {% endif %}
+            </div>
+            
+            {% if status == 'activated' %}
+            <p style="text-align: center;">
+                <a href="{{ YOUR_WEBSITE_URL }}" class="button">Access Your Account</a>
+            </p>
+            {% endif %}
+            
+            <p>If you have any questions about this change, please contact our support team for assistance.</p>
+            
+            <p>Best regards,<br>
+            <strong>SK Mambugan Administration Team</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© {% now "Y" %} SK Mambugan. All rights reserved.</p>
+            <p>Barangay Hall, Mambugan, Antipolo City, Rizal</p>
+        </div>
+    </div>
+</body>
+</html>

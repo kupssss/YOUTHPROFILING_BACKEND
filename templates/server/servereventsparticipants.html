@@ -1,0 +1,496 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events Participants - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/servereventsparticipants.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <div class="server-participants-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="management-header">
+                <div class="header-left">
+                    <h1>Events Participants Management</h1>
+                    <p>Manage event registrations, attendance, and attendees</p>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                        
+                    </div>
+                </div>
+            </header>
+
+            <div class="stats-overview">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>{{ pending_registrations|intcomma }}</h3>
+                        <p>Pending Registrations</p>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>{{ upcoming_events|intcomma }}</h3>
+                        <p>Upcoming Events</p>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>{{ ongoing_events|intcomma }}</h3>
+                        <p>Ongoing Events</p>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>{{ attendance_rate|floatformat:1 }}%</h3>
+                        <p>Attendance Rate</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="event-segments">
+                <div class="segment-card">
+                    <div class="segment-header">
+                        <h2><i class="fas fa-calendar-plus"></i> Upcoming Events</h2>
+                        <span class="badge">{{ upcoming_events_list.count }}</span>
+                    </div>
+                    <div class="segment-content">
+                        {% if upcoming_events_list %}
+                        <div class="events-grid">
+                            {% for event in upcoming_events_list %}
+                            <div class="event-item" data-id="{{ event.id }}">
+                                <div class="event-image">
+                                    {% if event.image %}
+                                    <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                                    {% else %}
+                                    <div class="event-image-placeholder">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="event-date">
+                                        <span class="day">{{ event.start_date|date:"d" }}</span>
+                                        <span class="month">{{ event.start_date|date:"M" }}</span>
+                                    </div>
+                                </div>
+                                <div class="event-details">
+                                    <h3>{{ event.title }}</h3>
+                                    <p class="event-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </p>
+                                    <p class="event-time">
+                                        <i class="fas fa-clock"></i>
+                                        {{ event.start_date|date:"M d, Y • h:i A" }}
+                                    </p>
+                                    <div class="event-stats">
+                                        <span class="participants">
+                                            <i class="fas fa-users"></i>
+                                            {{ event.current_participants }}/{{ event.maximum_participants|default:"∞" }}
+                                        </span>
+                                        <span class="status pending">
+                                            {{ event.pending_count }} pending
+                                        </span>
+                                    </div>
+                                </div>
+                                <button class="view-registrations-btn" data-event-id="{{ event.id }}">
+                                    View Registrations
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Upcoming Events</h3>
+                            <p>There are no events scheduled for the near future.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="segment-card">
+                    <div class="segment-header">
+                        <h2><i class="fas fa-running"></i> Ongoing Events</h2>
+                        <span class="badge">{{ ongoing_events_list.count }}</span>
+                    </div>
+                    <div class="segment-content">
+                        {% if ongoing_events_list %}
+                        <div class="events-grid">
+                            {% for event in ongoing_events_list %}
+                            <div class="event-item" data-id="{{ event.id }}">
+                                <div class="event-image">
+                                    {% if event.image %}
+                                    <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                                    {% else %}
+                                    <div class="event-image-placeholder">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="live-badge">
+                                        <span class="live-dot"></span>
+                                        LIVE
+                                    </div>
+                                </div>
+                                <div class="event-details">
+                                    <h3>{{ event.title }}</h3>
+                                    <p class="event-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </p>
+                                    <p class="event-time">
+                                        <i class="fas fa-clock"></i>
+                                        Ends: {{ event.end_date|date:"M d, Y • h:i A" }}
+                                    </p>
+                                    <div class="event-stats">
+                                        <span class="participants">
+                                            <i class="fas fa-users"></i>
+                                            {{ event.current_participants }} attending
+                                        </span>
+                                        <span class="status confirmed">
+                                            {{ event.confirmed_count }} confirmed
+                                        </span>
+                                    </div>
+                                </div>
+                                <button class="manage-attendance-btn" data-event-id="{{ event.id }}">
+                                    Manage Attendance
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-running"></i>
+                            <h3>No Ongoing Events</h3>
+                            <p>There are no events currently happening.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="segment-card">
+                    <div class="segment-header">
+                        <h2><i class="fas fa-check-circle"></i> Completed Events</h2>
+                        <span class="badge">{{ completed_events_list.count }}</span>
+                    </div>
+                    <div class="segment-content">
+                        {% if completed_events_list %}
+                        <div class="events-grid">
+                            {% for event in completed_events_list %}
+                            <div class="event-item" data-id="{{ event.id }}">
+                                <div class="event-image">
+                                    {% if event.image %}
+                                    <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                                    {% else %}
+                                    <div class="event-image-placeholder">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="completion-badge">
+                                        <i class="fas fa-check"></i>
+                                        Completed
+                                    </div>
+                                </div>
+                                <div class="event-details">
+                                    <h3>{{ event.title }}</h3>
+                                    <p class="event-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </p>
+                                    <p class="event-time">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ event.start_date|date:"M d, Y" }}
+                                    </p>
+                                    <div class="event-stats">
+                                        <span class="participants">
+                                            <i class="fas fa-user-check"></i>
+                                            {{ event.attended_count }} attended
+                                        </span>
+                                        <span class="status confirmed">
+                                            {{ event.confirmed_count }} registered
+                                        </span>
+                                    </div>
+                                </div>
+                                <button class="attendees-btn" data-event-id="{{ event.id }}">
+                                    View Attendees
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>No Completed Events</h3>
+                            <p>There are no events that have been completed yet.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="registrationsModal" class="modal">
+        <div class="modal-content xl">
+            <div class="modal-header">
+                <h2><i class="fas fa-users"></i> <span id="modalEventTitle">Event Registrations</span></h2>
+                <button class="modal-close" id="closeRegistrationsModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="registrations-container">
+                    <div class="registrations-filters">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search registrations...">
+                        </div>
+                        <select id="statusFilter">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="waitlisted">Waitlisted</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <div class="registrations-list" id="registrationsList">
+                    </div>
+                    
+                    <div class="registrations-summary">
+                        <div class="summary-item">
+                            <span class="label">Total:</span>
+                            <span class="value" id="totalRegistrations">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Confirmed:</span>
+                            <span class="value confirmed" id="confirmedRegistrations">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Pending:</span>
+                            <span class="value pending" id="pendingRegistrations">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reviewDocumentsModal" class="modal">
+        <div class="modal-content xl">
+            <div class="modal-header">
+                <h2><i class="fas fa-id-card"></i> Review User Documents</h2>
+                <button class="modal-close" id="closeReviewModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="user-info" id="userDocumentsInfo">
+                </div>
+                
+                <div class="user-documents" id="userDocuments">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="rejectRegistration">
+                        <i class="fas fa-times"></i>
+                        Reject Registration
+                    </button>
+                    <button type="button" class="btn-primary" id="approveRegistration">
+                        <i class="fas fa-check"></i>
+                        Approve Registration
+                    </button>
+                    <button type="button" class="btn-waitlist" id="waitlistRegistration">
+                        <i class="fas fa-clock"></i>
+                        Waitlist Registration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="attendanceModal" class="modal">
+        <div class="modal-content xl">
+            <div class="modal-header">
+                <h2><i class="fas fa-clipboard-check"></i> <span id="attendanceEventTitle">Event Attendance</span></h2>
+                <button class="modal-close" id="closeAttendanceModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="attendance-container">
+                    <div class="attendance-controls">
+                        <button class="btn-primary" id="markAllPresent">
+                            <i class="fas fa-check-circle"></i>
+                            Mark All Present
+                        </button>
+                        <button class="btn-secondary" id="markAllAbsent">
+                            <i class="fas fa-times-circle"></i>
+                            Mark All Absent
+                        </button>
+                    </div>
+                    
+                    <div class="attendance-list" id="attendanceList">
+                    </div>
+                    
+                    <div class="attendance-summary">
+                        <div class="summary-item">
+                            <span class="label">Total Participants:</span>
+                            <span class="value" id="totalParticipants">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Present:</span>
+                            <span class="value present" id="presentCount">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Absent:</span>
+                            <span class="value absent" id="absentCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="attendeesModal" class="modal">
+        <div class="modal-content xl">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-check"></i> <span id="attendeesEventTitle">Event Attendees</span></h2>
+                <button class="modal-close" id="closeAttendeesModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="attendees-container">
+                    <div class="attendees-filters">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search attendees...">
+                        </div>
+                    </div>
+                    
+                    <div class="attendees-list" id="attendeesList">
+                    </div>
+                    
+                    <div class="attendees-summary">
+                        <div class="summary-item">
+                            <span class="label">Total Attendees:</span>
+                            <span class="value" id="totalAttendees">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Total Points Awarded:</span>
+                            <span class="value" id="totalPoints">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/server/servereventsparticipants.js' %}"></script>
+    <script>
+        const csrfToken = "{{ csrf_token|escapejs }}";
+        const eventsData = {
+            upcoming: JSON.parse('{{ upcoming_events_json|escapejs }}'),
+            ongoing: JSON.parse('{{ ongoing_events_json|escapejs }}'),
+            completed: JSON.parse('{{ completed_events_json|escapejs }}')
+        };
+    </script>
+</body>
+</html>

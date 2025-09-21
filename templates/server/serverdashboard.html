@@ -1,0 +1,313 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Dashboard - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serverdashboard.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="server-dashboard-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <h1>Dashboard Overview</h1>
+                    <p>Welcome back, {{ admin_user.first_name }}! Here's what's happening today.</p>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ total_users|intcomma }}</h3>
+            <p>Total Registered Users</p>
+            <span class="stat-trend {% if user_registration_trend >= 0 %}positive{% else %}negative{% endif %}">
+                <i class="fas fa-arrow-{% if user_registration_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                {{ user_registration_trend|floatformat:1 }}% this month
+            </span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ total_events|intcomma }}</h3>
+            <p>Total Events</p>
+            <span class="stat-trend {% if event_trend >= 0 %}positive{% else %}negative{% endif %}">
+                <i class="fas fa-arrow-{% if event_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                {{ event_trend|floatformat:1 }}% this month
+            </span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-bullhorn"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ total_announcements|intcomma }}</h3>
+            <p>Total Announcements</p>
+            <span class="stat-trend {% if announcement_trend >= 0 %}positive{% else %}negative{% endif %}">
+                <i class="fas fa-arrow-{% if announcement_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                {{ announcement_trend|floatformat:1 }}% this month
+            </span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ active_registrations|intcomma }}</h3>
+            <p>Active Registrations</p>
+            <span class="stat-trend {% if registration_trend >= 0 %}positive{% else %}negative{% endif %}">
+                <i class="fas fa-arrow-{% if registration_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                {{ registration_trend|floatformat:1 }}% this month
+            </span>
+        </div>
+    </div>
+</div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>User Registration Trend</h3>
+                        <select class="chart-filter" id="userChartFilter">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="userRegistrationChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Event Participation</h3>
+                        <select class="chart-filter" id="eventChartFilter">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="eventParticipationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="activity-grid">
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3>Recent Registrations</h3>
+                        <a href="{% url 'server_user_management' %}" class="view-all">View All</a>
+                    </div>
+                    <div class="activity-content">
+                        {% for user in recent_users %}
+                        <div class="activity-item">
+                            <div class="activity-avatar">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                {% else %}
+                                    <div class="avatar-initials">
+                                        {{ user.first_name|first }}{{ user.last_name|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="activity-details">
+                                <h4>{{ user.get_full_name }}</h4>
+                                <p>Registered {{ user.created_at|naturaltime }}</p>
+                            </div>
+                            <div class="activity-badge">
+                                <span class="badge badge-{{ user.is_admin_verified|yesno:'success,warning' }}">
+                                    {{ user.is_admin_verified|yesno:'Verified,Pending' }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3>Upcoming Events</h3>
+                        <a href="{% url 'server_events_management' %}" class="view-all">View All</a>
+                    </div>
+                    <div class="activity-content">
+                        {% for event in upcoming_events %}
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="activity-details">
+                                <h4>{{ event.title }}</h4>
+                                <p>{{ event.start_date|date:"M d, Y • h:i A" }}</p>
+                                <span class="participants">
+                                    {{ event.current_participants }} registered
+                                    {% if event.maximum_participants %}
+                                    / {{ event.maximum_participants }} max
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="activity-badge">
+                                <span class="badge badge-{{ event.is_upcoming|yesno:'info,secondary' }}">
+                                    {{ event.is_upcoming|yesno:'Upcoming,Ongoing' }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3>System Status</h3>
+                    </div>
+                    <div class="activity-content">
+                        <div class="status-item">
+                            <div class="status-indicator online"></div>
+                            <div class="status-details">
+                                <h4>Database Connection</h4>
+                                <p>All systems operational</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-indicator online"></div>
+                            <div class="status-details">
+                                <h4>API Services</h4>
+                                <p>Running smoothly</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-indicator online"></div>
+                            <div class="status-details">
+                                <h4>Encryption Module</h4>
+                                <p>Active and secure</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-indicator warning"></div>
+                            <div class="status-details">
+                                <h4>Storage Capacity</h4>
+                                <p>75% used - Monitor needed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="{% static 'js/server/serverdashboard.js' %}"></script>
+    <script>
+    const dashboardData = {
+        userRegistration: JSON.parse('{{ user_registration_data|escapejs }}'),
+        eventParticipation: JSON.parse('{{ event_participation_data|escapejs }}'),
+        currentUser: {
+            name: "{{ admin_user.get_full_name|escapejs }}",
+            role: "{{ admin_user.get_role_display|escapejs }}"
+        }
+    };
+</script>
+
+</body>
+</html>

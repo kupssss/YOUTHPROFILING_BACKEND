@@ -51,8 +51,37 @@ urlpatterns = [
     path('event/<int:event_id>/', views.usereventdetails, name='usereventdetails'),
 
 
+    path('serverlogin/', views.server_login_page, name='server_login_page'),
+    path('server/auth/login/', views.server_login_api, name='server_login_api'),
+    path('server/logout/', views.server_logout, name='server_logout'),
+    path('server/dashboard/', views.server_dashboard, name='server_dashboard'),
+    path('server/user-management/', views.server_user_management, name='server_user_management'),
+    path('server/auth/verify-encryption-key/', views.verify_encryption_key, name='verify_encryption_key'),
 
-    
+    path('server/user-management/user/<int:user_id>/verify/', views.verify_user, name='verify_user'),
+    path('server/user-management/user/<int:user_id>/toggle-status/', views.toggle_user_status, name='toggle_user_status'),
+    path('server/user-management/user/<int:user_id>/details/', views.get_user_details, name='get_user_details'),
+
+    path('server/announcement-management/', views.server_announcement_management, name='server_announcement_management'),
+    path('server/announcements/create/', views.create_announcement, name='create_announcement'),
+    path('server/announcements/<int:announcement_id>/update/', views.update_announcement, name='update_announcement'),
+    path('server/announcements/<int:announcement_id>/toggle-status/', views.toggle_announcement_status, name='toggle_announcement_status'),
+    path('server/announcements/<int:announcement_id>/delete/', views.delete_announcement, name='delete_announcement'),
+
+    path('server/events-management/', views.server_events_management, name='server_events_management'),
+    path('server/events/create/', views.create_event, name='create_event'),
+    path('server/events/<int:event_id>/update/', views.update_event, name='update_event'),
+    path('server/events/<int:event_id>/toggle-status/', views.toggle_event_status, name='toggle_event_status'),
+    path('server/events/<int:event_id>/delete/', views.delete_event, name='delete_event'),
+
+    path('server/events-participants/', views.server_events_participants, name='server_events_participants'),
+    path('server/registrations/<int:registration_id>/update-status/', views.update_registration_status, name='update_registration_status'),
+    path('server/registrations/<int:registration_id>/update-attendance/', views.update_attendance, name='update_attendance'),
+    path('server/events/<int:event_id>/registrations/', views.get_event_registrations, name='get_event_registrations'),
+    path('server/events/<int:event_id>/attendance/', views.get_event_attendance, name='get_event_attendance'),
+    path('server/events/<int:event_id>/attendees/', views.get_event_attendees, name='get_event_attendees'),
+    path('server/registrations/<int:registration_id>/user-documents/', views.get_user_documents, name='get_user_documents'),
+
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
 ]
 

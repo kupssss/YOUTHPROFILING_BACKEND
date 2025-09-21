@@ -22,10 +22,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Q
 import json
+from django.shortcuts import render
+from .models import FAQ
 
+# ____________________
+# |  index pages      |
+# --------------------
 
 
 otp_storage = {}
+
 
 
 def index(request):
@@ -56,8 +62,6 @@ def index(request):
     }
     
     return render(request, 'index.html', context)
-
-
 
 def announcement(request):
     now = timezone.now()
@@ -119,14 +123,17 @@ def announcement(request):
     
     return render(request, 'index/announcement.html', context)
 
+
+
 def the_project(request):
     return render(request, 'index/theproject.html')
+
+
 
 def the_community(request):
     return render(request, 'index/thecommunity.html')
 
-from django.shortcuts import render
-from .models import FAQ
+
 
 def contact(request):
     faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
@@ -136,6 +143,15 @@ def contact(request):
     }
     
     return render(request, 'index/contact.html', context)
+
+
+
+
+
+
+# _________________
+# |  userside auth   |
+# --------------------
 
 
 def login_view(request):
@@ -190,6 +206,8 @@ def logout_user(request):
     request.session.flush() 
     return JsonResponse({'success': True, 'message': 'Logout successful', 'redirect': '/'})
 
+
+
 @csrf_exempt
 def check_auth(request):
     if request.session.get('is_authenticated'):
@@ -211,8 +229,11 @@ def check_auth(request):
             return JsonResponse({'success': False, 'authenticated': False})
     return JsonResponse({'success': False, 'authenticated': False})
 
+
+
 def signup_view(request):
     return render(request, 'auth/signup.html')
+
 
 
 @csrf_exempt
@@ -267,6 +288,7 @@ def generate_otp(request):
 
 
 
+
 @csrf_exempt
 def check_username(request):
     if request.method == 'POST':
@@ -286,6 +308,8 @@ def check_username(request):
             return JsonResponse({'available': False, 'message': f'Error: {str(e)}'})
     
     return JsonResponse({'available': False, 'message': 'Invalid request method'})
+
+
 
 @csrf_exempt
 def check_email(request):
@@ -309,6 +333,8 @@ def check_email(request):
             return JsonResponse({'available': False, 'message': f'Error: {str(e)}'})
     
     return JsonResponse({'available': False, 'message': 'Invalid request method'})
+
+
 
 
 @csrf_exempt
@@ -1282,3 +1308,1446 @@ def usereventdetails(request, event_id):
     except YouthUser.DoesNotExist:
         request.session.flush()
         return redirect('login')
+    
+
+
+
+
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.hashers import check_password
+import json
+from django.db.models import Q
+from .models import YouthAdmin
+from django.utils import timezone
+
+def server_login_page(request):
+    
+    return render(request, 'server/serverauth/serverlogin.html')
+
+@csrf_exempt
+def server_login_api(request):
+    """Handle server login authentication (API endpoint)"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+            remember_me = data.get('rememberMe', False)
+
+            admin_user = YouthAdmin.objects.filter(
+                Q(username=username) | Q(email=username),
+                is_active=True
+            ).first()
+
+            if not admin_user:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Invalid administrator credentials or account inactive.'
+                }, status=401)
+
+            if not admin_user.check_password(password):
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Invalid security key.'
+                }, status=401)
+
+            request.session['admin_id'] = admin_user.id  
+            request.session['admin_username'] = admin_user.username
+            request.session['admin_role'] = admin_user.role
+            request.session['is_server_authenticated'] = True
+            
+            if not remember_me:
+                request.session.set_expiry(0)  
+            else:
+                request.session.set_expiry(1209600) 
+
+            admin_user.last_login = timezone.now()
+            admin_user.save()
+
+            return JsonResponse({
+                'success': True, 
+                'message': 'Server authentication successful',
+                'redirect': '/server/dashboard/',
+                'user': {
+                    'username': admin_user.username,
+                    'role': admin_user.get_role_display(),
+                    'full_name': admin_user.get_full_name()
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False, 
+                'message': f'Server authentication error: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False, 
+        'message': 'Invalid request method'
+    }, status=400)
+
+def server_logout(request):
+    """Logout from server admin session"""
+    request.session.flush()
+    return redirect('/serverlogin/')
+
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from datetime import timedelta
+import json
+from django.db.models import Count, Q
+from .models import YouthUser, Event, Announcement, EventRegistration, YouthAdmin, UserRegistrationAnalytics, EventParticipationAnalytics
+
+def server_dashboard(request):
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    total_users = YouthUser.objects.count()
+    total_events = Event.objects.count()
+    total_announcements = Announcement.objects.count()
+    active_registrations = EventRegistration.objects.filter(
+        status__in=['pending', 'confirmed', 'waitlisted']
+    ).count()
+    
+    recent_users = YouthUser.objects.order_by('-created_at')[:5]
+    
+    upcoming_events = Event.objects.filter(
+        start_date__gte=timezone.now()
+    ).order_by('start_date')[:5]
+    
+    today = timezone.now().date()
+    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    
+    registration_data = []
+    for date in last_7_days:
+        try:
+            analytics = UserRegistrationAnalytics.objects.get(date=date)
+            registration_data.append(analytics.registrations_count)
+        except UserRegistrationAnalytics.DoesNotExist:
+            count = YouthUser.objects.filter(
+                created_at__date=date
+            ).count()
+            UserRegistrationAnalytics.objects.create(
+                date=date,
+                registrations_count=count
+            )
+            registration_data.append(count)
+    
+    user_registration_data = {
+        'labels': [date.strftime("%b %d") for date in last_7_days],
+        'data': registration_data
+    }
+    
+    event_categories = dict(Event.EVENT_CATEGORIES)
+    event_participation_data = {
+        'labels': list(event_categories.values()),
+        'data': []
+    }
+    
+    for category_value, category_label in event_categories.items():
+        participation_count = EventRegistration.objects.filter(
+            event__category=category_value,
+            status__in=['confirmed', 'attended']
+        ).count()
+        event_participation_data['data'].append(participation_count)
+    
+    today = timezone.now().date()
+    current_period_start = today - timedelta(days=30)
+    previous_period_start = current_period_start - timedelta(days=30)
+    
+    current_period_registrations = YouthUser.objects.filter(
+        created_at__date__gte=current_period_start
+    ).count()
+    
+    previous_period_registrations = YouthUser.objects.filter(
+        created_at__date__gte=previous_period_start,
+        created_at__date__lt=current_period_start
+    ).count()
+    
+    if previous_period_registrations > 0:
+        user_registration_trend = ((current_period_registrations - previous_period_registrations) / previous_period_registrations) * 100
+    else:
+        user_registration_trend = 100 if current_period_registrations > 0 else 0
+    
+    current_period_events = Event.objects.filter(
+        start_date__date__gte=current_period_start
+    ).count()
+    
+    previous_period_events = Event.objects.filter(
+        start_date__date__gte=previous_period_start,
+        start_date__date__lt=current_period_start
+    ).count()
+    
+    if previous_period_events > 0:
+        event_trend = ((current_period_events - previous_period_events) / previous_period_events) * 100
+    else:
+        event_trend = 100 if current_period_events > 0 else 0
+    
+    current_period_announcements = Announcement.objects.filter(
+        publish_date__date__gte=current_period_start
+    ).count()
+    
+    previous_period_announcements = Announcement.objects.filter(
+        publish_date__date__gte=previous_period_start,
+        publish_date__date__lt=current_period_start
+    ).count()
+    
+    if previous_period_announcements > 0:
+        announcement_trend = ((current_period_announcements - previous_period_announcements) / previous_period_announcements) * 100
+    else:
+        announcement_trend = 100 if current_period_announcements > 0 else 0
+    
+    current_period_registrations_count = EventRegistration.objects.filter(
+        registration_date__date__gte=current_period_start
+    ).count()
+    
+    previous_period_registrations_count = EventRegistration.objects.filter(
+        registration_date__date__gte=previous_period_start,
+        registration_date__date__lt=current_period_start
+    ).count()
+    
+    if previous_period_registrations_count > 0:
+        registration_trend = ((current_period_registrations_count - previous_period_registrations_count) / previous_period_registrations_count) * 100
+    else:
+        registration_trend = 100 if current_period_registrations_count > 0 else 0
+    
+    context = {
+        'admin_user': admin_user,
+        'total_users': total_users,
+        'total_events': total_events,
+        'total_announcements': total_announcements,
+        'active_registrations': active_registrations,
+        'recent_users': recent_users,
+        'upcoming_events': upcoming_events,
+        'user_registration_data': json.dumps(user_registration_data),
+        'event_participation_data': json.dumps(event_participation_data),
+        'user_registration_trend': user_registration_trend,
+        'event_trend': event_trend,
+        'announcement_trend': announcement_trend,
+        'registration_trend': registration_trend,
+    }
+    
+    return render(request, 'server/serverdashboard.html', context)
+
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.utils import timezone
+from django.db.models import Q
+import json
+from .models import YouthUser, AuditLog, YouthAdmin, EncryptionKeyAttempt
+from django.conf import settings
+import base64
+from cryptography.fernet import Fernet, InvalidToken
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.views.decorators.csrf import csrf_exempt
+
+fernet = Fernet(settings.ENCRYPTION_KEY.encode())
+
+def server_user_management(request):
+    """User management page with encryption key verification"""
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    encryption_verified = request.session.get('encryption_verified', False)
+    
+    all_users = YouthUser.objects.all().order_by('-created_at')
+    pending_verification = YouthUser.objects.filter(
+        is_admin_verified=False, 
+        is_active=True
+    ).order_by('-created_at')
+    verified_users = YouthUser.objects.filter(
+        is_admin_verified=True
+    ).order_by('-created_at')
+    
+    context = {
+        'admin_user': admin_user,
+        'all_users': all_users,
+        'pending_verification': pending_verification,
+        'verified_users': verified_users,
+        'encryption_verified': encryption_verified,
+    }
+    
+    return render(request, 'server/serverusermanagement.html', context)
+
+@csrf_exempt
+def verify_encryption_key(request):
+    """Verify encryption key and store attempt in database"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            entered_key = data.get('encryption_key', '')
+            
+            admin_id = request.session.get('admin_id')
+            admin_user = YouthAdmin.objects.get(id=admin_id)
+            
+            attempt = EncryptionKeyAttempt.objects.create(
+                admin_user=admin_user,
+                attempted_key=entered_key,
+                is_successful=False,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            if entered_key == settings.ENCRYPTION_KEY:
+                attempt.is_successful = True
+                attempt.save()
+                
+                request.session['encryption_verified'] = True
+                request.session.modified = True
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Encryption key verified successfully'
+                })
+            else:
+                failed_attempts = request.session.get('encryption_failed_attempts', 0) + 1
+                request.session['encryption_failed_attempts'] = failed_attempts
+                request.session.modified = True
+                
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Invalid encryption key',
+                    'failed_attempts': failed_attempts
+                })
+                
+        except Exception as e:
+            return JsonResponse({
+                'success': False, 
+                'message': f'Error: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+def send_verification_email(user):
+    """Send verification email to user"""
+    subject = "Your Account Has Been Verified - SK Mambugan Youth Management System"
+    
+    html_content = render_to_string('emails/account_verified.html', {
+        'user': user,
+        'verification_date': timezone.now().strftime("%B %d, %Y"),
+    })
+    
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject,
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    
+    email.send()
+
+def send_account_status_email(user, is_active):
+    """Send account status email to user"""
+    status = "activated" if is_active else "deactivated"
+    subject = f"Your Account Has Been {status.capitalize()} - SK Mambugan Youth Management System"
+    
+    html_content = render_to_string('emails/account_status_changed.html', {
+        'user': user,
+        'status': status,
+        'status_date': timezone.now().strftime("%B %d, %Y"),
+    })
+    
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject,
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    
+    email.send()
+
+@csrf_exempt
+def verify_user(request, user_id):
+    """Verify a user by admin"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if not request.session.get('encryption_verified'):
+        return JsonResponse({'success': False, 'message': 'Encryption not verified'})
+    
+    try:
+        user = YouthUser.objects.get(id=user_id)
+        user.verify_by_admin()
+        
+        send_verification_email(user)
+        
+        AuditLog.objects.create(
+            admin_user=request.user if hasattr(request, 'user') else None,
+            youth_user=user,
+            action='UPDATE',
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        return JsonResponse({
+            'success': True, 
+            'message': f'User {user.registration_no} verified successfully and notification email sent'
+        })
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'})
+
+@csrf_exempt
+def toggle_user_status(request, user_id):
+    """Toggle user active status"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if not request.session.get('encryption_verified'):
+        return JsonResponse({'success': False, 'message': 'Encryption not verified'})
+    
+    try:
+        user = YouthUser.objects.get(id=user_id)
+        new_status = not user.is_active
+        user.is_active = new_status
+        user.save()
+        
+        send_account_status_email(user, new_status)
+        
+        AuditLog.objects.create(
+            admin_user=request.user if hasattr(request, 'user') else None,
+            youth_user=user,
+            action='UPDATE',
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        status = "activated" if user.is_active else "deactivated"
+        return JsonResponse({
+            'success': True, 
+            'message': f'User {user.registration_no} {status} successfully and notification email sent'
+        })
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'})
+
+@csrf_exempt
+def get_user_details(request, user_id):
+    """Get decrypted user details"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if not request.session.get('encryption_verified'):
+        return JsonResponse({'success': False, 'message': 'Encryption not verified'})
+    
+    try:
+        user = YouthUser.objects.get(id=user_id)
+        
+        decrypted_data = {}
+        encrypted_fields = ['first_name', 'last_name', 'middle_name', 'suffix', 
+                           'address', 'birthdate', 'contact_number']
+        
+        for field in encrypted_fields:
+            value = getattr(user, field)
+            if value:
+                try:
+                    if not value.startswith('gAAAAA'):
+                        decrypted_data[field] = value
+                    else:
+                        decoded_value = base64.urlsafe_b64decode(value)
+                        decrypted_value = fernet.decrypt(decoded_value).decode()
+                        decrypted_data[field] = decrypted_value
+                except (InvalidToken, ValueError, TypeError):
+                    decrypted_data[field] = "Decryption failed"
+            else:
+                decrypted_data[field] = "Not provided"
+        
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'registration_no': user.registration_no,
+            'first_name': decrypted_data['first_name'],
+            'last_name': decrypted_data['last_name'],
+            'middle_name': decrypted_data['middle_name'],
+            'suffix': decrypted_data['suffix'],
+            'address': decrypted_data['address'],
+            'purok_zone': user.purok_zone,
+            'gender': user.gender,
+            'birthdate': decrypted_data['birthdate'],
+            'age': user.age,
+            'contact_number': decrypted_data['contact_number'],
+            'civil_status': user.civil_status,
+            'age_group': user.age_group,
+            'education': user.education,
+            'youth_classification': user.youth_classification,
+            'work_status': user.work_status,
+            'sk_voter': user.sk_voter,
+            'id_type': user.id_type,
+            'is_email_verified': user.is_email_verified,
+            'is_admin_verified': user.is_admin_verified,
+            'is_active': user.is_active,
+            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'profile_picture': user.profile_picture.url if user.profile_picture else None,
+            'id_picture': user.id_picture.url if user.id_picture else None,
+            'birth_certificate': user.birth_certificate.url if user.birth_certificate else None,
+        }
+        
+        AuditLog.objects.create(
+            admin_user=request.user if hasattr(request, 'user') else None,
+            youth_user=user,
+            action='VIEW',
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        return JsonResponse({
+            'success': True, 
+            'user': user_data
+        })
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+
+
+    from django.shortcuts import render
+from django.http import JsonResponse
+from django.core import serializers
+import json
+from .models import Announcement, YouthAdmin
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+
+def server_announcement_management(request):
+    """Announcement management page"""
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    announcements_list = Announcement.objects.all().order_by('-publish_date')
+    
+    paginator = Paginator(announcements_list, 12)
+    page_number = request.GET.get('page')
+    announcements = paginator.get_page(page_number)
+    
+    total_announcements = Announcement.objects.count()
+    important_announcements = Announcement.objects.filter(is_important=True).count()
+    active_announcements = Announcement.objects.filter(is_active=True).count()
+    categories_count = Announcement.objects.values('category').annotate(count=Count('category')).count()
+    
+    announcements_data = []
+    for announcement in announcements:
+        announcements_data.append({
+            'id': announcement.id,
+            'title': announcement.title,
+            'content': announcement.content,
+            'excerpt': announcement.excerpt,
+            'category': announcement.category,
+            'location': announcement.location,
+            'is_important': announcement.is_important,
+            'is_active': announcement.is_active,
+            'effective_date': announcement.effective_date.isoformat() if announcement.effective_date else None,
+            'deadline': announcement.deadline.isoformat() if announcement.deadline else None,
+            'image': announcement.image.url if announcement.image else None,
+        })
+    
+    context = {
+        'admin_user': admin_user,
+        'announcements': announcements,
+        'total_announcements': total_announcements,
+        'important_announcements': important_announcements,
+        'active_announcements': active_announcements,
+        'categories_count': categories_count,
+        'announcements_json': json.dumps(announcements_data),
+    }
+    
+    return render(request, 'server/serverannouncementmanagement.html', context)
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.core import serializers
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.core.paginator import Paginator
+from django.db.models import Count
+import json
+from datetime import datetime
+from .models import Announcement, YouthAdmin
+
+@csrf_exempt
+def create_announcement(request):
+    """Create a new announcement"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if request.method == 'POST':
+        try:
+            admin_id = request.session.get('admin_id')
+            admin_user = YouthAdmin.objects.get(id=admin_id)
+            
+            announcement = Announcement.objects.create(
+                title=request.POST.get('title'),
+                content=request.POST.get('content'),
+                excerpt=request.POST.get('excerpt', ''),
+                category=request.POST.get('category'),
+                location=request.POST.get('location', ''),
+                is_important=request.POST.get('is_important') == 'on',
+                is_active=request.POST.get('is_active') == 'on',
+                created_by=admin_user
+            )
+            
+            if 'image' in request.FILES:
+                announcement.image = request.FILES['image']
+            
+            effective_date = request.POST.get('effective_date')
+            if effective_date:
+                try:
+                    announcement.effective_date = timezone.make_aware(
+                        datetime.strptime(effective_date, '%Y-%m-%dT%H:%M')
+                    )
+                except ValueError:
+                    pass
+            
+            deadline = request.POST.get('deadline')
+            if deadline:
+                try:
+                    announcement.deadline = timezone.make_aware(
+                        datetime.strptime(deadline, '%Y-%m-%dT%H:%M')
+                    )
+                except ValueError:
+                    pass
+            
+            announcement.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Announcement created successfully',
+                'announcement_id': announcement.id
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False, 
+                'message': f'Error: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@csrf_exempt
+def update_announcement(request, announcement_id):
+    """Update an existing announcement"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        announcement = Announcement.objects.get(id=announcement_id)
+        
+        if request.method == 'POST':
+            announcement.title = request.POST.get('title')
+            announcement.content = request.POST.get('content')
+            announcement.excerpt = request.POST.get('excerpt', '')
+            announcement.category = request.POST.get('category')
+            announcement.location = request.POST.get('location', '')
+            announcement.is_important = request.POST.get('is_important') == 'on'
+            announcement.is_active = request.POST.get('is_active') == 'on'
+            
+            if 'image' in request.FILES:
+                announcement.image = request.FILES['image']
+            
+            effective_date = request.POST.get('effective_date')
+            if effective_date:
+                announcement.effective_date = timezone.make_aware(
+                    datetime.strptime(effective_date, '%Y-%m-%dT%H:%M')
+                )
+            else:
+                announcement.effective_date = None
+            
+            deadline = request.POST.get('deadline')
+            if deadline:
+                announcement.deadline = timezone.make_aware(
+                    datetime.strptime(deadline, '%Y-%m-%dT%H:%M')
+                )
+            else:
+                announcement.deadline = None
+            
+            announcement.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Announcement updated successfully'
+            })
+            
+    except Announcement.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Announcement not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@csrf_exempt
+def toggle_announcement_status(request, announcement_id):
+    """Toggle announcement active status"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        announcement = Announcement.objects.get(id=announcement_id)
+        announcement.is_active = not announcement.is_active
+        announcement.save()
+        
+        status = "activated" if announcement.is_active else "deactivated"
+        return JsonResponse({
+            'success': True, 
+            'message': f'Announcement {status} successfully'
+        })
+        
+    except Announcement.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Announcement not found'})
+    
+
+@csrf_exempt
+def delete_announcement(request, announcement_id):
+    """Delete an announcement"""
+    print(f"Delete announcement called with ID: {announcement_id}")  
+    
+    if not request.session.get('is_server_authenticated'):
+        print("Not authenticated")  
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        announcement = Announcement.objects.get(id=announcement_id)
+        print(f"Found announcement: {announcement.title}")  
+        announcement.delete()
+        print("Announcement deleted successfully")  
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Announcement deleted successfully'
+        })
+        
+    except Announcement.DoesNotExist:
+        print("Announcement not found")  
+        return JsonResponse({'success': False, 'message': 'Announcement not found'})
+    except Exception as e:
+        print(f"Error: {str(e)}")  
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+
+
+
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.core import serializers
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+import json
+from datetime import datetime
+from .models import Event, YouthAdmin, Gender, CivilStatus, AgeGroup, EducationLevel, YouthClassification, WorkStatus
+
+def server_events_management(request):
+    """Events management page"""
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    events_list = Event.objects.all().order_by('-start_date')
+    
+    paginator = Paginator(events_list, 12)
+    page_number = request.GET.get('page')
+    events = paginator.get_page(page_number)
+    
+    total_events = Event.objects.count()
+    upcoming_events = Event.objects.filter(start_date__gt=timezone.now()).count()
+    active_events = Event.objects.filter(is_active=True).count()
+    total_registrations = EventRegistration.objects.count()
+    
+    events_data = []
+    for event in events:
+        events_data.append({
+            'id': event.id,
+            'title': event.title,
+            'description': event.description,
+            'excerpt': event.excerpt,
+            'category': event.category,
+            'location': event.location,
+            'requires_registration': event.requires_registration,
+            'is_active': event.is_active,
+            'is_upcoming': event.is_upcoming,
+            'start_date': event.start_date.isoformat(),
+            'end_date': event.end_date.isoformat(),
+            'registration_deadline': event.registration_deadline.isoformat() if event.registration_deadline else None,
+            'maximum_participants': event.maximum_participants,
+            'current_participants': event.current_participants,
+            'points_reward': event.points_reward,
+            'image': event.image.url if event.image else None,
+        })
+    
+    context = {
+        'admin_user': admin_user,
+        'events': events,
+        'total_events': total_events,
+        'upcoming_events': upcoming_events,
+        'active_events': active_events,
+        'total_registrations': total_registrations,
+        'events_json': json.dumps(events_data),
+        
+        'genders': Gender.objects.all(),
+        'civil_statuses': CivilStatus.objects.all(),
+        'age_groups': AgeGroup.objects.all(),
+        'education_levels': EducationLevel.objects.all(),
+        'youth_classifications': YouthClassification.objects.all(),
+        'work_statuses': WorkStatus.objects.all(),
+    }
+    
+    return render(request, 'server/servereventstmanagement.html', context)
+
+@csrf_exempt
+def create_event(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if request.method == 'POST':
+        try:
+            admin_id = request.session.get('admin_id')
+            admin_user = YouthAdmin.objects.get(id=admin_id)
+            
+            start_date_str = request.POST.get('start_date')
+            end_date_str = request.POST.get('end_date')
+            
+            if not start_date_str or not end_date_str:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Start date and end date are required'
+                })
+            
+            try:
+                start_date = timezone.make_aware(datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M'))
+                end_date = timezone.make_aware(datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M'))
+            except ValueError:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Invalid date format. Please use YYYY-MM-DDTHH:MM format'
+                })
+            
+            event = Event.objects.create(
+                title=request.POST.get('title'),
+                description=request.POST.get('description'),
+                excerpt=request.POST.get('excerpt', ''),
+                category=request.POST.get('category'),
+                location=request.POST.get('location'),
+                start_date=start_date,
+                end_date=end_date,
+                requires_registration=request.POST.get('requires_registration') == 'on',
+                is_active=request.POST.get('is_active') == 'on',
+                points_reward=int(request.POST.get('points_reward', 0)),
+                created_by=admin_user,
+                gender_access=request.POST.get('gender_access', 'all'),
+                civil_status_access=request.POST.get('civil_status_access', 'all'),
+                age_group_access=request.POST.get('age_group_access', 'all'),
+                education_access=request.POST.get('education_access', 'all'),
+                youth_classification_access=request.POST.get('youth_classification_access', 'all'),
+                work_status_access=request.POST.get('work_status_access', 'all'),
+                age_min=request.POST.get('age_min') or None,
+                age_max=request.POST.get('age_max') or None
+            )
+
+            if 'image' in request.FILES:
+                event.image = request.FILES['image']
+            
+            registration_deadline_str = request.POST.get('registration_deadline')
+            if registration_deadline_str:
+                try:
+                    registration_deadline = timezone.make_aware(
+                        datetime.strptime(registration_deadline_str, '%Y-%m-%dT%H:%M')
+                    )
+                    event.registration_deadline = registration_deadline
+                except ValueError:
+                    pass
+            
+            if event.requires_registration:
+                max_participants = request.POST.get('maximum_participants')
+                if max_participants:
+                    event.maximum_participants = int(max_participants)
+            
+            if event.gender_access == 'specific':
+                gender_ids = request.POST.getlist('target_genders')
+                event.target_genders.set(gender_ids)
+            
+            if event.civil_status_access == 'specific':
+                status_ids = request.POST.getlist('target_civil_statuses')
+                event.target_civil_statuses.set(status_ids)
+            
+            if event.age_group_access == 'specific':
+                age_group_ids = request.POST.getlist('target_age_groups')
+                event.target_age_groups.set(age_group_ids)
+            
+            if event.education_access == 'specific':
+                education_ids = request.POST.getlist('target_education_levels')
+                event.target_education_levels.set(education_ids)
+            
+            if event.youth_classification_access == 'specific':
+                classification_ids = request.POST.getlist('target_youth_classifications')
+                event.target_youth_classifications.set(classification_ids)
+            
+            if event.work_status_access == 'specific':
+                work_status_ids = request.POST.getlist('target_work_statuses')
+                event.target_work_statuses.set(work_status_ids)
+            
+            event.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Event created successfully',
+                'event_id': event.id
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False, 
+                'message': f'Error: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@csrf_exempt
+def update_event(request, event_id):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        event = Event.objects.get(id=event_id)
+        
+        if request.method == 'POST':
+            start_date_str = request.POST.get('start_date')
+            end_date_str = request.POST.get('end_date')
+            
+            if start_date_str:
+                try:
+                    event.start_date = timezone.make_aware(
+                        datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+                    )
+                except ValueError:
+                    return JsonResponse({
+                        'success': False, 
+                        'message': 'Invalid start date format'
+                    })
+            
+            if end_date_str:
+                try:
+                    event.end_date = timezone.make_aware(
+                        datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
+                    )
+                except ValueError:
+                    return JsonResponse({
+                        'success': False, 
+                        'message': 'Invalid end date format'
+                    })
+            event.title = request.POST.get('title')
+            event.description = request.POST.get('description')
+            event.excerpt = request.POST.get('excerpt', '')
+            event.category = request.POST.get('category')
+            event.location = request.POST.get('location')
+            event.requires_registration = request.POST.get('requires_registration') == 'on'
+            event.is_active = request.POST.get('is_active') == 'on'
+            event.points_reward = int(request.POST.get('points_reward', 0))
+            
+            if 'image' in request.FILES:
+                event.image = request.FILES['image']
+            
+            start_date = request.POST.get('start_date')
+            if start_date:
+                try:
+                    event.start_date = timezone.make_aware(
+                        datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
+                    )
+                except ValueError:
+                    pass
+            
+            end_date = request.POST.get('end_date')
+            if end_date:
+                try:
+                    event.end_date = timezone.make_aware(
+                        datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
+                    )
+                except ValueError:
+                    pass
+            
+            if event.requires_registration:
+                maximum_participants = request.POST.get('maximum_participants')
+                if maximum_participants:
+                    event.maximum_participants = int(maximum_participants)
+                else:
+                    event.maximum_participants = None
+                
+                registration_deadline = request.POST.get('registration_deadline')
+                if registration_deadline:
+                    try:
+                        event.registration_deadline = timezone.make_aware(
+                            datetime.strptime(registration_deadline, '%Y-%m-%dT%H:%M')
+                        )
+                    except ValueError:
+                        pass
+                else:
+                    event.registration_deadline = None
+            else:
+                event.maximum_participants = None
+                event.registration_deadline = None
+            
+            event.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Event updated successfully'
+            })
+            
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@csrf_exempt
+def toggle_event_status(request, event_id):
+    """Toggle event active status"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        event = Event.objects.get(id=event_id)
+        event.is_active = not event.is_active
+        event.save()
+        
+        status = "activated" if event.is_active else "deactivated"
+        return JsonResponse({
+            'success': True, 
+            'message': f'Event {status} successfully'
+        })
+        
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'})
+
+@csrf_exempt
+def delete_event(request, event_id):
+    """Delete an event"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        event = Event.objects.get(id=event_id)
+        event.delete()
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Event deleted successfully'
+        })
+        
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'})
+    
+
+
+
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.core import serializers
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.core.paginator import Paginator
+from django.db.models import Count, Q, Avg, Value, FloatField
+from django.db.models.functions import Coalesce
+import json
+from datetime import datetime
+from .models import Event, EventRegistration, YouthAdmin
+
+def server_events_participants(request):
+    """Events participants management page"""
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    now = timezone.now()
+    
+    upcoming_events_list = Event.objects.filter(
+        start_date__gt=now,
+        is_active=True
+    ).annotate(
+        pending_count=Count('eventregistration', filter=Q(eventregistration__status='pending'))
+    ).order_by('start_date')
+    
+    ongoing_events_list = Event.objects.filter(
+        start_date__lte=now,
+        end_date__gte=now,
+        is_active=True
+    ).annotate(
+        confirmed_count=Count('eventregistration', filter=Q(eventregistration__status='confirmed'))
+    ).order_by('end_date')
+    
+    completed_events_list = Event.objects.filter(
+        end_date__lt=now,
+        is_active=True
+    ).annotate(
+        attended_count=Count('eventregistration', filter=Q(eventregistration__status='attended'))
+    ).order_by('-end_date')[:10]
+    
+    for event in completed_events_list:
+        event.attended_count = EventRegistration.objects.filter(event=event, status='attended').count()
+    
+    pending_registrations = EventRegistration.objects.filter(status='pending').count()
+    upcoming_events_count = upcoming_events_list.count()
+    ongoing_events_count = ongoing_events_list.count()
+    
+    total_confirmed = EventRegistration.objects.filter(status='confirmed').count()
+    total_attended = EventRegistration.objects.filter(status='attended').count()
+    attendance_rate = round((total_attended / total_confirmed * 100) if total_confirmed > 0 else 0, 1)
+    
+    def prepare_event_data(events):
+        data = []
+        for event in events:
+            data.append({
+                'id': event.id,
+                'title': event.title,
+                'description': event.description,
+                'category': event.category,
+                'location': event.location,
+                'start_date': event.start_date.isoformat(),
+                'end_date': event.end_date.isoformat(),
+                'maximum_participants': event.maximum_participants,
+                'current_participants': event.current_participants,
+                'image': event.image.url if event.image else None,
+                'pending_count': getattr(event, 'pending_count', 0),
+                'confirmed_count': getattr(event, 'confirmed_count', 0),
+                'attended_count': getattr(event, 'attended_count', 0),
+            })
+        return data
+    
+    context = {
+        'admin_user': admin_user,
+        'upcoming_events_list': upcoming_events_list,
+        'ongoing_events_list': ongoing_events_list,
+        'completed_events_list': completed_events_list,
+        'pending_registrations': pending_registrations,
+        'upcoming_events': upcoming_events_count,
+        'ongoing_events': ongoing_events_count,
+        'attendance_rate': attendance_rate,
+        'upcoming_events_json': json.dumps(prepare_event_data(upcoming_events_list)),
+        'ongoing_events_json': json.dumps(prepare_event_data(ongoing_events_list)),
+        'completed_events_json': json.dumps(prepare_event_data(completed_events_list)),
+    }
+    
+    return render(request, 'server/servereventsparticipants.html', context)
+
+@csrf_exempt
+def get_event_registrations(request, event_id):
+    """Get all registrations for an event"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        event = Event.objects.get(id=event_id)
+        registrations = EventRegistration.objects.filter(event=event).select_related('user')
+        
+        registration_data = []
+        for reg in registrations:
+            registration_data.append({
+                'id': reg.id,
+                'user': {
+                    'id': reg.user.id,
+                    'name': reg.user.get_full_name(),
+                    'email': reg.user.email,
+                    'avatar': reg.user.profile_picture.url if reg.user.profile_picture else None,
+                    'initials': f"{reg.user.first_name[0]}{reg.user.last_name[0]}",
+                },
+                'status': reg.status,
+                'registration_date': reg.registration_date.isoformat(),
+                'check_in_time': reg.check_in_time.isoformat() if reg.check_in_time else None,
+            })
+        
+        return JsonResponse({
+            'success': True, 
+            'registrations': registration_data,
+            'event_title': event.title
+        })
+        
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+@csrf_exempt
+def get_event_attendance(request, event_id):
+    """Get attendance data for an event"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        event = Event.objects.get(id=event_id)
+        registrations = EventRegistration.objects.filter(
+            event=event, 
+            status__in=['confirmed', 'attended', 'no_show']
+        ).select_related('user')
+        
+        attendance_data = []
+        for reg in registrations:
+            attendance_data.append({
+                'id': reg.id,
+                'user': {
+                    'id': reg.user.id,
+                    'name': reg.user.get_full_name(),
+                    'avatar': reg.user.profile_picture.url if reg.user.profile_picture else None,
+                    'initials': f"{reg.user.first_name[0]}{reg.user.last_name[0]}",
+                },
+                'present': reg.status == 'attended',
+                'check_in_time': reg.check_in_time.isoformat() if reg.check_in_time else None,
+            })
+        
+        return JsonResponse({
+            'success': True, 
+            'attendance': attendance_data,
+            'event_title': event.title
+        })
+        
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+@csrf_exempt
+def get_event_attendees(request, event_id):
+    """Get attendees for completed events"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        event = Event.objects.get(id=event_id)
+        attendees = EventRegistration.objects.filter(
+            event=event, 
+            status='attended'
+        ).select_related('user')
+        
+        attendees_data = []
+        for attendee in attendees:
+            attendees_data.append({
+                'id': attendee.id,
+                'user': {
+                    'id': attendee.user.id,
+                    'name': attendee.user.get_full_name(),
+                    'avatar': attendee.user.profile_picture.url if attendee.user.profile_picture else None,
+                    'initials': f"{attendee.user.first_name[0]}{attendee.user.last_name[0]}",
+                    'email': attendee.user.email,
+                },
+                'check_in_time': attendee.check_in_time.isoformat() if attendee.check_in_time else None,
+                'points_earned': attendee.points_earned,
+            })
+        
+        return JsonResponse({
+            'success': True, 
+            'attendees': attendees_data,
+            'event_title': event.title
+        })
+        
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+@csrf_exempt
+def update_registration_status(request, registration_id):
+    """Update registration status and send email notification"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        registration = EventRegistration.objects.get(id=registration_id)
+        
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            new_status = data.get('status')
+            reason = data.get('reason', '')
+            
+            old_status = registration.status
+            registration.status = new_status
+            registration.save()
+            
+            if old_status != new_status:
+                if new_status == 'confirmed':
+                    registration.event.current_participants += 1
+                    send_registration_approval_email(registration)
+                elif old_status == 'confirmed':
+                    registration.event.current_participants = max(0, registration.event.current_participants - 1)
+                registration.event.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Registration status updated to {new_status}'
+            })
+            
+    except EventRegistration.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Registration not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+def send_registration_approval_email(registration):
+    """Send email notification for approved event registration"""
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    
+    user = registration.user
+    event = registration.event
+    
+    subject = f"🎉 Your Registration for {event.title} Has Been Approved!"
+    
+    context = {
+        'user': user,
+        'event': event,
+        'registration_id': registration.id,
+        'event_link': f"https://yoursite.com/events/{event.id}",
+        'directions_link': f"https://maps.google.com/?q={event.location}",
+    }
+    
+    html_content = render_to_string('emails/event_registration_approved.html', context)
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email="SK Mambugan Events <events@skmambugan.ph>",
+        to=[user.email],
+        reply_to=["events@skmambugan.ph"]
+    )
+    
+    email.attach_alternative(html_content, "text/html")
+    
+    try:
+        email.send()
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+
+@csrf_exempt
+def update_attendance(request, registration_id):
+    """Update attendance status"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        registration = EventRegistration.objects.get(id=registration_id)
+        
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            is_present = data.get('present', False)
+            
+            if is_present:
+                registration.status = 'attended'
+                registration.check_in_time = timezone.now()
+                registration.points_earned = registration.event.points_reward
+            else:
+                registration.status = 'no_show'
+                registration.points_earned = 0
+            
+            registration.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Attendance marked as {"present" if is_present else "absent"}'
+            })
+            
+    except EventRegistration.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Registration not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@csrf_exempt
+def get_user_documents(request, registration_id):
+    """Get user documents and all user data for review before approval"""
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        registration = EventRegistration.objects.get(id=registration_id)
+        user = registration.user
+        
+        user_data = {
+            'id': user.id,
+            'name': user.get_full_name(),
+            'email': user.email,
+            'avatar': user.profile_picture.url if user.profile_picture else None,
+            'initials': f"{user.first_name[0]}{user.last_name[0]}",
+            'age': user.age,
+            'gender': user.get_gender_display(),
+            'purok_zone': user.purok_zone,
+            'address': user.address,
+            'contact_number': user.contact_number,
+            'civil_status': user.get_civil_status_display(),
+            'age_group': user.get_age_group_display(),
+            'education': user.get_education_display(),
+            'youth_classification': user.get_youth_classification_display(),
+            'work_status': user.get_work_status_display(),
+            'sk_voter': 'Yes' if user.sk_voter else 'No',
+            'registration_no': user.registration_no,
+            'id_type': user.id_type,
+            'id_picture': user.id_picture.url if user.id_picture else None,
+            'birth_certificate': user.birth_certificate.url if user.birth_certificate else None,
+            'is_email_verified': 'Yes' if user.is_email_verified else 'No',
+            'is_admin_verified': 'Yes' if user.is_admin_verified else 'No',
+            'created_at': user.created_at.strftime("%B %d, %Y"),
+        }
+        
+        return JsonResponse({
+            'success': True, 
+            'user': user_data
+        })
+        
+    except EventRegistration.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Registration not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})

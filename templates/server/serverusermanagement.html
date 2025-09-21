@@ -1,0 +1,468 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serverusermanagement.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-user-management-container">
+        
+<div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="management-header">
+                <div class="header-left">
+                    <h1>User Management</h1>
+                    <p>Manage and verify youth member accounts</p>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="encryption-status">
+                            <i class="fas fa-{% if encryption_verified %}lock-open{% else %}lock{% endif %}"></i>
+                            <span>Encryption: {% if encryption_verified %}Verified{% else %}Required{% endif %}</span>
+                        </div>
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+           <div id="encryptionModal" class="modal {% if not encryption_verified %}active{% endif %}">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-shield-alt"></i> Encryption Key Required</h2>
+            <p>Enter the encryption key to access user management features</p>
+        </div>
+        <div class="modal-body">
+            <form id="encryptionForm">
+                <div class="form-group">
+                    <label for="encryptionKey">Encryption Key</label>
+                    <div class="input-group">
+                        <i class="fas fa-key"></i>
+                        <input type="password" id="encryptionKey" name="encryption_key" 
+                               placeholder="Enter encryption key" required>
+                        <button type="button" class="toggle-password" id="toggleEncryptionKey">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-help">
+                        <i class="fas fa-info-circle"></i>
+                        This key is required to decrypt sensitive user information
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-unlock"></i>
+                        Verify Key
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+            <div class="management-content {% if not encryption_verified %}hidden{% endif %}">
+                <div class="stats-overview">
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ all_users.count|intcomma }}</h3>
+                            <p>Total Users</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ verified_users.count|intcomma }}</h3>
+                            <p>Verified Users</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ pending_verification.count|intcomma }}</h3>
+                            <p>Pending Verification</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ all_users.count|intcomma }}</h3>
+                            <p>Total Accounts</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="pending">
+                            <i class="fas fa-user-clock"></i>
+                            Pending Verification
+                            <span class="badge">{{ pending_verification.count }}</span>
+                        </button>
+                        <button class="tab-btn" data-tab="verified">
+                            <i class="fas fa-user-check"></i>
+                            Verified Users
+                            <span class="badge">{{ verified_users.count }}</span>
+                        </button>
+                        <button class="tab-btn" data-tab="all">
+                            <i class="fas fa-users"></i>
+                            All Users
+                            <span class="badge">{{ all_users.count }}</span>
+                        </button>
+                    </div>
+
+                    <div class="search-filters">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="userSearch" placeholder="Search users...">
+                        </div>
+                        <div class="filters">
+                            <select id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <select id="verificationFilter">
+                                <option value="">All Verification</option>
+                                <option value="verified">Verified</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                            <button class="filter-btn">
+                                <i class="fas fa-filter"></i>
+                                Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabs-content">
+                    <div class="tab-pane active" id="pending-tab">
+                        <div class="table-container">
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Registration No.</th>
+                                        <th>Email</th>
+                                        <th>Registered</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in pending_verification %}
+                                    <tr data-user-id="{{ user.id }}">
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    {% if user.profile_picture %}
+                                                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {{ user.first_name|first }}{{ user.last_name|first }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <span class="user-name">{{ user.get_full_name }}</span>
+                                                    <span class="user-username">@{{ user.username }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ user.registration_no }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>{{ user.created_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <span class="status-badge pending">Pending Verification</span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-view" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-eye"></i>
+                                                    View
+                                                </button>
+                                                <button class="btn-verify" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    Verify
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="no-data">
+                                            <i class="fas fa-users-slash"></i>
+                                            No users pending verification
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="verified-tab">
+                        <div class="table-container">
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Registration No.</th>
+                                        <th>Email</th>
+                                        <th>Verified On</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in verified_users %}
+                                    <tr data-user-id="{{ user.id }}">
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    {% if user.profile_picture %}
+                                                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {{ user.first_name|first }}{{ user.last_name|first }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <span class="user-name">{{ user.get_full_name }}</span>
+                                                    <span class="user-username">@{{ user.username }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ user.registration_no }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>{{ user.admin_verification_date|date:"M d, Y"|default:"N/A" }}</td>
+                                        <td>
+                                            <span class="status-badge {{ user.is_active|yesno:'active,inactive' }}">
+                                                {{ user.is_active|yesno:'Active,Inactive' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-view" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-eye"></i>
+                                                    View
+                                                </button>
+                                                <button class="btn-toggle" data-user-id="{{ user.id }}" data-active="{{ user.is_active|yesno:'true,false' }}">
+                                                    <i class="fas fa-power-off"></i>
+                                                    {{ user.is_active|yesno:'Deactivate,Activate' }}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="no-data">
+                                            <i class="fas fa-user-check"></i>
+                                            No verified users found
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="all-tab">
+                        <div class="table-container">
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Registration No.</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Verification</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in all_users %}
+                                    <tr data-user-id="{{ user.id }}">
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    {% if user.profile_picture %}
+                                                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {{ user.first_name|first }}{{ user.last_name|first }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <span class="user-name">{{ user.get_full_name }}</span>
+                                                    <span class="user-username">@{{ user.username }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ user.registration_no }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>
+                                            <span class="status-badge {{ user.is_active|yesno:'active,inactive' }}">
+                                                {{ user.is_active|yesno:'Active,Inactive' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="verification-badge {{ user.is_admin_verified|yesno:'verified,pending' }}">
+                                                {{ user.is_admin_verified|yesno:'Verified,Pending' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-view" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-eye"></i>
+                                                    View
+                                                </button>
+                                                {% if not user.is_admin_verified %}
+                                                <button class="btn-verify" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    Verify
+                                                </button>
+                                                {% endif %}
+                                                <button class="btn-toggle" data-user-id="{{ user.id }}" data-active="{{ user.is_active|yesno:'true,false' }}">
+                                                    <i class="fas fa-power-off"></i>
+                                                    {{ user.is_active|yesno:'Deactivate,Activate' }}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="no-data">
+                                            <i class="fas fa-users-slash"></i>
+                                            No users found
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="userDetailModal" class="modal">
+                <div class="modal-content large">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-user"></i> User Details</h2>
+                        <button class="modal-close" id="closeUserModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="user-detail-content">
+                            <div class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Loading user details...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/server/serverusermanagement.js' %}"></script>
+    <script>
+    const csrfToken = "{{ csrf_token|escapejs }}";
+    const encryptionVerified = JSON.parse("{{ encryption_verified|yesno:'true,false'|escapejs }}");
+    </script>
+</body>
+</html>
