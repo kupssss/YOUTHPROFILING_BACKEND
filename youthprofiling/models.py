@@ -41,7 +41,7 @@ class EncryptedField(models.TextField):
             return decrypted_value.decode()
         except Exception:
             return value
-
+        
 class YouthUser(models.Model):
     """Main user model for youth members - NO connection to Django admin users"""
     
@@ -56,12 +56,54 @@ class YouthUser(models.Model):
     address = EncryptedField(max_length=255)
     
     PUROK_ZONE_CHOICES = [
-        ('Zone 1', 'Zone 1'),
-        ('Zone 2', 'Zone 2'),
-        ('Zone 3', 'Zone 3'),
-        ('Zone 4', 'Zone 4'),
+        ('AgnesVille', 'AgnesVille'),
+        ('Bagong Bayan', 'Bagong Bayan'),
+        ('Balon/Labajan', 'Balon/Labajan'),
+        ('Cavite', 'Cavite'),
+        ('Everlast Comp.', 'Everlast Comp.'),
+        ('Josefina Subd.', 'Josefina Subd.'),
+        ('Kamias I', 'Kamias I'),
+        ('Kamias I-A', 'Kamias I-A'),
+        ('Kamias II', 'Kamias II'),
+        ('Kamias III', 'Kamias III'),
+        ('Kapihan', 'Kapihan'),
+        ('Kasoy I', 'Kasoy I'),
+        ('Kasoy II', 'Kasoy II'),
+        ('Labangan', 'Labangan'),
+        ('Little Valley', 'Little Valley'),
+        ('Mabolo', 'Mabolo'),
+        ('Maligaya I-A', 'Maligaya I-A'),
+        ('Maligaya I-B', 'Maligaya I-B'),
+        ('Maligaya II', 'Maligaya II'),
+        ('Marco Comp.', 'Marco Comp.'),
+        ('Monte Carlo Homes', 'Monte Carlo Homes'),
+        ('Munting-Pook', 'Munting-Pook'),
+        ('Palomar Homes', 'Palomar Homes'),
+        ('Ruhat III - Grotto', 'Ruhat III - Grotto'),
+        ('Ruhat III- Lower', 'Ruhat III- Lower'),
+        ('Ruhat III - Upper', 'Ruhat III - Upper'),
+        ('Ruhat III -Upper A & B', 'Ruhat III -Upper A & B'),
+        ('Ruhat IV', 'Ruhat IV'),
+        ('Ruhat IV-A', 'Ruhat IV-A'),
+        ('Ruhat V-Lower', 'Ruhat V-Lower'),
+        ('Ruhat V-Upper', 'Ruhat V-Upper'),
+        ('Salvador Drive', 'Salvador Drive'),
+        ('San Rafael', 'San Rafael'),
+        ('Sangley Comp.', 'Sangley Comp.'),
+        ('Santos Comp.', 'Santos Comp.'),
+        ('Shineville', 'Shineville'),
+        ('Siruna PH.1', 'Siruna PH.1'),
+        ('Siruna PH.2', 'Siruna PH.2'),
+        ('Siruna PH.3', 'Siruna PH.3'),
+        ('Siruna PH.4', 'Siruna PH.4'),
+        ('Sitio Josefina', 'Sitio Josefina'),
+        ('Soriano Comp.', 'Soriano Comp.'),
+        ('Sucaben', 'Sucaben'),
+        ('Summerville', 'Summerville'),
+        ('Teremil Subd.', 'Teremil Subd.'),
+        ('Tinago', 'Tinago'),
     ]
-    purok_zone = models.CharField(max_length=10, choices=PUROK_ZONE_CHOICES, default='Zone 1')
+    purok_zone = models.CharField(max_length=50, choices=PUROK_ZONE_CHOICES, default='AgnesVille')
     
     GENDER_CHOICES = [
         ('Male', 'Male'),
@@ -138,6 +180,14 @@ class YouthUser(models.Model):
     id_picture = models.ImageField(upload_to='id_pictures/')
     birth_certificate = models.FileField(upload_to='birth_certificates/', blank=True, null=True)
 
+    # Parent consent fields (for ages 15-17)
+    parent_consent_letter = models.FileField(upload_to='parent_consents/', blank=True, null=True)
+    parent_id_picture = models.ImageField(upload_to='parent_ids/', blank=True, null=True)
+    parent_name = EncryptedField(max_length=255, blank=True, null=True)
+    parent_contact_number = EncryptedField(max_length=15, blank=True, null=True)
+    parent_relationship = models.CharField(max_length=50, blank=True, null=True)
+    consent_date = models.DateField(blank=True, null=True)
+
     is_email_verified = models.BooleanField(default=False)
     email_verification_date = models.DateTimeField(blank=True, null=True)
     
@@ -202,14 +252,14 @@ class YouthUser(models.Model):
         """Check if the password is correct"""
         return check_password(raw_password, self.password)
     
+
+    
     @classmethod
     def get_admin_user(cls):
         """Get or create a special admin user for auto-posting announcements"""
         try:
-            # Try to get the admin user
             admin_user = cls.objects.get(username='sk_mambugan_admin')
         except cls.DoesNotExist:
-            # Create the admin user if it doesn't exist
             admin_user = cls.objects.create(
                 username='sk_mambugan_admin',
                 email='admin@skmambugan.ph',
@@ -237,11 +287,11 @@ class YouthUser(models.Model):
 class OTPVerification(models.Model):
     """Model for storing OTP verification attempts for email verification"""
     email = models.EmailField()
-    otp_code = EncryptedField(max_length=6, default='')
+    otp_code = EncryptedField(max_length=6)  
     is_verified = models.BooleanField(default=False)
     attempts = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()  
     
     class Meta:
         verbose_name = "OTP Verification"
@@ -276,7 +326,82 @@ class AuditLog(models.Model):
         username = self.admin_user.username if self.admin_user else 'System'
         return f"{self.action} on {self.youth_user} by {username} at {self.timestamp}"
 
+class UserLog(models.Model):
+    """Model to track user login activities"""
+    
+    LOGIN_TYPES = [
+        ('LOGIN', 'Login'),
+        ('LOGOUT', 'Logout'),
+        ('LOGIN_FAILED', 'Login Failed'),
+    ]
+    
+    youth_user = models.ForeignKey('YouthUser', on_delete=models.CASCADE, null=True, blank=True)
+    username = models.CharField(max_length=150)  
+    login_type = models.CharField(max_length=20, choices=LOGIN_TYPES)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    success = models.BooleanField(default=False)
+    failure_reason = models.TextField(blank=True)  
+    
+    class Meta:
+        verbose_name = "User Log"
+        verbose_name_plural = "User Logs"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.username} - {self.login_type} - {self.timestamp}"
 
+class UserArchive(models.Model):
+    """Model to archive user data when deleted"""
+    
+    original_user_id = models.IntegerField()  
+    archived_at = models.DateTimeField(auto_now_add=True)
+    archived_by = models.CharField(max_length=150, blank=True)  
+    
+    user_data = models.JSONField()
+    
+    profile_picture_path = models.CharField(max_length=500, blank=True)
+    id_picture_path = models.CharField(max_length=500, blank=True)
+    birth_certificate_path = models.CharField(max_length=500, blank=True)
+    parent_consent_letter_path = models.CharField(max_length=500, blank=True)
+    parent_id_picture_path = models.CharField(max_length=500, blank=True)
+    
+    deletion_reason = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = "User Archive"
+        verbose_name_plural = "User Archives"
+        ordering = ['-archived_at']
+    
+    def __str__(self):
+        return f"Archived User {self.original_user_id} - {self.archived_at}"
+    
+
+class PasswordResetToken(models.Model):
+    """Model to store password reset tokens"""
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE)
+    token = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Password Reset Token"
+        verbose_name_plural = "Password Reset Tokens"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Reset token for {self.user.email}"
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+
+
+
+
+    
     
 
 class YouthAdmin(models.Model):
@@ -700,6 +825,41 @@ class EventRegistrationResponse(models.Model):
     
     def __str__(self):
         return f"{self.registration} - {self.question}"
+    
+
+class EventEvaluation(models.Model):
+    RATING_CHOICES = [
+        (1, '1 Star - Poor'),
+        (2, '2 Stars - Fair'),
+        (3, '3 Stars - Good'),
+        (4, '4 Stars - Very Good'),
+        (5, '5 Stars - Excellent'),
+    ]
+    
+    registration = models.OneToOneField(
+        'EventRegistration', 
+        on_delete=models.CASCADE,
+        related_name='evaluation'
+    )
+    rating = models.PositiveIntegerField(choices=RATING_CHOICES)
+    comments = models.TextField(blank=True, null=True)
+    suggestions = models.TextField(blank=True, null=True)
+    would_attend_again = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Event Evaluation'
+        verbose_name_plural = 'Event Evaluations'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Evaluation for {self.registration.event.title} by {self.registration.user.get_full_name()}"
+    
+
+
+
+
+
 
 
 

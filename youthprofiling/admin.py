@@ -4,8 +4,15 @@ from django.conf import settings
 from django.utils.html import format_html
 from cryptography.fernet import Fernet, InvalidToken
 import base64
-from .models import YouthUser, OTPVerification, AuditLog
+from .models import YouthUser, OTPVerification, AuditLog, UserLog, UserArchive
 from django.utils import timezone
+from django.contrib import admin
+from django.utils.html import format_html
+from django.utils import timezone
+from django import forms
+from cryptography.fernet import Fernet, InvalidToken
+import base64
+from .models import YouthUser, UserLog, UserArchive, AuditLog
 
 fernet = Fernet(settings.ENCRYPTION_KEY)
 
@@ -18,7 +25,7 @@ class DecryptionForm(forms.Form):
 
 class YouthUserAdmin(admin.ModelAdmin):
     list_display = ('registration_no', 'get_full_name', 'email', 'age_group', 'is_email_verified', 'is_admin_verified', 'is_active', 'admin_verification_actions')
-    list_filter = ('is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender')
+    list_filter = ('is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender', 'purok_zone')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'registration_no')
     readonly_fields = ('registration_no', 'created_at', 'updated_at', 'last_login', 'get_encrypted_data_display',
                       'is_email_verified', 'email_verification_date', 'admin_verification_date')
@@ -35,7 +42,12 @@ class YouthUserAdmin(admin.ModelAdmin):
                       'youth_classification', 'work_status', 'sk_voter')
         }),
         ('Contact Information', {
-            'fields': ('purok_zone',)
+            'fields': ('purok_zone', 'contact_number')
+        }),
+        ('Parent Consent Information (Ages 15-17)', {
+            'fields': ('parent_name', 'parent_relationship', 'parent_contact_number', 
+                      'consent_date', 'parent_consent_letter', 'parent_id_picture'),
+            'classes': ('collapse',)
         }),
         ('Verification Status', {
             'fields': ('is_email_verified', 'email_verification_date', 
@@ -49,7 +61,9 @@ class YouthUserAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['verify_selected_users', 'unverify_selected_users', 'activate_selected_users', 'deactivate_selected_users']
+    actions = ['verify_selected_users', 'unverify_selected_users', 
+               'activate_selected_users', 'deactivate_selected_users',
+               'archive_and_delete_selected_users']
     
     def get_full_name(self, obj):
         return obj.get_full_name()
@@ -58,21 +72,19 @@ class YouthUserAdmin(admin.ModelAdmin):
     def admin_verification_actions(self, obj):
         return format_html(
             '<div class="verification-actions">'
-            '<form method="post" action="{}" style="display:inline;">'
+            '<form method="post" action="" style="display:inline;">'
             '<input type="hidden" name="action" value="verify_user">'
             '<input type="hidden" name="user_id" value="{}">'
             '<button type="submit" class="button" {}>Verify</button>'
             '</form>'
-            '<form method="post" action="{}" style="display:inline; margin-left:5px;">'
+            '<form method="post" action="" style="display:inline; margin-left:5px;">'
             '<input type="hidden" name="action" value="unverify_user">'
             '<input type="hidden" name="user_id" value="{}">'
             '<button type="submit" class="button" {}>Unverify</button>'
             '</form>'
             '</div>',
-            '',  
             obj.id,
             'disabled' if obj.is_admin_verified else '',
-            '',  
             obj.id,
             'disabled' if not obj.is_admin_verified else ''
         )
@@ -80,6 +92,7 @@ class YouthUserAdmin(admin.ModelAdmin):
     
     def get_encrypted_data_display(self, obj):
         """Display encrypted data with decryption option"""
+        # Check if we have a decryption key from a previous POST
         decryption_key = getattr(self, '_decryption_key', None)
         
         if decryption_key:
@@ -93,8 +106,10 @@ class YouthUserAdmin(admin.ModelAdmin):
                     if value:
                         try:
                             if not value.startswith('gAAAAA'):
+                                # Data is not encrypted, display as is
                                 decrypted_data[field] = value
                             else:
+                                # Data is encrypted, try to decrypt
                                 decoded_value = base64.urlsafe_b64decode(value)
                                 decrypted_value = temp_fernet.decrypt(decoded_value).decode()
                                 decrypted_data[field] = decrypted_value
@@ -123,6 +138,7 @@ class YouthUserAdmin(admin.ModelAdmin):
             except Exception as e:
                 return format_html(f"<div style='color: red;'>Decryption error: {str(e)}</div>")
         else:
+            # Show the decryption form
             form = DecryptionForm()
             return format_html(f"""
             <div style='background-color: #fff3cd; padding: 10px; border-radius: 5px;'>
@@ -169,9 +185,10 @@ class YouthUserAdmin(admin.ModelAdmin):
                 elif action == 'decrypt':
                     decryption_key = request.POST.get('decryption_key', '')
                     if decryption_key:
+                        # Store the decryption key for this instance
                         self._decryption_key = decryption_key
+                        self.message_user(request, "Decryption key applied. Data will be decrypted on page refresh.")
         
-        self.request = request
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
     
     def verify_selected_users(self, request, queryset):
@@ -194,12 +211,41 @@ class YouthUserAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} users have been deactivated.")
     deactivate_selected_users.short_description = "Deactivate selected users"
     
+    def delete_model(self, request, obj):
+        """Override delete to archive first"""
+        from .utils import archive_user_before_deletion  # Import the function
+        archive_user_before_deletion(obj, deleted_by=request.user.username, reason='Deleted by admin')
+        super().delete_model(request, obj)
+    
+    def delete_queryset(self, request, queryset):
+        """Override bulk delete to archive first"""
+        from .utils import archive_user_before_deletion  # Import the function
+        for obj in queryset:
+            archive_user_before_deletion(obj, deleted_by=request.user.username, reason='Bulk deleted by admin')
+        super().delete_queryset(request, queryset)
+    
+    def archive_and_delete_selected_users(self, request, queryset):
+        """Custom action to archive and delete users"""
+        from .utils import archive_user_before_deletion  # Import the function
+        count = 0
+        for user in queryset:
+            try:
+                archive_user_before_deletion(user, deleted_by=request.user.username, reason='Archived and deleted by admin')
+                user.delete()
+                count += 1
+            except Exception as e:
+                self.message_user(request, f"Error archiving user {user.username}: {str(e)}", level='error')
+        
+        self.message_user(request, f"{count} users have been archived and deleted.")
+    archive_and_delete_selected_users.short_description = "Archive and delete selected users"
+    
     def save_model(self, request, obj, form, change):
         if change:
             action = 'UPDATE'
         else:
             action = 'CREATE'
             
+        # Create audit log entry
         AuditLog.objects.create(
             admin_user=request.user,
             youth_user=obj,
@@ -232,6 +278,51 @@ class AuditLogAdmin(admin.ModelAdmin):
     
     def has_change_permission(self, request, obj=None):
         return False
+    
+
+
+@admin.register(UserLog)
+class UserLogAdmin(admin.ModelAdmin):
+    list_display = ('username', 'login_type', 'success', 'ip_address', 'timestamp')
+    list_filter = ('login_type', 'success', 'timestamp')
+    search_fields = ('username', 'ip_address')
+    readonly_fields = ('youth_user', 'username', 'login_type', 'ip_address', 
+                      'user_agent', 'timestamp', 'success', 'failure_reason')
+    date_hierarchy = 'timestamp'
+
+@admin.register(UserArchive)
+class UserArchiveAdmin(admin.ModelAdmin):
+    list_display = ('original_user_id', 'archived_by', 'archived_at')
+    list_filter = ('archived_by', 'archived_at')
+    search_fields = ('original_user_id', 'archived_by')
+    readonly_fields = ('original_user_id', 'archived_by', 'archived_at', 
+                      'user_data', 'profile_picture_path', 'id_picture_path',
+                      'birth_certificate_path', 'parent_consent_letter_path',
+                      'parent_id_picture_path', 'deletion_reason')
+    date_hierarchy = 'archived_at'
+
+from django.contrib import admin
+from .models import PasswordResetToken, OTPVerification
+
+@admin.register(PasswordResetToken)
+class PasswordResetTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'token', 'created_at', 'expires_at', 'is_used', 'is_expired')
+    list_filter = ('is_used', 'created_at', 'expires_at')
+    search_fields = ('user__email', 'token')
+    readonly_fields = ('created_at', 'expires_at', 'token')
+
+    def is_expired(self, obj):
+        return obj.is_expired()
+    is_expired.boolean = True
+    is_expired.short_description = 'Expired?'
+
+
+
+
+
+
+
+
 
 admin.site.register(YouthUser, YouthUserAdmin)
 admin.site.register(OTPVerification, OTPVerificationAdmin)
@@ -504,6 +595,23 @@ class EventRegistrationAdmin(admin.ModelAdmin):
     list_filter = ('status', 'points_earned', 'registration_date')
     search_fields = ('event__title', 'user__first_name', 'user__last_name')
     readonly_fields = ('registration_date',)
+
+
+
+from django.contrib import admin
+from .models import EventEvaluation
+
+@admin.register(EventEvaluation)
+class EventEvaluationAdmin(admin.ModelAdmin):
+    list_display = ['registration', 'rating', 'would_attend_again', 'created_at']
+    list_filter = ['rating', 'would_attend_again', 'created_at']
+    search_fields = ['registration__user__first_name', 'registration__user__last_name', 'registration__event__title']
+    readonly_fields = ['created_at']
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('registration__user', 'registration__event')
+
+    
 
 
 class AnnouncementInteractionAdmin(admin.ModelAdmin):

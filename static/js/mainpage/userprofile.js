@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-
+    // Existing functions...
     function getCSRFToken() {
         const cookieValue = document.cookie
             .split('; ')
@@ -10,28 +10,158 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const profileForm = document.getElementById('profileForm');
     const successModal = document.getElementById('successModal');
+    const deleteModal = document.getElementById('deleteModal');
     const modalOkBtn = document.getElementById('modalOkBtn');
-    const closeModal = document.querySelector('.close');
+    const closeModal = document.querySelectorAll('.close');
+    const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+    const deleteCancelBtn = document.getElementById('deleteCancelBtn');
     
+    let currentFileTypeToDelete = '';
+
+    // File input preview functionality
+    const fileInputs = document.querySelectorAll('.file-input');
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const previewContainer = this.closest('.file-upload-container').querySelector('.current-file-preview');
+                
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewContainer.innerHTML = `
+                            <img src="${e.target.result}" alt="Preview" class="file-preview-image">
+                            <button type="button" class="delete-file-btn" data-file-type="${input.name}">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        `;
+                        attachDeleteHandlers();
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContainer.innerHTML = `
+                        <div class="file-info">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>${file.name}</span>
+                            <a href="#" class="view-file-btn" onclick="return false;">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </div>
+                        <button type="button" class="delete-file-btn" data-file-type="${input.name}">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    `;
+                    attachDeleteHandlers();
+                }
+            }
+        });
+    });
+
+    // Attach delete handlers to delete buttons
+    function attachDeleteHandlers() {
+        const deleteButtons = document.querySelectorAll('.delete-file-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                currentFileTypeToDelete = this.getAttribute('data-file-type');
+                const modalMessage = document.getElementById('deleteModalMessage');
+                modalMessage.textContent = `Are you sure you want to remove the ${currentFileTypeToDelete.replace('_', ' ')}?`;
+                deleteModal.style.display = 'block';
+            });
+        });
+    }
+
+    // Initial attachment of delete handlers
+    attachDeleteHandlers();
+
+    // Delete confirmation
+    if (deleteConfirmBtn) {
+        deleteConfirmBtn.addEventListener('click', function() {
+            if (currentFileTypeToDelete === 'profile_picture') {
+                // Special handling for profile picture
+                fetch('/api/delete-profile-picture/', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCSRFToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const previewContainer = document.querySelector(`[data-file-type="${currentFileTypeToDelete}"]`).closest('.current-file-preview');
+                        previewContainer.innerHTML = `
+                            <div class="no-file-placeholder">
+                                <i class="fas fa-user-circle"></i>
+                                <span>No ${currentFileTypeToDelete.replace('_', ' ')} uploaded</span>
+                            </div>
+                        `;
+                        // Also update the file input
+                        const fileInput = document.getElementById(currentFileTypeToDelete);
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                    deleteModal.style.display = 'none';
+                });
+            } else {
+                // For other files, just clear the preview and input
+                const previewContainer = document.querySelector(`[data-file-type="${currentFileTypeToDelete}"]`).closest('.current-file-preview');
+                previewContainer.innerHTML = `
+                    <div class="no-file-placeholder">
+                        <i class="fas fa-file"></i>
+                        <span>No ${currentFileTypeToDelete.replace('_', ' ')} uploaded</span>
+                    </div>
+                `;
+                
+                const fileInput = document.getElementById(currentFileTypeToDelete);
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                deleteModal.style.display = 'none';
+            }
+        });
+    }
+
+    if (deleteCancelBtn) {
+        deleteCancelBtn.addEventListener('click', function() {
+            deleteModal.style.display = 'none';
+        });
+    }
+
+    // Form submission
     if (profileForm) {
         profileForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
+            const saveBtn = this.querySelector('.save-btn');
+            const originalText = saveBtn.innerHTML;
+            
+            // Show loading state
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
             
             fetch('/api/update-profile/', {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': getCSRFToken()
                 }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    const modalMessage = document.getElementById('modalMessage');
+                    modalMessage.textContent = data.message || 'Your profile has been updated successfully.';
                     successModal.style.display = 'block';
                     setTimeout(adjustTextForID, 100);
+                    
+                    // Reload the page to reflect changes in the ID card
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
                 } else {
                     alert('Error updating profile: ' + data.message);
                 }
@@ -39,28 +169,39 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred while updating your profile.');
+            })
+            .finally(() => {
+                // Restore button state
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
             });
         });
     }
     
+    // Modal handlers (existing code)
     if (modalOkBtn) {
         modalOkBtn.addEventListener('click', function() {
             successModal.style.display = 'none';
         });
     }
     
-    if (closeModal) {
-        closeModal.addEventListener('click', function() {
+    closeModal.forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
             successModal.style.display = 'none';
+            deleteModal.style.display = 'none';
         });
-    }
+    });
     
     window.addEventListener('click', function(event) {
         if (event.target === successModal) {
             successModal.style.display = 'none';
         }
+        if (event.target === deleteModal) {
+            deleteModal.style.display = 'none';
+        }
     });
-    
+
+    // Existing ID card functionality
     const flipIdBtn = document.getElementById('flipIdBtn');
     const idCardWrapper = document.querySelector('.id-card-wrapper');
     
@@ -69,7 +210,37 @@ document.addEventListener('DOMContentLoaded', function() {
             idCardWrapper.classList.toggle('flipped');
         });
     }
+
+    // Age calculation
+    const birthdateInput = document.getElementById('birthdate');
+    const ageInput = document.getElementById('age');
+    const ageGroupInput = document.getElementById('age_group');
     
+    if (birthdateInput && ageInput && ageGroupInput) {
+        birthdateInput.addEventListener('change', function() {
+            const birthdate = new Date(this.value);
+            const today = new Date();
+            let age = today.getFullYear() - birthdate.getFullYear();
+            const monthDiff = today.getMonth() - birthdate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
+                age--;
+            }
+            ageInput.value = age;
+            
+            // Update age group based on age
+            let ageGroup = '';
+            if (age >= 15 && age <= 17) ageGroup = '15-17';
+            else if (age >= 18 && age <= 21) ageGroup = '18-21';
+            else if (age >= 22 && age <= 25) ageGroup = '22-25';
+            else if (age >= 26 && age <= 30) ageGroup = '26-30';
+            
+            if (ageGroup) {
+                ageGroupInput.value = ageGroup;
+            }
+        });
+    }
+
+    // Existing utility functions...
     function adjustTextForID() {
         const nameElement = document.querySelector('.id-name');
         if (nameElement) {
@@ -91,12 +262,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     adjustTextForID();
-    const formInputs = document.querySelectorAll('#profileForm input, #profileForm select, #profileForm textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('change', adjustTextForID);
-    });
     
-    const downloadIdBtn = document.getElementById('downloadIdBtn');
+        const downloadIdBtn = document.getElementById('downloadIdBtn');
 if (downloadIdBtn) {
     downloadIdBtn.addEventListener('click', function() {
         const pdfContainer = document.createElement('div');
@@ -162,33 +329,9 @@ if (downloadIdBtn) {
             });
     });
 }
+  
     
-    const birthdateInput = document.getElementById('birthdate');
-    const ageInput = document.getElementById('age');
-    
-    if (birthdateInput && ageInput) {
-        birthdateInput.addEventListener('change', function() {
-            const birthdate = new Date(this.value);
-            const today = new Date();
-            let age = today.getFullYear() - birthdate.getFullYear();
-            const monthDiff = today.getMonth() - birthdate.getMonth();
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
-                age--;
-            }
-            ageInput.value = age;
-        });
-    }
-    
-    const hamburger = document.getElementById('hamburger');
-    const navMenu = document.getElementById('navMenu');
-    
-    if (hamburger && navMenu) {
-        hamburger.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
-            hamburger.classList.toggle('active');
-        });
-    }
-    
+    // Phone number validation
     const phoneInput = document.getElementById('contact_number');
     if (phoneInput) {
         phoneInput.addEventListener('input', function() {
@@ -196,6 +339,7 @@ if (downloadIdBtn) {
         });
     }
     
+    // Cancel button confirmation
     const cancelBtn = profileForm.querySelector('.cancel-btn');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', function(e) {
@@ -208,6 +352,7 @@ if (downloadIdBtn) {
         });
     }
     
+    // Add years function for ID card validity
     Date.prototype.addYears = function(years) {
         this.setFullYear(this.getFullYear() + years);
         return this;

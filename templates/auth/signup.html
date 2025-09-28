@@ -33,6 +33,7 @@
                         </div>
                         <div class="progress-steps">
                             <span class="step active" data-step="1">Profile</span>
+                            <span class="step" data-step="1.5">Parent Consent</span>
                             <span class="step" data-step="2">Demographics</span>
                             <span class="step" data-step="3">Credentials</span>
                             <span class="step" data-step="4">Verification</span>
@@ -40,7 +41,6 @@
                         </div>
                     </div>
 
-                    <!-- Segment 1: Profile Identification -->
                     <div class="form-segment active" data-segment="1">
                         <h3 class="segment-title">Profile Identification</h3>
                         
@@ -78,10 +78,52 @@
                                 <label for="purokZone">Sitio/Purok <span class="required">*</span></label>
                                 <select id="purokZone" name="purokZone" required>
                                     <option value="">Select Zone</option>
-                                    <option value="Zone 1">Zone 1</option>
-                                    <option value="Zone 2">Zone 2</option>
-                                    <option value="Zone 3">Zone 3</option>
-                                    <option value="Zone 4">Zone 4</option>
+                                    <option value="AgnesVille">AgnesVille</option>
+                                    <option value="Bagong Bayan">Bagong Bayan</option>
+                                    <option value="Balon/Labajan">Balon/Labajan</option>
+                                    <option value="Cavite">Cavite</option>
+                                    <option value="Everlast Comp.">Everlast Comp.</option>
+                                    <option value="Josefina Subd.">Josefina Subd.</option>
+                                    <option value="Kamias I">Kamias I</option>
+                                    <option value="Kamias I-A">Kamias I-A</option>
+                                    <option value="Kamias II">Kamias II</option>
+                                    <option value="Kamias III">Kamias III</option>
+                                    <option value="Kapihan">Kapihan</option>
+                                    <option value="Kasoy I">Kasoy I</option>
+                                    <option value="Kasoy II">Kasoy II</option>
+                                    <option value="Labangan">Labangan</option>
+                                    <option value="Little Valley">Little Valley</option>
+                                    <option value="Mabolo">Mabolo</option>
+                                    <option value="Maligaya I-A">Maligaya I-A</option>
+                                    <option value="Maligaya I-B">Maligaya I-B</option>
+                                    <option value="Maligaya II">Maligaya II</option>
+                                    <option value="Marco Comp.">Marco Comp.</option>
+                                    <option value="Monte Carlo Homes">Monte Carlo Homes</option>
+                                    <option value="Munting-Pook">Munting-Pook</option>
+                                    <option value="Palomar Homes">Palomar Homes</option>
+                                    <option value="Ruhat III - Grotto">Ruhat III - Grotto</option>
+                                    <option value="Ruhat III- Lower">Ruhat III- Lower</option>
+                                    <option value="Ruhat III - Upper">Ruhat III - Upper</option>
+                                    <option value="Ruhat III -Upper A & B">Ruhat III -Upper A & B</option>
+                                    <option value="Ruhat IV">Ruhat IV</option>
+                                    <option value="Ruhat IV-A">Ruhat IV-A</option>
+                                    <option value="Ruhat V-Lower">Ruhat V-Lower</option>
+                                    <option value="Ruhat V-Upper">Ruhat V-Upper</option>
+                                    <option value="Salvador Drive">Salvador Drive</option>
+                                    <option value="San Rafael">San Rafael</option>
+                                    <option value="Sangley Comp.">Sangley Comp.</option>
+                                    <option value="Santos Comp.">Santos Comp.</option>
+                                    <option value="Shineville">Shineville</option>
+                                    <option value="Siruna PH.1">Siruna PH.1</option>
+                                    <option value="Siruna PH.2">Siruna PH.2</option>
+                                    <option value="Siruna PH.3">Siruna PH.3</option>
+                                    <option value="Siruna PH.4">Siruna PH.4</option>
+                                    <option value="Sitio Josefina">Sitio Josefina</option>
+                                    <option value="Soriano Comp.">Soriano Comp.</option>
+                                    <option value="Sucaben">Sucaben</option>
+                                    <option value="Summerville">Summerville</option>
+                                    <option value="Teremil Subd.">Teremil Subd.</option>
+                                    <option value="Tinago">Tinago</option>
                                 </select>
                             </div>
                             
@@ -109,11 +151,84 @@
                         </div>
                         
                         <div class="segment-navigation">
+                            <button type="button" class="btn-next">Next <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="form-segment" data-segment="1.5" id="parentConsentSegment">
+                        <h3 class="segment-title">Parental Consent</h3>
+                        
+                        <div class="consent-letter">
+                            <div class="consent-header">
+                                <h4>PARENTAL CONSENT FORM</h4>
+                                <p>For Youth Members Aged 15-17 Years Old</p>
+                            </div>
+                            
+                            <div class="consent-content">
+                                <p>I hereby give my full consent and permission for my child/ward to participate in the Katipunan ng Kabataan (KK) Profiling conducted by the Sangguniang Kabataan and the Local Government Unit (LGU), as mandated by Republic Act No. 10742 (SK Reform Act of 2015). I understand that the profiling aims to gather demographic and socio-economic information to aid in youth development planning.</p>
+                                
+                                <p>I also give consent for the collection, processing, and use of my child's personal data in accordance with the Data Privacy Act of 2012 (RA 10173). I am aware that all information gathered will be kept confidential, used only for official purposes, and will not be shared with third parties without our explicit permission.</p>
+                            </div>
+                            
+                            <div class="consent-fields">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="parentName">Parent/Guardian Full Name <span class="required">*</span></label>
+                                        <input type="text" id="parentName" name="parentName">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="parentRelationship">Relationship <span class="required">*</span></label>
+                                        <select id="parentRelationship" name="parentRelationship" required>
+                                            <option value="">Select Relationship</option>
+                                            <option value="Mother">Mother</option>
+                                            <option value="Father">Father</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="parentContactNumber">Parent/Guardian Contact Number <span class="required">*</span></label>
+                                    <input type="tel" id="parentContactNumber" name="parentContactNumber" pattern="09[0-9]{9}" placeholder="09XXXXXXXXX" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="parentConsentLetter">Parent Consent Letter (Signed) <span class="required">*</span></label>
+                                    <div class="file-upload">
+                                        <input type="file" id="parentConsentLetter" name="parentConsentLetter" accept=".pdf,.doc,.docx,image/*" required>
+                                        <label for="parentConsentLetter" class="file-upload-label">
+                                            <i class="fas fa-upload"></i> Choose File
+                                        </label>
+                                        <span class="file-name">No file chosen</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="parentIdPicture">Parent/Guardian ID Picture <span class="required">*</span></label>
+                                    <div class="file-upload">
+                                        <input type="file" id="parentIdPicture" name="parentIdPicture" accept="image/*" required>
+                                        <label for="parentIdPicture" class="file-upload-label">
+                                            <i class="fas fa-upload"></i> Choose File
+                                        </label>
+                                        <span class="file-name">No file chosen</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="consentDate">Consent Date <span class="required">*</span></label>
+                                    <input type="date" id="consentDate" name="consentDate" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="segment-navigation">
+                            <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
                             <button type="button" class="btn-next">Next: Demographics <i class="fas fa-arrow-right"></i></button>
                         </div>
                     </div>
 
-                    <!-- Segment 2: Demographic Characteristics -->
                     <div class="form-segment" data-segment="2">
                         <h3 class="segment-title">Demographic Characteristics</h3>
                         
@@ -129,14 +244,8 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="ageGroup">Age Group <span class="required">*</span></label>
-                            <select id="ageGroup" name="ageGroup" required>
-                                <option value="">Select Age Group</option>
-                                <option value="15-17">15-17 years</option>
-                                <option value="18-21">18-21 years</option>
-                                <option value="22-25">22-25 years</option>
-                                <option value="26-30">26-30 years</option>
-                            </select>
+                            <label for="ageGroup">Age Group</label>
+                            <input type="text" id="ageGroup" name="ageGroup" readonly>
                         </div>
                         
                         <div class="form-group">
@@ -195,13 +304,12 @@
                         </div>
                     </div>
 
-                    <!-- Segment 3: Credentials -->
                     <div class="form-segment" data-segment="3">
                         <h3 class="segment-title">Account Credentials</h3>
                         
                         <div class="form-group">
                             <label for="registrationNo">Registration Number</label>
-                            <input type="text" id="registrationNo" name="registrationNo" readonly>
+                            <input type="text" id="registrationNo" name="registrationNo" value="SKM-2024-001" readonly>
                         </div>
                         
                         <div class="form-group">
@@ -212,7 +320,7 @@
                         
                         <div class="form-group">
                             <label for="contactNumber">Contact Number <span class="required">*</span></label>
-                            <input type="tel" id="contactNumber" name="contactNumber" pattern="[0-9]{11}" placeholder="09XXXXXXXXX" required>
+                            <input type="tel" id="contactNumber" name="contactNumber" pattern="09[0-9]{9}" placeholder="09XXXXXXXXX" required>
                         </div>
                         
                         <div class="form-group">
@@ -229,6 +337,7 @@
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
+                                <div class="input-hint">Minimum 8 characters with uppercase, lowercase, number, and special character</div>
                             </div>
                             
                             <div class="form-group">
@@ -243,15 +352,16 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="profilePicture">Profile Picture</label>
-                            <div class="file-upload">
-                                <input type="file" id="profilePicture" name="profilePicture" accept="image/*">
-                                <label for="profilePicture" class="file-upload-label">
-                                    <i class="fas fa-upload"></i> Choose File
-                                </label>
-                                <span class="file-name">No file chosen</span>
-                            </div>
-                        </div>
+    <label for="profilePicture">Profile Picture <span class="required">*</span></label>
+    <div class="file-upload">
+        <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required>
+        <label for="profilePicture" class="file-upload-label">
+            <i class="fas fa-upload"></i> Choose File
+        </label>
+        <span class="file-name">No file chosen</span>
+    </div>
+</div>
+
                         
                         <div class="form-group">
                             <label for="idType">ID Type <span class="required">*</span></label>
@@ -283,15 +393,15 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="birthCertificate">Birth Certificate</label>
-                            <div class="file-upload">
-                                <input type="file" id="birthCertificate" name="birthCertificate" accept="image/*,.pdf">
-                                <label for="birthCertificate" class="file-upload-label">
-                                    <i class="fas fa-upload"></i> Choose File
-                                </label>
-                                <span class="file-name">No file chosen</span>
-                            </div>
-                        </div>
+    <label for="birthCertificate">Birth Certificate <span class="required">*</span></label>
+    <div class="file-upload">
+        <input type="file" id="birthCertificate" name="birthCertificate" accept="image/*,.pdf" required>
+        <label for="birthCertificate" class="file-upload-label">
+            <i class="fas fa-upload"></i> Choose File
+        </label>
+        <span class="file-name">No file chosen</span>
+    </div>
+</div>
                         
                         <div class="segment-navigation">
                             <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
@@ -299,7 +409,6 @@
                         </div>
                     </div>
 
-                    <!-- Segment 4: Email OTP Verification -->
                     <div class="form-segment" data-segment="4">
                         <h3 class="segment-title">Email Verification</h3>
                         
@@ -331,7 +440,6 @@
                         </div>
                     </div>
 
-                    <!-- Segment 5: Confirmation -->
                     <div class="form-segment" data-segment="5">
                         <h3 class="segment-title">Registration Complete</h3>
                         
@@ -345,7 +453,7 @@
                             <p>Your registration has been successfully submitted. Your account will be activated after verification by our administrators.</p>
                             
                             <div class="confirmation-details">
-                                <p><strong>Registration Number:</strong> <span id="confirmRegNo">SKM-2023-001</span></p>
+                                <p><strong>Registration Number:</strong> <span id="confirmRegNo">SKM-2024-001</span></p>
                                 <p><strong>Name:</strong> <span id="confirmName"></span></p>
                                 <p><strong>Email:</strong> <span id="confirmEmail"></span></p>
                             </div>
@@ -397,6 +505,32 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Terms and Conditions</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>By accessing and using this KK Profiling website, you agree to provide accurate and truthful information as part of the mandated Katipunan ng Kabataan (KK) Profiling under Republic Act No. 10742, also known as the SK Reform Act of 2015. The information collected will be used solely for youth development planning and program implementation by the Sangguniang Kabataan and relevant government agencies. All users are expected to use this platform responsibly and for its intended lawful purpose.</p>
+                
+                <p>Your personal data will be handled in accordance with the Data Privacy Act of 2012 (RA 10173). By submitting your information, you give your consent for the collection, processing, and use of your data for official purposes. Your data will be kept secure and confidential, and will not be shared with third parties without your explicit permission. For questions or concerns, you may contact Sangguniang Kabataan of Barangay Mambugan.</p>
+                
+                <div class="terms-agreement">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreeTerms" required>
+                        <span class="checkmark"></span>
+                        I have read and agree to the Terms and Conditions
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel">Cancel</button>
+                <button type="button" class="btn-accept" disabled>Accept & Continue to Verification</button>
             </div>
         </div>
     </div>

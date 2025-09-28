@@ -175,18 +175,23 @@
                     </div>
 
                     <div class="form-section">
-                        <h3>Emergency Contact</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="emergency_contact_name">Emergency Contact Name *</label>
-                                <input type="text" id="emergency_contact_name" name="emergency_contact_name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="emergency_contact_number">Emergency Contact Number *</label>
-                                <input type="tel" id="emergency_contact_number" name="emergency_contact_number" required>
-                            </div>
-                        </div>
-                    </div>
+    <h3>Emergency Contact</h3>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="emergency_contact_name">Emergency Contact Name <span class="required-asterisk">*</span></label>
+            <input type="text" id="emergency_contact_name" name="emergency_contact_name" required>
+            <div class="field-error" id="emergency_contact_name_error" style="display: none;"></div>
+        </div>
+        <div class="form-group">
+            <label for="emergency_contact_number">Emergency Contact Number <span class="required-asterisk">*</span></label>
+            <input type="tel" id="emergency_contact_number" name="emergency_contact_number" 
+                   placeholder="09XXXXXXXXX" maxlength="11" required>
+            <div class="field-instruction">Must be 11 digits starting with 09</div>
+            <div class="field-error" id="emergency_contact_number_error" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
 
                     <div class="step-buttons">
                         <button type="button" class="btn-prev">Back</button>
@@ -202,34 +207,33 @@
                         <h3>Preferences & Requirements</h3>
                         
                         <div class="form-group">
-                            <label for="special_accommodations">Special Accommodations Needed</label>
-                            <textarea id="special_accommodations" name="special_accommodations" placeholder="e.g., Wheelchair access, hearing assistance, etc." rows="2"></textarea>
-                        </div>
+    <label for="special_accommodations">Special Accommodations Needed <span class="optional-tag">(Optional)</span></label>
+    <textarea id="special_accommodations" name="special_accommodations" placeholder="e.g., Wheelchair access, hearing assistance, etc." rows="2"></textarea>
+</div>
                     </div>
 
                     <div class="form-section">
-                        <h3>How did you hear about this event?</h3>
-                        <div class="form-group">
-                            <select id="how_heard" name="how_heard">
-                                <option value="">Select an option</option>
-                                <option value="social_media">Social Media</option>
-                                <option value="friend">From a Friend</option>
-                                <option value="email">Email Notification</option>
-                                <option value="website">SK Website</option>
-                                <option value="community_board">Community Board</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-
+    <h3>How did you hear about this event? <span class="optional-tag">(Optional)</span></h3>
+    <div class="form-group">
+        <select id="how_heard" name="how_heard">
+            <option value="">Select an option</option>
+            <option value="social_media">Social Media</option>
+            <option value="friend">From a Friend</option>
+            <option value="email">Email Notification</option>
+            <option value="website">SK Website</option>
+            <option value="community_board">Community Board</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
+</div>
                     {% if questions %}
                     <div class="form-section">
                         <h3>Event-Specific Questions</h3>
                         {% for question in questions %}
-                        <div class="form-group">
-                            <label for="question_{{ question.id }}">
-                                {{ question.question_text }}{% if question.is_required %} *{% endif %}
-                            </label>
+<div class="form-group">
+    <label for="question_{{ question.id }}">
+        {{ question.question_text }}{% if question.is_required %} <span class="required-asterisk">*</span>{% else %} <span class="optional-tag">(Optional)</span>{% endif %}
+    </label>
                             
                             {% if question.question_type == 'text' %}
                             <input type="text" id="question_{{ question.id }}" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>

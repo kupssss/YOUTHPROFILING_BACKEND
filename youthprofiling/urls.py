@@ -11,9 +11,12 @@ urlpatterns = [
     path('contact/', views.contact, name='contact'),
     
     path('login/', views.login_view, name='login'),
-    path('signup/', views.signup_view, name='signup'),
     path('api/login/', views.login_user, name='api_login'),
     path('api/logout/', views.logout_user, name='api_logout'),
+
+    path('signup/', views.signup_view, name='signup'),
+
+   
     path('api/check-auth/', views.check_auth, name='api_check_auth'),
     path('api/generate-otp/', views.generate_otp, name='generate_otp'),
     path('api/verify-otp/', views.verify_otp, name='verify_otp'),
@@ -22,16 +25,28 @@ urlpatterns = [
     path('api/register_user_with_files/', views.register_user_with_files, name='register_user_with_files'),
     path('api/resend-otp/', views.resend_otp, name='resend_otp'),
 
+    path('forgot-password/', views.forgot_password_view, name='forgot_password'),
+    path('api/initiate-password-reset/', views.initiate_password_reset, name='initiate_password_reset'),
+    path('api/verify-reset-otp/', views.verify_reset_otp, name='verify_reset_otp'),
+    path('api/reset-password/', views.reset_password, name='reset_password'),
+    path('api/resend-reset-otp/', views.resend_reset_otp, name='resend_reset_otp'),
+
 
     path('logout/', views.logout_view, name='logout'),
 
 
     path('mainpage/', views.mainpage, name='mainpage'),
     path('userannouncement/', views.userannouncement, name='userannouncement'),
-    path('myevents/', views.my_events, name='myevents'),
 
-    path('userprofile/', views.user_profile, name='userprofile'),
+
+    path('myevents/', views.my_events, name='myevents'),
+    path('api/event-registration/<int:registration_id>/', views.event_registration_detail_api, name='event_registration_detail_api'),
+    path('api/cancel-registration/<int:registration_id>/', views.cancel_registration_api, name='cancel_registration_api'),
+    path('api/submit-evaluation/<int:registration_id>/', views.submit_evaluation_api, name='submit_evaluation_api'),
+
+    path('profile/', views.user_profile, name='userprofile'),
     path('api/update-profile/', views.update_profile, name='update_profile'),
+    path('api/delete-profile-picture/', views.delete_profile_picture, name='delete_profile_picture'),
 
 
     path('usercontact/', views.usercontact, name='usercontact'),
@@ -47,8 +62,26 @@ urlpatterns = [
 
     path('event/register/<int:event_id>/', views.event_register, name='event_register'),
     path('api/event/register/<int:event_id>/', views.SubmitRegistrationView.as_view(), name='submit_registration'),
-    path('myevents/', views.my_events, name='myevents'),
     path('event/<int:event_id>/', views.usereventdetails, name='usereventdetails'),
+
+
+
+
+
+    path('api/dashboard-data/', views.get_user_dashboard_data, name='dashboard_data'),
+    path('api/register-event/<int:event_id>/', views.register_for_event, name='register_event'),
+    path('api/events-data/', views.get_events_data, name='events_data'),
+    path('api/user-profile/', views.user_profile_api, name='user_profile_api'),
+    path('api/update-profile/', views.update_profile, name='update_profile'),
+    path('api/event/<int:event_id>/', views.event_details, name='event_details'),
+
+
+
+
+
+
+
+
 
 
     path('serverlogin/', views.server_login_page, name='server_login_page'),

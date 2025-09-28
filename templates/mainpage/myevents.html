@@ -1,4 +1,3 @@
-<!-- templates/mainpage/myevents.html -->
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -108,7 +107,7 @@
                     <button class="filter-btn active" data-filter="all">All Events</button>
                     <button class="filter-btn" data-filter="upcoming">Upcoming</button>
                     <button class="filter-btn" data-filter="past">Past</button>
-                    <button class="filter-btn" data-filter="registered">Registered</button>
+                    <button class="filter-btn" data-filter="attended">Attended</button>
                 </div>
             </div>
 
@@ -123,7 +122,7 @@
                         
                         <div class="events-grid">
                             {% for registration in upcoming_events %}
-                            <div class="event-card upcoming" data-status="{{ registration.status }}">
+                            <div class="event-card upcoming" data-status="{{ registration.status }}" data-registration-id="{{ registration.id }}">
                                 <div class="event-date">
                                     <span class="date-day">{{ registration.event.start_date|date:"d" }}</span>
                                     <span class="date-month">{{ registration.event.start_date|date:"M"|upper }}</span>
@@ -136,8 +135,12 @@
                                         <span class="event-location"><i class="fas fa-map-marker-alt"></i> {{ registration.event.location }}</span>
                                     </div>
                                     <div class="event-status">
-                                        <span class="status-badge {{ registration.status }}">{{ registration.status|title }}</span>
-                                        <button class="event-action-btn" data-event-id="{{ registration.event.id }}">View Details</button>
+                                        <span class="status-badge {{ registration.status }}">{{ registration.get_status_display }}</span>
+                                        <button class="event-action-btn view-details-btn" 
+                                                data-registration-id="{{ registration.id }}"
+                                                data-status="{{ registration.status }}">
+                                            View Details
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -154,8 +157,8 @@
                         </div>
                         
                         <div class="events-grid">
-                            {% for registration in past_events|slice:":3" %}
-                            <div class="event-card past" data-status="{{ registration.status }}">
+                            {% for registration in past_events %}
+                            <div class="event-card past" data-status="{{ registration.status }}" data-registration-id="{{ registration.id }}">
                                 <div class="event-date">
                                     <span class="date-day">{{ registration.event.start_date|date:"d" }}</span>
                                     <span class="date-month">{{ registration.event.start_date|date:"M"|upper }}</span>
@@ -168,16 +171,23 @@
                                         <span class="event-location"><i class="fas fa-map-marker-alt"></i> {{ registration.event.location }}</span>
                                     </div>
                                     <div class="event-status">
-                                        <span class="status-badge attended">Attended</span>
-                                        <div class="event-rating">
-                                            <div class="star-rating" data-rating="5">
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                            </div>
-                                            <button class="event-action-btn">View Certificate</button>
+                                        <span class="status-badge {{ registration.status }}">{{ registration.get_status_display }}</span>
+                                        <div class="event-actions">
+                                            {% if registration.status == 'attended' %}
+                                                {% if registration.feedback_provided %}
+                                                    <span class="evaluation-status"><i class="fas fa-check-circle"></i> Evaluated</span>
+                                                    {% if registration.certificate_issued %}
+                                                        <button class="event-action-btn certificate-btn">View Certificate</button>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <button class="event-action-btn evaluate-btn" 
+                                                            data-registration-id="{{ registration.id }}">Evaluate Event</button>
+                                                {% endif %}
+                                            {% else %}
+                                                <button class="event-action-btn view-details-btn" 
+                                                        data-registration-id="{{ registration.id }}"
+                                                        data-status="{{ registration.status }}">View Details</button>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -185,7 +195,7 @@
                             {% endfor %}
                         </div>
                         
-                        {% if past_events|length > 3 %}
+                        {% if past_events|length > 6 %}
                         <div class="view-more-container">
                             <button class="view-more-btn">View More Past Events</button>
                         </div>
@@ -206,7 +216,15 @@
                             <i class="fas fa-{% cycle 'star' 'users' 'calendar' 'seedling' %}"></i>
                         </div>
                         <h4>{{ achievement }}</h4>
-                        <p>{% cycle 'Participated in 10+ community events' 'Joined 5+ group activities' 'Consistent event attendance' 'Joined environmental initiatives' %}</p>
+                        <p>
+                            {% if achievement == 'Community Champion' %}
+                                Participated in 10+ community events
+                            {% elif achievement == 'Active Participant' %}
+                                Joined 5+ group activities
+                            {% else %}
+                                Consistent event attendance
+                            {% endif %}
+                        </p>
                     </div>
                     {% endfor %}
                 </div>
@@ -215,6 +233,7 @@
         </div>
     </main>
 
+    <!-- Modals remain the same -->
     <div class="modal" id="eventModal">
         <div class="modal-content event-modal">
             <span class="close">&times;</span>
@@ -237,21 +256,119 @@
                     </div>
                     <div class="detail-item">
                         <i class="fas fa-users"></i>
-                        <span id="modalEventParticipants">1 participants registered</span>
+                        <span id="modalEventParticipants">Participants: <span id="modalParticipantsCount">0</span>/<span id="modalMaxParticipants">0</span></span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-star"></i>
+                        <span id="modalEventPoints">Points: <span id="modalPointsCount">0</span></span>
                     </div>
                 </div>
                 <div class="modal-event-description">
                     <h3>About This Event</h3>
                     <p id="modalEventDescription">Event description goes here...</p>
                 </div>
-                <div class="modal-actions">
-                    <button class="modal-btn secondary" id="modalCancelBtn">Cancel Registration</button>
-                    <button class="modal-btn primary" id="modalRegisterBtn">Register for Event</button>
+                <div class="modal-registration-info">
+                    <h3>Your Registration</h3>
+                    <div class="registration-details">
+                        <p><strong>Status:</strong> <span id="modalRegistrationStatus" class="status-badge">Pending</span></p>
+                        <p><strong>Registered on:</strong> <span id="modalRegistrationDate">January 1, 2023</span></p>
+                        <p><strong>Emergency Contact:</strong> <span id="modalEmergencyContact">Not provided</span></p>
+                    </div>
+                </div>
+                <div class="modal-actions" id="modalActions">
+                    <!-- Buttons will be dynamically added based on status -->
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Enhanced Evaluation Modal -->
+<div class="modal" id="evaluationModal">
+    <div class="modal-content evaluation-modal">
+        <span class="close">&times;</span>
+        <div class="modal-header">
+            <h2>Share Your Experience</h2>
+            <p id="evaluationEventTitle">Event Title</p>
+        </div>
+        <form id="evaluationForm">
+            <div class="form-group">
+                <label>How would you rate this event?</label>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" data-rating="Excellent">
+                    <label for="star5" data-rating="Excellent"><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star4" name="rating" value="4" data-rating="Very Good">
+                    <label for="star4" data-rating="Very Good"><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star3" name="rating" value="3" data-rating="Good">
+                    <label for="star3" data-rating="Good"><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star2" name="rating" value="2" data-rating="Fair">
+                    <label for="star2" data-rating="Fair"><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star1" name="rating" value="1" data-rating="Poor">
+                    <label for="star1" data-rating="Poor"><i class="fas fa-star"></i></label>
+                </div>
+                <div class="rating-labels">
+                    <span>Poor</span>
+                    <span>Fair</span>
+                    <span>Good</span>
+                    <span>Very Good</span>
+                    <span>Excellent</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="comments">
+                    What did you enjoy most about this event?
+                    <span class="char-counter" id="commentsCounter">0/500</span>
+                </label>
+                <textarea id="comments" name="comments" 
+                          placeholder="Share what you liked, what stood out, or any memorable moments..."
+                          maxlength="500"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="suggestions">
+                    Suggestions for improvement
+                    <span class="char-counter" id="suggestionsCounter">0/300</span>
+                </label>
+                <textarea id="suggestions" name="suggestions" 
+                          placeholder="Any ideas to make future events even better?"
+                          maxlength="300"></textarea>
+            </div>
+            
+            <div class="form-group">
+    <label class="checkbox-label extra-large">
+        <input type="checkbox" id="would_attend_again" name="would_attend_again" checked>
+        <span class="checkmark"></span>
+        <span class="checkbox-label-text">I would love to attend similar events in the future</span>
+    </label>
+</div>
+            
+            <div class="modal-actions">
+                <button type="button" class="modal-btn secondary" id="cancelEvaluation">Cancel</button>
+                <button type="submit" class="modal-btn primary">
+                    <i class="fas fa-paper-plane"></i> Submit Evaluation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal" id="successModal">
+    <div class="modal-content evaluation-modal">
+        <div class="evaluation-success">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3>Thank You!</h3>
+            <p>Your evaluation has been submitted successfully.</p>
+            <button class="modal-btn primary" id="closeSuccessModal">Close</button>
+        </div>
+    </div>
+</div>
 
     <footer class="footer">
         <div class="footer-container">

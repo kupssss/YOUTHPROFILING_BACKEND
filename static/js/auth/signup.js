@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         progressFill.style.width = `${progressPercentage}%`;
         
         document.querySelectorAll('.step').forEach(step => {
-            if (parseInt(step.dataset.step) <= currentSegment) {
+            if (parseFloat(step.dataset.step) <= currentSegment) {
                 step.classList.add('active');
             } else {
                 step.classList.remove('active');
@@ -18,15 +18,137 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function goToSegment(segmentNumber) {
+        // Hide all segments first
         document.querySelectorAll('.form-segment').forEach(segment => {
             segment.classList.remove('active');
+            segment.style.display = 'none';
         });
         
-        document.querySelector(`[data-segment="${segmentNumber}"]`).classList.add('active');
-        currentSegment = segmentNumber;
-        updateProgress();
+        // Show the target segment
+        const targetSegment = document.querySelector(`[data-segment="${segmentNumber}"]`);
+        if (targetSegment) {
+            targetSegment.style.display = 'block';
+            targetSegment.classList.add('active');
+            currentSegment = segmentNumber;
+        }
         
+        updateProgress();
         document.querySelector('.signup-content').scrollTo(0, 0);
+    }
+    
+    function determineNextSegment(currentSegment, age) {
+        if (currentSegment === 1) {
+            if (age >= 15 && age <= 17) {
+                return 1.5; // Go to parent consent
+            } else {
+                return 2; // Skip to demographics
+            }
+        } else if (currentSegment === 1.5) {
+            return 2; // Parent consent to demographics
+        } else {
+            return currentSegment + 1;
+        }
+    }
+    
+    function validateAge(age) {
+        if (age < 15) {
+            return { valid: false, message: "You are under the legal age to register. Registration is only available for youth aged 15-30 years old." };
+        } else if (age > 30) {
+            return { valid: false, message: "You exceed the maximum age allowed to register. The system is designed for youth aged 15-30 years old only." };
+        } else if (age >= 15 && age <= 30) {
+            return { valid: true, message: "" };
+        }
+    }
+    
+    function setupInputConstraints() {
+        const contactInput = document.getElementById('contactNumber');
+        const parentContactInput = document.getElementById('parentContactNumber');
+        
+        [contactInput, parentContactInput].forEach(input => {
+            if (input) {
+                input.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                    if (this.value.length > 11) {
+                        this.value = this.value.slice(0, 11);
+                    }
+                    if (this.value.length === 11 && !this.value.startsWith('09')) {
+                        this.style.borderColor = '#EF4444';
+                        showMessage('Philippine mobile numbers must start with "09"', 'error');
+                    } else if (this.value.length === 11) {
+                        this.style.borderColor = '#10B981';
+                    }
+                });
+            }
+        });
+        
+        const emailInput = document.getElementById('email');
+        emailInput.addEventListener('blur', function() {
+            if (this.value && !(this.value.endsWith('@gmail.com') || this.value.endsWith('@yahoo.com'))) {
+                this.style.borderColor = '#EF4444';
+                showMessage('Only Gmail (@gmail.com) or Yahoo (@yahoo.com) emails are allowed', 'error');
+            }
+        });
+        
+        const passwordInput = document.getElementById('password');
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumbers = /\d/.test(password);
+            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+            const isLongEnough = password.length >= 8;
+            
+            if (!isLongEnough || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+                this.style.borderColor = '#EF4444';
+            } else {
+                this.style.borderColor = '#10B981';
+            }
+        });
+        
+        // UPPERCASE ALL LETTERS in name fields
+        document.querySelectorAll('#firstName, #lastName, #middleName, #suffix, #parentName').forEach(input => {
+            input.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+            
+            // Also convert to uppercase on blur (when user leaves the field)
+            input.addEventListener('blur', function() {
+                this.value = this.value.toUpperCase();
+            });
+        });
+    }
+    
+    function showTermsModal() {
+        const modal = document.getElementById('termsModal');
+        modal.style.display = 'block';
+        
+        const agreeCheckbox = document.getElementById('agreeTerms');
+        const acceptButton = document.querySelector('.btn-accept');
+        
+        agreeCheckbox.addEventListener('change', function() {
+            acceptButton.disabled = !this.checked;
+        });
+        
+        document.querySelector('.modal-close').addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        document.querySelector('.btn-cancel').addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        acceptButton.addEventListener('click', async function() {
+            modal.style.display = 'none';
+            const email = document.getElementById('email').value;
+            const result = await generateOTP(email);
+            
+            if (result.success) {
+                goToSegment(4);
+                startOTPCountdown();
+            } else {
+                showMessage(result.message, 'error');
+            }
+        });
     }
     
     async function generateOTP(email) {
@@ -133,6 +255,20 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('skVoter', document.querySelector('input[name="skVoter"]:checked')?.value);
         formData.append('idType', document.getElementById('idType').value);
         
+        const age = parseInt(document.getElementById('age').value) || 0;
+        if (age >= 15 && age <= 17) {
+            formData.append('parentName', document.getElementById('parentName').value);
+            formData.append('parentRelationship', document.getElementById('parentRelationship').value);
+            formData.append('parentContactNumber', document.getElementById('parentContactNumber').value);
+            formData.append('consentDate', document.getElementById('consentDate').value);
+            
+            const parentConsentLetter = document.getElementById('parentConsentLetter').files[0];
+            const parentIdPicture = document.getElementById('parentIdPicture').files[0];
+            
+            if (parentConsentLetter) formData.append('parentConsentLetter', parentConsentLetter);
+            if (parentIdPicture) formData.append('parentIdPicture', parentIdPicture);
+        }
+        
         const profilePicture = document.getElementById('profilePicture').files[0];
         const idPicture = document.getElementById('idPicture').files[0];
         const birthCertificate = document.getElementById('birthCertificate').files[0];
@@ -184,18 +320,15 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', async function() {
             if (validateSegment(currentSegment)) {
                 if (currentSegment === 3) {
-                    const email = document.getElementById('email').value;
-                    const result = await generateOTP(email);
-                    
-                    if (result.success) {
-                        goToSegment(currentSegment + 1);
-                        startOTPCountdown();
-                    } else {
-                        showMessage(result.message, 'error');
-                    }
+                    showTermsModal();
                 } else {
-                    goToSegment(currentSegment + 1);
-                    if (currentSegment === 4) populateConfirmation();
+                    const age = parseInt(document.getElementById('age').value) || 0;
+                    const nextSegment = determineNextSegment(currentSegment, age);
+                    goToSegment(nextSegment);
+                    
+                    if (nextSegment === 5) {
+                        populateConfirmation();
+                    }
                 }
             }
         });
@@ -203,7 +336,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.querySelectorAll('.btn-prev').forEach(button => {
         button.addEventListener('click', function() {
-            goToSegment(currentSegment - 1);
+            const age = parseInt(document.getElementById('age').value) || 0;
+            let prevSegment = currentSegment - 1;
+            
+            // Handle going back from segment 2
+            if (currentSegment === 2) {
+                if (age >= 15 && age <= 17) {
+                    prevSegment = 1.5;
+                } else {
+                    prevSegment = 1;
+                }
+            }
+            
+            // Handle going back from segment 1.5
+            if (currentSegment === 1.5) {
+                prevSegment = 1;
+            }
+            
+            goToSegment(prevSegment);
         });
     });
     
@@ -279,11 +429,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function validateSegment(segment) {
-        const inputs = document.querySelectorAll(`[data-segment="${segment}"] input, [data-segment="${segment}"] select`);
         let isValid = true;
+        let errorMessages = [];
         
+        // Validate required fields
+        const inputs = document.querySelectorAll(`[data-segment="${segment}"] input[required], [data-segment="${segment}"] select[required]`);
         inputs.forEach(input => {
-            if (input.hasAttribute('required') && !input.value) {
+            if (!input.value) {
                 input.style.borderColor = '#EF4444';
                 isValid = false;
                 
@@ -293,6 +445,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        // Validate file inputs
+        const fileInputs = document.querySelectorAll(`[data-segment="${segment}"] input[type="file"][required]`);
+        fileInputs.forEach(input => {
+            if (!input.files || input.files.length === 0) {
+                isValid = false;
+                errorMessages.push(`${input.labels[0].textContent.trim()} is required`);
+            }
+        });
+        
+        if (segment === 1) {
+            const age = parseInt(document.getElementById('age').value) || 0;
+            const ageValidation = validateAge(age);
+            if (!ageValidation.valid) {
+                errorMessages.push(ageValidation.message);
+                isValid = false;
+                
+                // Clear birthdate if age is invalid
+                if (age < 15 || age > 30) {
+                    document.getElementById('birthdate').value = '';
+                    document.getElementById('age').value = '';
+                }
+            }
+        }
+        
+        if (segment === 1.5) {
+            const age = parseInt(document.getElementById('age').value) || 0;
+            if (age >= 15 && age <= 17) {
+                const parentFields = document.querySelectorAll('#parentConsentSegment input[required], #parentConsentSegment select[required]');
+                parentFields.forEach(field => {
+                    if (!field.value) {
+                        field.style.borderColor = '#EF4444';
+                        isValid = false;
+                        errorMessages.push('All parent consent fields are required for youth aged 15-17');
+                    }
+                });
+                
+                const parentFiles = document.querySelectorAll('#parentConsentSegment input[type="file"][required]');
+                parentFiles.forEach(fileInput => {
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        isValid = false;
+                        errorMessages.push(`${fileInput.labels[0].textContent.trim()} is required for youth aged 15-17`);
+                    }
+                });
+            }
+        }
+        
         if (segment === 3) {
             const password = document.getElementById('password');
             const confirmPassword = document.getElementById('confirmPassword');
@@ -300,6 +498,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (password.value !== confirmPassword.value) {
                 confirmPassword.style.borderColor = '#EF4444';
                 isValid = false;
+                errorMessages.push('Passwords do not match');
                 
                 confirmPassword.addEventListener('input', function() {
                     if (password.value === this.value) {
@@ -308,33 +507,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
             
-            const email = document.getElementById('email').value;
-            if (email && !(email.endsWith('@gmail.com') || email.endsWith('@yahoo.com'))) {
-                showMessage('Only Gmail or Yahoo emails are allowed', 'error');
+            const passwordValue = password.value;
+            const hasUpperCase = /[A-Z]/.test(passwordValue);
+            const hasLowerCase = /[a-z]/.test(passwordValue);
+            const hasNumbers = /\d/.test(passwordValue);
+            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(passwordValue);
+            const isLongEnough = passwordValue.length >= 8;
+            
+            if (!isLongEnough || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
                 isValid = false;
+                errorMessages.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
             }
             
-            const idPicture = document.getElementById('idPicture').files[0];
-            if (!idPicture) {
-                showMessage('ID Picture is required', 'error');
+            const email = document.getElementById('email').value;
+            if (email && !(email.endsWith('@gmail.com') || email.endsWith('@yahoo.com'))) {
                 isValid = false;
+                errorMessages.push('Only Gmail or Yahoo emails are allowed');
+            }
+            
+            const contactNumber = document.getElementById('contactNumber').value;
+            if (contactNumber && (contactNumber.length !== 11 || !contactNumber.startsWith('09'))) {
+                isValid = false;
+                errorMessages.push('Contact number must be 11 digits starting with 09');
+            }
+            
+            // Check required files
+            const requiredFiles = document.querySelectorAll('#profilePicture, #idPicture, #birthCertificate');
+            requiredFiles.forEach(fileInput => {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    isValid = false;
+                    errorMessages.push(`${fileInput.labels[0].textContent.trim()} is required`);
+                }
+            });
+        }
+        
+        // Show specific error messages
+        if (!isValid) {
+            if (errorMessages.length > 0) {
+                errorMessages.forEach(msg => showMessage(msg, 'error'));
+            } else {
+                showMessage('Please fill in all required fields correctly', 'error');
             }
         }
         
-        if (!isValid) showMessage('Please fill in all required fields', 'error');
         return isValid;
     }
     
     function populateConfirmation() {
-        document.getElementById('confirmRegNo').textContent = 'Will be assigned after registration';
+        document.getElementById('confirmRegNo').textContent = document.getElementById('registrationNo').value;
         document.getElementById('confirmName').textContent = `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`;
         document.getElementById('confirmEmail').textContent = document.getElementById('email').value;
     }
     
     const birthdateInput = document.getElementById('birthdate');
     const ageInput = document.getElementById('age');
+    const ageGroupInput = document.getElementById('ageGroup');
     
-    if (birthdateInput && ageInput) {
+    if (birthdateInput && ageInput && ageGroupInput) {
         birthdateInput.addEventListener('change', function() {
             const birthdate = new Date(this.value);
             const today = new Date();
@@ -347,13 +576,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             ageInput.value = age;
             
-            const ageGroupSelect = document.getElementById('ageGroup');
-            if (ageGroupSelect) {
-                if (age >= 15 && age <= 17) ageGroupSelect.value = '15-17';
-                else if (age >= 18 && age <= 21) ageGroupSelect.value = '18-21';
-                else if (age >= 22 && age <= 25) ageGroupSelect.value = '22-25';
-                else if (age >= 26 && age <= 30) ageGroupSelect.value = '26-30';
-            }
+            if (age >= 15 && age <= 17) ageGroupInput.value = '15-17 years';
+            else if (age >= 18 && age <= 21) ageGroupInput.value = '18-21 years';
+            else if (age >= 22 && age <= 25) ageGroupInput.value = '22-25 years';
+            else if (age >= 26 && age <= 30) ageGroupInput.value = '26-30 years';
+            else ageGroupInput.value = '';
         });
     }
     
@@ -474,7 +701,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (resendButton && countdownElement) {
         resendButton.addEventListener('click', resendOTP);
-        if (currentSegment === 4) startOTPCountdown();
     }
     
     function showMessage(message, type) {
@@ -542,5 +768,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.head.appendChild(style);
     }
     
+    // Initialize the form - show only segment 1
+    document.querySelectorAll('.form-segment').forEach(segment => {
+        segment.style.display = 'none';
+    });
+    document.querySelector('[data-segment="1"]').style.display = 'block';
+    
+    setupInputConstraints();
     updateProgress();
 });

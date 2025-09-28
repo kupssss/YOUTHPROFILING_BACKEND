@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    const forgotPassword = document.querySelector('.forgot-password');
+ 
     
     if (forgotPassword) {
         forgotPassword.addEventListener('click', function(e) {

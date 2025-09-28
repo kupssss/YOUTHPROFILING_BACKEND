@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from django.utils import timezone
-from .models import YouthUser, OTPVerification
+from .models import YouthUser, OTPVerification, UserLog, UserArchive
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
@@ -30,7 +30,6 @@ from .models import FAQ
 # --------------------
 
 
-otp_storage = {}
 
 
 
@@ -153,6 +152,7 @@ def contact(request):
 # |  userside auth   |
 # --------------------
 
+otp_storage = {}
 
 def login_view(request):
     if request.method == 'POST':
@@ -337,6 +337,19 @@ def check_email(request):
 
 
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password, check_password
+from django.core.files.storage import FileSystemStorage
+import json
+import random
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+
 @csrf_exempt
 def register_user_with_files(request):
     if request.method == 'POST':
@@ -352,7 +365,7 @@ def register_user_with_files(request):
             purok_zone = request.POST.get('purokZone')
             gender = request.POST.get('gender')
             birthdate = request.POST.get('birthdate')
-            age = request.POST.get('age', 0)
+            age = int(request.POST.get('age', 0))
             contact_number = request.POST.get('contactNumber')
             civil_status = request.POST.get('civilStatus')
             age_group = request.POST.get('ageGroup')
@@ -361,6 +374,40 @@ def register_user_with_files(request):
             work_status = request.POST.get('workStatus')
             sk_voter = request.POST.get('skVoter') == 'Yes'
             id_type = request.POST.get('idType')
+            
+            if age < 15:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'You are under the legal age to register. Registration is only available for youth aged 15-30 years old.'
+                })
+            elif age > 30:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'You exceed the maximum age allowed to register. The system is designed for youth aged 15-30 years old only.'
+                })
+            
+            if 'profilePicture' not in request.FILES:
+                return JsonResponse({'success': False, 'message': 'Profile picture is required.'})
+            
+            if 'idPicture' not in request.FILES:
+                return JsonResponse({'success': False, 'message': 'ID picture is required.'})
+            
+            if 'birthCertificate' not in request.FILES:
+                return JsonResponse({'success': False, 'message': 'Birth certificate is required.'})
+            
+            # Parent consent validation for ages 15-17
+            if 15 <= age <= 17:
+                if 'parentConsentLetter' not in request.FILES:
+                    return JsonResponse({'success': False, 'message': 'Parent consent letter is required for youth aged 15-17.'})
+                
+                if 'parentIdPicture' not in request.FILES:
+                    return JsonResponse({'success': False, 'message': 'Parent ID picture is required for youth aged 15-17.'})
+                
+                # Validate parent information fields
+                parent_fields = ['parentName', 'parentRelationship', 'parentContactNumber', 'consentDate']
+                for field in parent_fields:
+                    if field not in request.POST or not request.POST[field]:
+                        return JsonResponse({'success': False, 'message': f'Parent {field} is required for youth aged 15-17.'})
             
             required_fields = [
                 'username', 'email', 'password', 'firstName', 'lastName', 
@@ -378,6 +425,7 @@ def register_user_with_files(request):
             
             if YouthUser.objects.filter(email=email).exists():
                 return JsonResponse({'success': False, 'message': 'Email already registered'})
+            
             try:
                 otp_record = OTPVerification.objects.filter(email=email, is_verified=True).latest('created_at')
                 if otp_record.is_expired():
@@ -385,7 +433,6 @@ def register_user_with_files(request):
             except OTPVerification.DoesNotExist:
                 return JsonResponse({'success': False, 'message': 'Email not verified. Please complete OTP verification first.'})
             
-            from datetime import datetime
             current_year = datetime.now().year
             
             last_user = YouthUser.objects.filter(
@@ -425,8 +472,20 @@ def register_user_with_files(request):
                 registration_no=registration_no,
                 id_type=id_type,
                 is_active=False,
-                is_email_verified=True 
+                is_email_verified=True
             )
+            
+            if 15 <= age <= 17:
+                user.parent_name = request.POST.get('parentName')
+                user.parent_relationship = request.POST.get('parentRelationship')
+                user.parent_contact_number = request.POST.get('parentContactNumber')
+                user.consent_date = request.POST.get('consentDate')
+                
+                if 'parentConsentLetter' in request.FILES:
+                    user.parent_consent_letter = request.FILES['parentConsentLetter']
+                
+                if 'parentIdPicture' in request.FILES:
+                    user.parent_id_picture = request.FILES['parentIdPicture']
             
             if 'profilePicture' in request.FILES:
                 user.profile_picture = request.FILES['profilePicture']
@@ -526,28 +585,119 @@ def login_user(request):
             password = data.get('password')
             remember_me = data.get('rememberMe', False)
 
+            # Get user IP and user agent for logging
+            ip_address = get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limit length
+
+            # Check if user exists
             user = YouthUser.objects.filter(Q(username=identifier) | Q(email=identifier)).first()
 
             if not user:
-                return JsonResponse({'success': False, 'message': 'User is not registered.'}, status=404)
+                # Log failed login attempt
+                UserLog.objects.create(
+                    username=identifier,
+                    login_type='LOGIN_FAILED',
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    success=False,
+                    failure_reason='User not registered'
+                )
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'User is not registered.'
+                }, status=404)
 
+            # Check password
             if not user.check_password(password):
-                return JsonResponse({'success': False, 'message': 'Incorrect username or password.'}, status=401)
+                # Log failed login attempt
+                UserLog.objects.create(
+                    youth_user=user,
+                    username=user.username,
+                    login_type='LOGIN_FAILED',
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    success=False,
+                    failure_reason='Wrong password'
+                )
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Incorrect username or password.'
+                }, status=401)
 
+            # Check email verification
             if not user.is_email_verified:
-                return JsonResponse({'success': False, 'message': 'Email not verified. Please verify your email first.'}, status=403)
+                # Log failed login attempt
+                UserLog.objects.create(
+                    youth_user=user,
+                    username=user.username,
+                    login_type='LOGIN_FAILED',
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    success=False,
+                    failure_reason='Email not verified'
+                )
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Email not verified. Please verify your email first.'
+                }, status=403)
 
+            # Check admin approval
             if not user.is_admin_verified:
-                return JsonResponse({'success': False, 'message': 'Account not yet approved by administrator. Please wait for approval.'}, status=403)
+                # Log failed login attempt
+                UserLog.objects.create(
+                    youth_user=user,
+                    username=user.username,
+                    login_type='LOGIN_FAILED',
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    success=False,
+                    failure_reason='Waiting for admin approval'
+                )
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Account not yet approved by administrator. Please wait for approval.'
+                }, status=403)
 
+            # Check if account is active
+            if not user.is_active:
+                # Log failed login attempt
+                UserLog.objects.create(
+                    youth_user=user,
+                    username=user.username,
+                    login_type='LOGIN_FAILED',
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    success=False,
+                    failure_reason='Account deactivated'
+                )
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Your account has been deactivated. Please contact support.'
+                }, status=403)
+
+            # All checks passed - login successful
             request.session['user_id'] = user.id
             request.session['username'] = user.username
             request.session['is_authenticated'] = True
             
+            # Update last login
+            user.last_login = timezone.now()
+            user.save()
+            
             if not remember_me:
-                request.session.set_expiry(0)  
+                request.session.set_expiry(0)  # Session expires when browser closes
             else:
-                request.session.set_expiry(1209600)  
+                request.session.set_expiry(1209600)  # 2 weeks
+
+            # Log successful login
+            UserLog.objects.create(
+                youth_user=user,
+                username=user.username,
+                login_type='LOGIN',
+                ip_address=ip_address,
+                user_agent=user_agent,
+                success=True
+            )
 
             return JsonResponse({
                 'success': True, 
@@ -556,32 +706,345 @@ def login_user(request):
             })
 
         except Exception as e:
-            return JsonResponse({'success': False, 'message': f'Login error: {str(e)}'}, status=500)
+            # Log the error
+            UserLog.objects.create(
+                username=identifier if 'identifier' in locals() else 'unknown',
+                login_type='LOGIN_FAILED',
+                ip_address=get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+                success=False,
+                failure_reason=f'System error: {str(e)}'
+            )
+            return JsonResponse({
+                'success': False, 
+                'message': f'Login error: {str(e)}'
+            }, status=500)
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
+def get_client_ip(request):
+    """Get the client's IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 
     
+@csrf_exempt
 def logout_view(request):
-    request.session.flush()
-    return redirect('login')
-
-
-def admin_dashboard(request):
-    if not request.session.get('is_authenticated'):
-        return redirect('login')
-    
-    try:
-        user = YouthUser.objects.get(id=request.session['user_id'])
-
-        if 'admin' not in user.username.lower():
-            return redirect('dashboard')
+    if request.session.get('is_authenticated'):
+        user_id = request.session.get('user_id')
+        username = request.session.get('username')
         
-        return render(request, 'dashboard/admin_dashboard.html', {'user': user})
-    except YouthUser.DoesNotExist:
-        request.session.flush()
-        return redirect('login')
+        if user_id:
+            try:
+                user = YouthUser.objects.get(id=user_id)
+                UserLog.objects.create(
+                    youth_user=user,
+                    username=username,
+                    login_type='LOGOUT',
+                    ip_address=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+                    success=True
+                )
+            except YouthUser.DoesNotExist:
+                UserLog.objects.create(
+                    username=username,
+                    login_type='LOGOUT',
+                    ip_address=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+                    success=True
+                )
     
+    logout(request)
+    request.session.flush() 
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'message': 'Logout successful', 'redirect': '/login'})
+    else:
+        return redirect('login')  
+
+
+
+def archive_user_before_deletion(user, deleted_by='system', reason=''):
+    """Archive user data before deletion"""
+    try:
+        user_data = {
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'middle_name': user.middle_name,
+            'suffix': user.suffix,
+            'address': user.address,
+            'purok_zone': user.purok_zone,
+            'gender': user.gender,
+            'birthdate': user.birthdate,
+            'age': user.age,
+            'contact_number': user.contact_number,
+            'civil_status': user.civil_status,
+            'age_group': user.age_group,
+            'education': user.education,
+            'youth_classification': user.youth_classification,
+            'work_status': user.work_status,
+            'sk_voter': user.sk_voter,
+            'registration_no': user.registration_no,
+            'id_type': user.id_type,
+            'parent_name': user.parent_name,
+            'parent_relationship': user.parent_relationship,
+            'parent_contact_number': user.parent_contact_number,
+            'consent_date': str(user.consent_date) if user.consent_date else None,
+            'is_email_verified': user.is_email_verified,
+            'email_verification_date': str(user.email_verification_date) if user.email_verification_date else None,
+            'is_admin_verified': user.is_admin_verified,
+            'admin_verification_date': str(user.admin_verification_date) if user.admin_verification_date else None,
+            'is_active': user.is_active,
+            'created_at': str(user.created_at),
+            'updated_at': str(user.updated_at),
+            'last_login': str(user.last_login) if user.last_login else None,
+        }
+        
+        archive = UserArchive.objects.create(
+            original_user_id=user.id,
+            archived_by=deleted_by,
+            user_data=user_data,
+            profile_picture_path=user.profile_picture.path if user.profile_picture else '',
+            id_picture_path=user.id_picture.path if user.id_picture else '',
+            birth_certificate_path=user.birth_certificate.path if user.birth_certificate else '',
+            parent_consent_letter_path=user.parent_consent_letter.path if user.parent_consent_letter else '',
+            parent_id_picture_path=user.parent_id_picture.path if user.parent_id_picture else '',
+            deletion_reason=reason
+        )
+        
+        return archive
+    except Exception as e:
+        print(f"Error archiving user {user.id}: {str(e)}")
+        return None
+
+
+import json
+import random
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
+from datetime import timedelta
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+from .models import YouthUser, OTPVerification, PasswordResetToken
+
+@csrf_exempt
+def forgot_password_view(request):
+    """Render the forgot password page"""
+    return render(request, 'auth/forgotpassword.html')
+
+@csrf_exempt
+def initiate_password_reset(request):
+    """Initiate password reset process by sending OTP"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'success': False, 'message': 'Email is required'})
+            
+            # Check if email exists and is verified
+            try:
+                user = YouthUser.objects.get(email=email)
+                if not user.is_email_verified:
+                    return JsonResponse({'success': False, 'message': 'Email not verified. Please contact support.'})
+                if not user.is_active:
+                    return JsonResponse({'success': False, 'message': 'Account is deactivated. Please contact support.'})
+            except YouthUser.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Email not found in our system'})
+            
+            # Generate OTP
+            otp_code = str(random.randint(100000, 999999))
+            
+            # Delete existing OTPs for this email
+            OTPVerification.objects.filter(email=email).delete()
+            
+            # Create new OTP record (without purpose field)
+            expires_at = timezone.now() + timedelta(minutes=10)
+            otp_record = OTPVerification.objects.create(
+                email=email,
+                otp_code=otp_code,
+                expires_at=expires_at
+            )
+            
+            # Send OTP email
+            subject = "Password Reset Verification - SK Mambugan Youth Management System"
+            html_content = render_to_string('auth/password_reset_email.html', {
+                'otp_code': otp_code,
+                'user': user,
+                'expires_in': '10 minutes'
+            })
+            text_content = strip_tags(html_content)
+            
+            email_message = EmailMultiAlternatives(
+                subject,
+                text_content,
+                settings.EMAIL_HOST_USER,
+                [email]
+            )
+            email_message.attach_alternative(html_content, "text/html")
+            email_message.send()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Verification code sent to your email'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
+def verify_reset_otp(request):
+    """Verify OTP for password reset"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            otp_attempt = data.get('otp')
+            
+            if not email or not otp_attempt:
+                return JsonResponse({'success': False, 'message': 'Email and OTP are required'})
+            
+            try:
+                # Get the latest OTP record for this email (without purpose filter)
+                otp_record = OTPVerification.objects.filter(email=email).latest('created_at')
+            except OTPVerification.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'No verification code found'})
+            
+            if otp_record.is_expired():
+                otp_record.delete()
+                return JsonResponse({'success': False, 'message': 'Verification code has expired'})
+            
+            if otp_record.attempts >= 5:
+                otp_record.delete()
+                return JsonResponse({'success': False, 'message': 'Too many failed attempts'})
+            
+            if otp_attempt == otp_record.otp_code:
+                # OTP verified successfully
+                otp_record.is_verified = True
+                otp_record.save()
+                
+                # Create password reset token
+                reset_token = PasswordResetToken.objects.create(
+                    user=YouthUser.objects.get(email=email),
+                    token=str(random.randint(100000, 999999)) + str(random.randint(100000, 999999)),
+                    expires_at=timezone.now() + timedelta(hours=1)
+                )
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Verification successful',
+                    'token': reset_token.token
+                })
+            else:
+                otp_record.attempts += 1
+                otp_record.save()
+                remaining_attempts = 5 - otp_record.attempts
+                return JsonResponse({
+                    'success': False, 
+                    'message': f'Invalid code. {remaining_attempts} attempts remaining.'
+                })
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
+def reset_password(request):
+    """Reset user password after verification"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            new_password = data.get('newPassword')
+            token = data.get('token')
+            
+            if not email or not new_password or not token:
+                return JsonResponse({'success': False, 'message': 'All fields are required'})
+            
+            # Validate token
+            try:
+                reset_token = PasswordResetToken.objects.get(
+                    token=token,
+                    user__email=email,
+                    expires_at__gt=timezone.now(),
+                    is_used=False
+                )
+            except PasswordResetToken.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Invalid or expired reset token'})
+            
+            # Validate password strength
+            if len(new_password) < 8:
+                return JsonResponse({'success': False, 'message': 'Password must be at least 8 characters long'})
+            
+            # Update user password
+            user = reset_token.user
+            user.set_password(new_password)
+            user.save()
+            
+            # Mark token as used
+            reset_token.is_used = True
+            reset_token.save()
+            
+            # Log the password reset
+            UserLog.objects.create(
+                youth_user=user,
+                username=user.username,
+                login_type='PASSWORD_RESET',
+                ip_address=get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+                success=True
+            )
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Password reset successfully!'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
+def resend_reset_otp(request):
+    """Resend OTP for password reset"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'success': False, 'message': 'Email is required'})
+            
+            return initiate_password_reset(request)
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -890,7 +1353,12 @@ def support_tickets(request):
 
 
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from .models import YouthUser
+import os
+from django.conf import settings
 
 def user_profile(request):
     if not request.session.get('is_authenticated'):
@@ -902,11 +1370,6 @@ def user_profile(request):
     except YouthUser.DoesNotExist:
         request.session.flush()
         return redirect('login')
-    
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
 
 @csrf_exempt
 @require_POST
@@ -917,6 +1380,7 @@ def update_profile(request):
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
         
+        # Update basic fields
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
         user.middle_name = request.POST.get('middle_name', user.middle_name)
@@ -932,10 +1396,75 @@ def update_profile(request):
         user.youth_classification = request.POST.get('youth_classification', user.youth_classification)
         user.work_status = request.POST.get('work_status', user.work_status)
         user.sk_voter = request.POST.get('sk_voter') == 'on'
+        user.id_type = request.POST.get('id_type', user.id_type)
+        
+        # Update parent consent fields (for ages 15-17)
+        user.parent_name = request.POST.get('parent_name', user.parent_name)
+        user.parent_relationship = request.POST.get('parent_relationship', user.parent_relationship)
+        user.parent_contact_number = request.POST.get('parent_contact_number', user.parent_contact_number)
+        user.consent_date = request.POST.get('consent_date', user.consent_date)
+        
+        # Handle file uploads
+        if 'profile_picture' in request.FILES:
+            # Delete old profile picture if exists
+            if user.profile_picture:
+                old_path = user.profile_picture.path
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            user.profile_picture = request.FILES['profile_picture']
+        
+        if 'id_picture' in request.FILES:
+            if user.id_picture:
+                old_path = user.id_picture.path
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            user.id_picture = request.FILES['id_picture']
+        
+        if 'birth_certificate' in request.FILES:
+            if user.birth_certificate:
+                old_path = user.birth_certificate.path
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            user.birth_certificate = request.FILES['birth_certificate']
+        
+        if 'parent_consent_letter' in request.FILES:
+            if user.parent_consent_letter:
+                old_path = user.parent_consent_letter.path
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            user.parent_consent_letter = request.FILES['parent_consent_letter']
+        
+        if 'parent_id_picture' in request.FILES:
+            if user.parent_id_picture:
+                old_path = user.parent_id_picture.path
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            user.parent_id_picture = request.FILES['parent_id_picture']
         
         user.save()
         
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True, 'message': 'Profile updated successfully'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def delete_profile_picture(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        if user.profile_picture:
+            old_path = user.profile_picture.path
+            if os.path.exists(old_path):
+                os.remove(old_path)
+            user.profile_picture.delete(save=False)
+            user.profile_picture = None
+            user.save()
+        
+        return JsonResponse({'success': True, 'message': 'Profile picture deleted successfully'})
     
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
@@ -952,6 +1481,7 @@ def my_events(request):
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
         
+        # Get all user registrations with related event data
         user_registrations = EventRegistration.objects.filter(user=user).select_related('event')
         
         now = timezone.now()
@@ -959,25 +1489,31 @@ def my_events(request):
         past_events = []
         
         for registration in user_registrations:
-            if registration.event.end_date >= now:
+            # For upcoming events: events that haven't ended yet AND user is registered/waitlisted
+            if registration.event.end_date >= now and registration.status in ['confirmed', 'pending', 'waitlisted']:
                 upcoming_events.append(registration)
-            else:
+            # For past events: events that have ended OR events with status 'attended' (regardless of date)
+            elif registration.event.end_date < now or registration.status == 'attended':
                 past_events.append(registration)
+        
+        # Calculate real statistics
         events_attended = user_registrations.filter(status='attended').count()
         upcoming_count = len(upcoming_events)
         
+        # Calculate total points from attended events
         total_points = sum(
             reg.event.points_reward for reg in user_registrations 
             if reg.status == 'attended' and reg.event.points_reward
         )
         
+        # Real achievements based on actual participation
         achievements = []
         if events_attended >= 10:
             achievements.append('Community Champion')
-        if events_attended >= 5:
-            achievements.append('Team Player')
-        if events_attended >= 3:
-            achievements.append('Regular Participant')
+        elif events_attended >= 5:
+            achievements.append('Active Participant')
+        elif events_attended >= 1:
+            achievements.append('Event Enthusiast')
         
         context = {
             'user': user,
@@ -994,6 +1530,94 @@ def my_events(request):
     except YouthUser.DoesNotExist:
         request.session.flush()
         return redirect('login')
+    
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+import json
+from .models import EventEvaluation
+
+@csrf_exempt
+def event_registration_detail_api(request, registration_id):
+    if request.method == 'GET':
+        try:
+            registration = EventRegistration.objects.select_related('event').get(id=registration_id)
+            
+            data = {
+                'success': True,
+                'registration': {
+                    'event_id': registration.event.id,  # Add this line
+                    'event_title': registration.event.title,
+                    'event_date': registration.event.start_date.strftime('%B %d, %Y'),
+                    'event_time': f"{registration.event.start_date.strftime('%I:%M %p')} - {registration.event.end_date.strftime('%I:%M %p')}",
+                    'event_location': registration.event.location,
+                    'event_description': registration.event.description,
+                    'current_participants': registration.event.current_participants,
+                    'max_participants': registration.event.maximum_participants,
+                    'points_reward': registration.event.points_reward,
+                    'registration_date': registration.registration_date.strftime('%B %d, %Y'),
+                    'emergency_contact': f"{registration.emergency_contact_name} - {registration.emergency_contact_number}" if registration.emergency_contact_name else None,
+                    'feedback_provided': registration.feedback_provided,
+                    'certificate_issued': registration.certificate_issued,
+                }
+            }
+            return JsonResponse(data)
+        except EventRegistration.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Registration not found'})
+
+@csrf_exempt
+def cancel_registration_api(request, registration_id):
+    if request.method == 'POST':
+        try:
+            registration = EventRegistration.objects.get(id=registration_id)
+            if registration.status in ['confirmed', 'pending', 'waitlisted']:
+                registration.status = 'cancelled'
+                registration.save()
+
+                if registration.status == 'confirmed':
+                    registration.event.current_participants = max(0, registration.event.current_participants - 1)
+                    registration.event.save()
+                
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Cannot cancel this registration'})
+        except EventRegistration.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Registration not found'})
+
+@csrf_exempt
+def submit_evaluation_api(request, registration_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            registration = EventRegistration.objects.get(id=registration_id)
+            
+            # Create evaluation
+            evaluation = EventEvaluation.objects.create(
+                registration=registration,
+                rating=data.get('rating'),
+                comments=data.get('comments'),
+                suggestions=data.get('suggestions'),
+                would_attend_again=data.get('would_attend_again', True)
+            )
+            
+            # Update registration
+            registration.feedback_provided = True
+            registration.rating = data.get('rating')
+            registration.save()
+            
+            return JsonResponse({'success': True})
+        except EventRegistration.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Registration not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
+
+
+
     
 
 from django.utils import timezone
@@ -1223,7 +1847,7 @@ class SubmitRegistrationView(View):
             if event.maximum_participants and event.current_participants >= event.maximum_participants:
                 status = 'waitlisted'
             else:
-                status = 'confirmed'
+                status = 'pending'
                 event.current_participants += 1
                 event.save()
             
@@ -1308,8 +1932,419 @@ def usereventdetails(request, event_id):
     except YouthUser.DoesNotExist:
         request.session.flush()
         return redirect('login')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 
+# _________________
+# |  MOBILE APP   |
+# --------------------
+
+
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import YouthUser, Announcement, Event, EventRegistration, AnnouncementInteraction
+import json
+
+@csrf_exempt
+def get_user_dashboard_data(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'}, status=401)
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        now = timezone.now()
+        
+        # Get announcements - ensure we return empty list if none exist
+        announcements = Announcement.objects.filter(
+            is_active=True, 
+            publish_date__lte=now
+        ).order_by('-publish_date')[:5]
+        
+        # Get upcoming events - ensure we return empty list if none exist
+        upcoming_events = Event.objects.filter(
+            is_active=True,
+            start_date__gte=now
+        ).order_by('start_date')[:5]
+        
+        # User statistics
+        user_registrations = EventRegistration.objects.filter(user=user)
+        user_registered_event_ids = [reg.event.id for reg in user_registrations]
+        user_registered_events_count = user_registrations.count()
+        
+        user_volunteer_interactions = AnnouncementInteraction.objects.filter(
+            user=user, 
+            interaction_type='volunteered'
+        )
+        user_volunteer_count = user_volunteer_interactions.count()
+        
+        # Format announcements for JSON - handle empty case
+        announcements_data = []
+        for announcement in announcements:
+            announcements_data.append({
+                'id': announcement.id,
+                'title': announcement.title,
+                'content': announcement.content,
+                'excerpt': announcement.content[:100] + '...' if len(announcement.content) > 100 else announcement.content,
+                'publish_date': announcement.publish_date.isoformat() if announcement.publish_date else None,
+                'image_url': announcement.image.url if announcement.image else None
+            })
+        
+        # Format events for JSON - handle empty case
+        events_data = []
+        for event in upcoming_events:
+            events_data.append({
+                'id': event.id,
+                'title': event.title,
+                'location': event.location or 'TBA',
+                'start_date': event.start_date.isoformat() if event.start_date else None,
+                'end_date': event.end_date.isoformat() if event.end_date else None,
+                'image_url': event.image.url if event.image else None,
+                'maximum_participants': event.maximum_participants,
+                'current_participants': event.current_participants or 0,
+                'is_registered': event.id in user_registered_event_ids
+            })
+        
+        response_data = {
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name or 'Youth',
+                'last_name': user.last_name or 'Member',
+                'email': user.email
+            },
+            'statistics': {
+                'upcoming_events_count': upcoming_events.count(),
+                'user_registered_events_count': user_registered_events_count,
+                'user_volunteer_count': user_volunteer_count,
+                'user_points': user.points if hasattr(user, 'points') else 0
+            },
+            'announcements': announcements_data,  # This will be [] if empty
+            'upcoming_events': events_data  # This will be [] if empty
+        }
+        
+        print("Sending dashboard data:", response_data)  # Debug print
+        return JsonResponse(response_data)
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+    except Exception as e:
+        print("Error in dashboard data:", str(e))  # Debug print
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@csrf_exempt
+def register_for_event(request, event_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'}, status=401)
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        event = Event.objects.get(id=event_id)
+        
+        if EventRegistration.objects.filter(user=user, event=event).exists():
+            return JsonResponse({'success': False, 'message': 'Already registered for this event'})
+        
+        if event.maximum_participants and event.current_participants >= event.maximum_participants:
+            return JsonResponse({'success': False, 'message': 'Event is fully booked'})
+        
+        registration = EventRegistration(user=user, event=event)
+        registration.save()
+        
+        event.current_participants += 1
+        event.save()
+        
+        return JsonResponse({'success': True, 'message': 'Successfully registered for event'})
+        
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Event not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@csrf_exempt
+def get_events_data(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'}, status=401)
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        now = timezone.now()
+        
+        # Get upcoming events
+        upcoming_events = Event.objects.filter(
+            is_active=True,
+            start_date__gte=now
+        ).order_by('start_date')
+        
+        # Get user's registered events
+        user_registrations = EventRegistration.objects.filter(user=user)
+        registered_events = Event.objects.filter(
+            id__in=[reg.event.id for reg in user_registrations],
+            is_active=True
+        ).order_by('start_date')
+        
+        # Get recommended events based on user profile
+        recommended_events = Event.objects.filter(
+            is_active=True,
+            start_date__gte=now
+        )
+        
+        # Basic recommendation logic - you can enhance this
+        if user.age_group and user.gender:
+            recommended_events = recommended_events.filter(
+                Q(age_group_access='all') | 
+                Q(target_age_groups__name__icontains=user.age_group)
+            )[:3]
+        else:
+            recommended_events = recommended_events[:3]
+        
+        # Format events data
+        def format_event_data(events, user):
+            events_data = []
+            for event in events:
+                events_data.append({
+                    'id': event.id,
+                    'title': event.title,
+                    'description': event.description,
+                    'excerpt': event.excerpt or event.description[:100] + '...' if len(event.description) > 100 else event.description,
+                    'category': event.category,
+                    'image_url': event.image.url if event.image else None,
+                    'start_date': event.start_date.isoformat() if event.start_date else None,
+                    'end_date': event.end_date.isoformat() if event.end_date else None,
+                    'location': event.location,
+                    'maximum_participants': event.maximum_participants,
+                    'current_participants': event.current_participants or 0,
+                    'requires_registration': event.requires_registration,
+                    'is_registered': event.id in [reg.event.id for reg in user_registrations],
+                    'is_eligible': event.is_eligible(user) if hasattr(event, 'is_eligible') else True,
+                    'points_reward': event.points_reward
+                })
+            return events_data
+        
+        response_data = {
+            'success': True,
+            'statistics': {
+                'upcoming_events_count': upcoming_events.count(),
+                'user_registered_events_count': user_registrations.count(),
+                'user_volunteer_count': 0,  # You can add volunteer tracking
+                'user_points': user.points if hasattr(user, 'points') else 0
+            },
+            'upcoming_events': format_event_data(upcoming_events, user),
+            'registered_events': format_event_data(registered_events, user),
+            'recommended_events': format_event_data(recommended_events, user)
+        }
+        
+        return JsonResponse(response_data)
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+from django.views.decorators.http import require_GET
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
+from django.http import JsonResponse
+from django.core.serializers.json import DjangoJSONEncoder
+import json
+from django.utils import timezone
+
+@csrf_exempt
+@require_GET
+def user_profile_api(request):
+    print("🔍 [Django] user_profile endpoint called")
+    print(f"🔍 [Django] Session data: {dict(request.session)}")
+    print(f"🔍 [Django] User ID in session: {request.session.get('user_id')}")
+    print(f"🔍 [Django] Is authenticated: {request.session.get('is_authenticated')}")
+    
+    if not request.session.get('is_authenticated'):
+        print("❌ [Django] User not authenticated")
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user_id = request.session.get('user_id')
+        print(f"🔍 [Django] Looking for user with ID: {user_id}")
+        
+        user = YouthUser.objects.get(id=user_id)
+        print(f"✅ [Django] User found: {user.username}")
+        
+        # Build user data with proper null handling
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name if user.first_name else '',
+            'last_name': user.last_name if user.last_name else '',
+            'middle_name': user.middle_name if user.middle_name else '',
+            'suffix': user.suffix if user.suffix else '',
+            'address': user.address if user.address else '',
+            'purok_zone': user.purok_zone if user.purok_zone else 'AgnesVille',
+            'gender': user.gender if user.gender else 'Male',
+            'birthdate': str(user.birthdate) if user.birthdate else '',
+            'age': user.age if user.age else 0,
+            'contact_number': user.contact_number if user.contact_number else '',
+            'civil_status': user.civil_status if user.civil_status else 'Single',
+            'age_group': user.age_group if user.age_group else '15-17',
+            'education': user.education if user.education else 'High School',
+            'youth_classification': user.youth_classification if user.youth_classification else 'Student',
+            'work_status': user.work_status if user.work_status else 'Student',
+            'sk_voter': bool(user.sk_voter),
+            'registration_no': user.registration_no if user.registration_no else '',
+            'profile_picture': user.profile_picture.url if user.profile_picture else None,
+            'id_type': user.id_type if user.id_type else 'Student ID',
+            'is_email_verified': bool(user.is_email_verified),
+            'is_admin_verified': bool(user.is_admin_verified),
+            'parent_name': user.parent_name if user.parent_name else '',
+            'parent_relationship': user.parent_relationship if user.parent_relationship else '',
+            'parent_contact_number': user.parent_contact_number if user.parent_contact_number else '',
+            'consent_date': str(user.consent_date) if user.consent_date else '',
+            'created_at': user.created_at.isoformat() if user.created_at else timezone.now().isoformat(),
+        }
+        
+        print(f"📊 [Django] User data prepared: {user_data['first_name']} {user_data['last_name']}")
+        print(f"📊 [Django] Registration No: {user_data['registration_no']}")
+        
+        return JsonResponse({'success': True, 'user': user_data})
+        
+    except YouthUser.DoesNotExist:
+        print(f"❌ [Django] User with ID {user_id} not found")
+        return JsonResponse({'success': False, 'message': 'User not found'})
+    except Exception as e:
+        print(f"💥 [Django] Error in user_profile: {str(e)}")
+        return JsonResponse({'success': False, 'message': f'Server error: {str(e)}'})
+
+
+from django.http import JsonResponse
+from django.utils import timezone
+
+@csrf_exempt
+@require_GET
+def event_details(request, event_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        event = Event.objects.get(id=event_id, is_active=True)
+        user_id = request.session.get('user_id')
+        user = YouthUser.objects.get(id=user_id)
+
+        # Serialize event data
+        event_data = {
+            'id': event.id,
+            'title': event.title,
+            'description': event.description,
+            'category': event.category,
+            'image_url': event.image.url if event.image else None,
+            'start_date': event.start_date,
+            'end_date': event.end_date,
+            'location': event.location,
+            'location_details': event.location_details,
+            'maximum_participants': event.maximum_participants,
+            'current_participants': event.current_participants,
+            'requires_registration': event.requires_registration,
+            'is_registered': EventRegistration.objects.filter(user=user, event=event).exists(),
+            'is_eligible': True,  # Add your eligibility logic
+            'points_reward': event.points_reward,
+            'age_requirement': event.age_requirement,
+            'registration_deadline': event.registration_deadline,
+            'objectives_list': event.objectives.split(';') if event.objectives else [],
+            'images': [img.image.url for img in event.images.all()] if hasattr(event, 'images') else []
+        }
+
+        # Get related events
+        related_events = Event.objects.filter(
+            is_active=True,
+            category=event.category
+        ).exclude(id=event.id)[:3]
+
+        related_events_data = [
+            {
+                'id': rel.id,
+                'title': rel.title,
+                'image_url': rel.image.url if rel.image else None,
+                'start_date': rel.start_date,
+                'location': rel.location,
+            }
+            for rel in related_events
+        ]
+
+        return JsonResponse({
+            'event': event_data,
+            'related_events': related_events_data
+        })
+
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# _________________
+# |  ADMIN SIDE    |
+# --------------------
+
+def admin_dashboard(request):
+    if not request.session.get('is_authenticated'):
+        return redirect('login')
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+
+        if 'admin' not in user.username.lower():
+            return redirect('dashboard')
+        
+        return render(request, 'dashboard/admin_dashboard.html', {'user': user})
+    except YouthUser.DoesNotExist:
+        request.session.flush()
+        return redirect('login')
+    
 
 
 

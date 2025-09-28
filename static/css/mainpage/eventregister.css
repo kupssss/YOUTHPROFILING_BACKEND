@@ -893,3 +893,51 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 30px;
 }
+
+
+/* Required and Optional Tags */
+.required-asterisk {
+    color: #EF4444;
+    font-weight: bold;
+}
+
+.optional-tag {
+    color: #6B7280;
+    font-size: 0.85rem;
+    font-weight: normal;
+    font-style: italic;
+}
+
+/* Field Instructions */
+.field-instruction {
+    font-size: 0.8rem;
+    color: #6B7280;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Field Error Styles */
+.field-error {
+    color: #EF4444 !important;
+    font-size: 0.85rem !important;
+    margin-top: 5px !important;
+    display: block !important;
+}
+
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+    border-color: #EF4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Checkbox and Radio Error States */
+.checkbox-option.error .checkbox-checkmark,
+.radio-option.error .radio-checkmark {
+    border-color: #EF4444 !important;
+}
+
+.checkbox-option.error,
+.radio-option.error {
+    color: #EF4444 !important;
+}

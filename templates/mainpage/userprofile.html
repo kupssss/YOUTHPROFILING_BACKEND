@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - SK Mambugan</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
     <link rel="stylesheet" href="{% static 'css/mainpage/userprofile.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -43,7 +44,6 @@
         </div>
     </nav>
 
-
     <main class="profile-container">
         <div class="profile-header">
             <h1><i class="fas fa-user-circle"></i> My Profile</h1>
@@ -51,13 +51,43 @@
         </div>
 
         <div class="profile-content">
+            <!-- Personal Details Section -->
             <section class="profile-section personal-details">
                 <div class="section-header">
                     <h2><i class="fas fa-user-edit"></i> Personal Details</h2>
                     <p>Update your personal information</p>
                 </div>
                 
-                <form class="profile-form" id="profileForm">
+                <form class="profile-form" id="profileForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Profile Picture Upload -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-camera"></i> Profile Picture</h3>
+                        <div class="file-upload-container">
+                            <div class="current-file-preview">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="Current Profile Picture" class="file-preview-image">
+                                    <button type="button" class="delete-file-btn" data-file-type="profile_picture">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                {% else %}
+                                    <div class="no-file-placeholder">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span>No profile picture uploaded</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="file-upload-box">
+                                <input type="file" id="profile_picture" name="profile_picture" accept="image/*" class="file-input">
+                                <label for="profile_picture" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Choose Profile Picture</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="first_name">First Name</label>
@@ -87,19 +117,18 @@
                         <div class="form-group">
                             <label for="purok_zone">Purok/Zone</label>
                             <select id="purok_zone" name="purok_zone" required>
-                                <option value="Zone 1" {% if user.purok_zone == "Zone 1" %}selected{% endif %}>Zone 1</option>
-                                <option value="Zone 2" {% if user.purok_zone == "Zone 2" %}selected{% endif %}>Zone 2</option>
-                                <option value="Zone 3" {% if user.purok_zone == "Zone 3" %}selected{% endif %}>Zone 3</option>
-                                <option value="Zone 4" {% if user.purok_zone == "Zone 4" %}selected{% endif %}>Zone 4</option>
+                                {% for zone_value, zone_name in user.PUROK_ZONE_CHOICES %}
+                                    <option value="{{ zone_value }}" {% if user.purok_zone == zone_value %}selected{% endif %}>{{ zone_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label for="gender">Gender</label>
                             <select id="gender" name="gender" required>
-                                <option value="Male" {% if user.gender == "Male" %}selected{% endif %}>Male</option>
-                                <option value="Female" {% if user.gender == "Female" %}selected{% endif %}>Female</option>
-                                <option value="Other" {% if user.gender == "Other" %}selected{% endif %}>Other</option>
+                                {% for gender_value, gender_name in user.GENDER_CHOICES %}
+                                    <option value="{{ gender_value }}" {% if user.gender == gender_value %}selected{% endif %}>{{ gender_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
@@ -110,7 +139,7 @@
                         
                         <div class="form-group">
                             <label for="age">Age</label>
-                            <input type="number" id="age" name="age" value="{{ user.age }}" min="15" max="30" required>
+                            <input type="number" id="age" name="age" value="{{ user.age }}" min="15" max="30" required readonly>
                         </div>
                         
                         <div class="form-group">
@@ -121,41 +150,45 @@
                         <div class="form-group">
                             <label for="civil_status">Civil Status</label>
                             <select id="civil_status" name="civil_status" required>
-                                <option value="Single" {% if user.civil_status == "Single" %}selected{% endif %}>Single</option>
-                                <option value="Married" {% if user.civil_status == "Married" %}selected{% endif %}>Married</option>
-                                <option value="Widowed" {% if user.civil_status == "Widowed" %}selected{% endif %}>Widowed</option>
-                                <option value="Separated" {% if user.civil_status == "Separated" %}selected{% endif %}>Separated</option>
+                                {% for status_value, status_name in user.CIVIL_STATUS_CHOICES %}
+                                    <option value="{{ status_value }}" {% if user.civil_status == status_value %}selected{% endif %}>{{ status_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="age_group">Age Group</label>
+                            <select id="age_group" name="age_group" required>
+                                {% for group_value, group_name in user.AGE_GROUP_CHOICES %}
+                                    <option value="{{ group_value }}" {% if user.age_group == group_value %}selected{% endif %}>{{ group_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label for="education">Education</label>
                             <select id="education" name="education" required>
-                                <option value="Elementary" {% if user.education == "Elementary" %}selected{% endif %}>Elementary</option>
-                                <option value="High School" {% if user.education == "High School" %}selected{% endif %}>High School</option>
-                                <option value="College" {% if user.education == "College" %}selected{% endif %}>College</option>
-                                <option value="Vocational" {% if user.education == "Vocational" %}selected{% endif %}>Vocational/Tech</option>
-                                <option value="Postgraduate" {% if user.education == "Postgraduate" %}selected{% endif %}>Postgraduate</option>
+                                {% for edu_value, edu_name in user.EDUCATION_CHOICES %}
+                                    <option value="{{ edu_value }}" {% if user.education == edu_value %}selected{% endif %}>{{ edu_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label for="youth_classification">Youth Classification</label>
                             <select id="youth_classification" name="youth_classification" required>
-                                <option value="Student" {% if user.youth_classification == "Student" %}selected{% endif %}>Student</option>
-                                <option value="Working" {% if user.youth_classification == "Working" %}selected{% endif %}>Working</option>
-                                <option value="Out-of-School" {% if user.youth_classification == "Out-of-School" %}selected{% endif %}>Out-of-School Youth</option>
-                                <option value="NEET" {% if user.youth_classification == "NEET" %}selected{% endif %}>Not in Education, Employment or Training</option>
+                                {% for class_value, class_name in user.YOUTH_CLASS_CHOICES %}
+                                    <option value="{{ class_value }}" {% if user.youth_classification == class_value %}selected{% endif %}>{{ class_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label for="work_status">Work Status</label>
                             <select id="work_status" name="work_status" required>
-                                <option value="Employed" {% if user.work_status == "Employed" %}selected{% endif %}>Employed</option>
-                                <option value="Unemployed" {% if user.work_status == "Unemployed" %}selected{% endif %}>Unemployed</option>
-                                <option value="Self-Employed" {% if user.work_status == "Self-Employed" %}selected{% endif %}>Self-Employed</option>
-                                <option value="Student" {% if user.work_status == "Student" %}selected{% endif %}>Student</option>
+                                {% for work_value, work_name in user.WORK_STATUS_CHOICES %}
+                                    <option value="{{ work_value }}" {% if user.work_status == work_value %}selected{% endif %}>{{ work_name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
@@ -167,6 +200,153 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- ID Document Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-id-card"></i> Identification Documents</h3>
+                        
+                        <div class="form-group">
+                            <label for="id_type">ID Type</label>
+                            <select id="id_type" name="id_type" required>
+                                {% for id_value, id_name in user.ID_TYPE_CHOICES %}
+                                    <option value="{{ id_value }}" {% if user.id_type == id_value %}selected{% endif %}>{{ id_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="file-upload-container">
+                            <div class="current-file-preview">
+                                {% if user.id_picture %}
+                                    <img src="{{ user.id_picture.url }}" alt="Current ID Picture" class="file-preview-image">
+                                    <button type="button" class="delete-file-btn" data-file-type="id_picture">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                {% else %}
+                                    <div class="no-file-placeholder">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>No ID picture uploaded</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="file-upload-box">
+                                <input type="file" id="id_picture" name="id_picture" accept="image/*" class="file-input">
+                                <label for="id_picture" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Upload ID Picture</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="file-upload-container">
+                            <div class="current-file-preview">
+                                {% if user.birth_certificate %}
+                                    <div class="file-info">
+                                        <i class="fas fa-file-pdf"></i>
+                                        <span>Birth Certificate: {{ user.birth_certificate.name|slice:"-15:" }}</span>
+                                        <a href="{{ user.birth_certificate.url }}" target="_blank" class="view-file-btn">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </div>
+                                    <button type="button" class="delete-file-btn" data-file-type="birth_certificate">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                {% else %}
+                                    <div class="no-file-placeholder">
+                                        <i class="fas fa-file"></i>
+                                        <span>No birth certificate uploaded</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="file-upload-box">
+                                <input type="file" id="birth_certificate" name="birth_certificate" accept=".pdf,.jpg,.jpeg,.png" class="file-input">
+                                <label for="birth_certificate" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Upload Birth Certificate</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parent Consent Section (for ages 15-17) -->
+                    {% if user.age and user.age < 18 %}
+                    <div class="form-section">
+                        <h3><i class="fas fa-user-friends"></i> Parent Consent Information</h3>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="parent_name">Parent/Guardian Name</label>
+                                <input type="text" id="parent_name" name="parent_name" value="{{ user.parent_name|default:'' }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="parent_relationship">Relationship</label>
+                                <input type="text" id="parent_relationship" name="parent_relationship" value="{{ user.parent_relationship|default:'' }}" placeholder="Mother, Father, Guardian">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="parent_contact_number">Parent Contact Number</label>
+                                <input type="tel" id="parent_contact_number" name="parent_contact_number" value="{{ user.parent_contact_number|default:'' }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="consent_date">Consent Date</label>
+                                <input type="date" id="consent_date" name="consent_date" value="{{ user.consent_date|default:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="file-upload-container">
+                            <div class="current-file-preview">
+                                {% if user.parent_consent_letter %}
+                                    <div class="file-info">
+                                        <i class="fas fa-file-pdf"></i>
+                                        <span>Parent Consent: {{ user.parent_consent_letter.name|slice:"-15:" }}</span>
+                                        <a href="{{ user.parent_consent_letter.url }}" target="_blank" class="view-file-btn">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </div>
+                                    <button type="button" class="delete-file-btn" data-file-type="parent_consent_letter">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                {% else %}
+                                    <div class="no-file-placeholder">
+                                        <i class="fas fa-file"></i>
+                                        <span>No parent consent letter uploaded</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="file-upload-box">
+                                <input type="file" id="parent_consent_letter" name="parent_consent_letter" accept=".pdf,.jpg,.jpeg,.png" class="file-input">
+                                <label for="parent_consent_letter" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Upload Parent Consent Letter</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="file-upload-container">
+                            <div class="current-file-preview">
+                                {% if user.parent_id_picture %}
+                                    <img src="{{ user.parent_id_picture.url }}" alt="Current Parent ID Picture" class="file-preview-image">
+                                    <button type="button" class="delete-file-btn" data-file-type="parent_id_picture">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                {% else %}
+                                    <div class="no-file-placeholder">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>No parent ID picture uploaded</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="file-upload-box">
+                                <input type="file" id="parent_id_picture" name="parent_id_picture" accept="image/*" class="file-input">
+                                <label for="parent_id_picture" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Upload Parent ID Picture</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     <div class="form-buttons">
                         <button type="reset" class="cancel-btn">Cancel</button>
@@ -175,7 +355,7 @@
                 </form>
             </section>
 
-            
+            <!-- SK Mambugan ID Section -->
             <section class="profile-section id-section">
                 <div class="section-header">
                     <h2><i class="fas fa-id-card"></i> SK Mambugan ID</h2>
@@ -185,6 +365,7 @@
                 <div class="id-card-container">
                     <div class="id-card-wrapper">
                         <div class="id-card-front" id="idCardFront">
+                            <!-- ID Card Front Content (same as before) -->
                             <div class="id-flag-header">
                                 <div class="flag-stripe blue"></div>
                                 <div class="flag-stripe red"></div>
@@ -273,6 +454,7 @@
                         </div>
                         
                         <div class="id-card-back" id="idCardBack">
+                            <!-- ID Card Back Content (same as before) -->
                             <div class="id-background-flag">
                                 <img src="{% static 'assets/logo/flag.png' %}" alt="Philippine Flag">
                             </div>
@@ -331,6 +513,7 @@
         </div>
     </main>
 
+    <!-- Success Modal -->
     <div class="modal" id="successModal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -338,8 +521,24 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <h2>Success!</h2>
-            <p>Your profile has been updated successfully.</p>
+            <p id="modalMessage">Your profile has been updated successfully.</p>
             <button class="modal-btn" id="modalOkBtn">OK</button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-icon warning">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2>Confirm Deletion</h2>
+            <p id="deleteModalMessage">Are you sure you want to remove this file?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel-btn" id="deleteCancelBtn">Cancel</button>
+                <button class="modal-btn confirm-btn" id="deleteConfirmBtn">Delete</button>
+            </div>
         </div>
     </div>
 

@@ -51,6 +51,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeForm() {
         goToStep(1);
         addValidationListeners();
+        
+        // Add input restriction for phone number to only accept numbers
+        const emergencyNumber = document.getElementById('emergency_contact_number');
+        if (emergencyNumber) {
+            emergencyNumber.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                
+                // Limit to 11 digits
+                if (this.value.length > 11) {
+                    this.value = this.value.slice(0, 11);
+                }
+                
+                // Real-time validation
+                if (this.value.length > 0) {
+                    validatePhoneNumber(this);
+                }
+            });
+        }
     }
     
     function goToStep(step) {
@@ -109,8 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!emergencyNumber?.value.trim()) {
                     showFieldError(emergencyNumber, 'Emergency contact number is required');
                     isValid = false;
-                } else if (!isValidPhoneNumber(emergencyNumber.value)) {
-                    showFieldError(emergencyNumber, 'Please enter a valid phone number');
+                } else if (!isValidPhilippinePhoneNumber(emergencyNumber.value)) {
+                    showFieldError(emergencyNumber, 'Please enter a valid Philippine phone number (11 digits starting with 09)');
                     isValid = false;
                 } else {
                     clearFieldError(emergencyNumber);
@@ -163,13 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         emergencyNumber?.addEventListener('blur', function() {
-            if (!this.value.trim()) {
-                showFieldError(this, 'Emergency contact number is required');
-            } else if (!isValidPhoneNumber(this.value)) {
-                showFieldError(this, 'Please enter a valid phone number');
-            } else {
-                clearFieldError(this);
-            }
+            validatePhoneNumber(this);
         });
         
         const requiredQuestions = document.querySelectorAll('[required]');
@@ -203,35 +215,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function validatePhoneNumber(field) {
+        if (!field.value.trim()) {
+            showFieldError(field, 'Emergency contact number is required');
+            return false;
+        } else if (!isValidPhilippinePhoneNumber(field.value)) {
+            showFieldError(field, 'Please enter a valid Philippine phone number (11 digits starting with 09)');
+            return false;
+        } else {
+            clearFieldError(field);
+            return true;
+        }
+    }
+    
+    function isValidPhilippinePhoneNumber(phone) {
+        // Philippine mobile number format: 09XXXXXXXXX (11 digits starting with 09)
+        const phoneRegex = /^09\d{9}$/;
+        return phoneRegex.test(phone.replace(/\s/g, ''));
+    }
+    
     function showFieldError(field, message) {
         if (!field) return;
         
         clearFieldError(field);
         
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'field-error';
-        errorDiv.style.color = '#EF4444';
-        errorDiv.style.fontSize = '0.85rem';
-        errorDiv.style.marginTop = '5px';
-        errorDiv.textContent = message;
+        // Add error class to the field
+        field.classList.add('error');
         
-        field.style.borderColor = '#EF4444';
-        field.parentNode.appendChild(errorDiv);
+        // For checkbox/radio groups, add error class to the container
+        if (field.type === 'checkbox' || field.type === 'radio') {
+            const container = field.closest('.checkbox-option') || field.closest('.radio-option');
+            if (container) {
+                container.classList.add('error');
+            }
+        }
+        
+        // Create or update error message
+        let errorDiv = field.parentNode.querySelector('.field-error');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'field-error';
+            field.parentNode.appendChild(errorDiv);
+        }
+        
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
     }
     
     function clearFieldError(field) {
         if (!field) return;
         
+        // Remove error class from field
+        field.classList.remove('error');
+        
+        // Remove error class from checkbox/radio containers
+        if (field.type === 'checkbox' || field.type === 'radio') {
+            const container = field.closest('.checkbox-option') || field.closest('.radio-option');
+            if (container) {
+                container.classList.remove('error');
+            }
+            
+            // Clear error for all inputs in the same group
+            const inputs = document.querySelectorAll(`input[name="${field.name}"]`);
+            inputs.forEach(input => {
+                input.classList.remove('error');
+                const inputContainer = input.closest('.checkbox-option') || input.closest('.radio-option');
+                if (inputContainer) {
+                    inputContainer.classList.remove('error');
+                }
+            });
+        }
+        
+        // Hide error message
         const errorDiv = field.parentNode.querySelector('.field-error');
         if (errorDiv) {
-            errorDiv.remove();
+            errorDiv.style.display = 'none';
         }
-        field.style.borderColor = '#E5E7EB';
-    }
-    
-    function isValidPhoneNumber(phone) {
-        const phoneRegex = /^[+]?[\d\s\-().]{10,}$/;
-        return phoneRegex.test(phone);
     }
     
     function updateConfirmationSummary() {
@@ -274,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (responseValue) {
                             const responseItem = document.createElement('div');
                             responseItem.style.marginTop = '8px';
-                            responseItem.innerHTML = `<strong>${label.textContent.replace('*', '').trim()}:</strong> ${responseValue}`;
+                            responseItem.innerHTML = `<strong>${label.textContent.replace('*', '').replace('(Optional)', '').trim()}:</strong> ${responseValue}`;
                             responsesContainer.appendChild(responseItem);
                         }
                     }
@@ -289,6 +348,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Final validation before submission
+        if (!validateStep(currentStep)) {
+            alert('Please fix the errors before submitting.');
+            return;
+        }
+        
         if (loadingOverlay) {
             loadingOverlay.style.display = 'flex';
         }
@@ -297,7 +362,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const emergencyName = document.getElementById('emergency_contact_name');
         const emergencyNumber = document.getElementById('emergency_contact_number');
-        const dietaryRestrictions = document.getElementById('dietary_restrictions');
         const specialAccommodations = document.getElementById('special_accommodations');
         const howHeard = document.getElementById('how_heard');
         const agreeToTerms = document.getElementById('agree_to_terms');
@@ -305,7 +369,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (emergencyName) formData.append('emergency_contact_name', emergencyName.value);
         if (emergencyNumber) formData.append('emergency_contact_number', emergencyNumber.value);
-        if (dietaryRestrictions) formData.append('dietary_restrictions', dietaryRestrictions.value);
         if (specialAccommodations) formData.append('special_accommodations', specialAccommodations.value);
         if (howHeard) formData.append('how_heard', howHeard.value);
         if (agreeToTerms) formData.append('agree_to_terms', agreeToTerms.checked);
