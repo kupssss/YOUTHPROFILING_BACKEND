@@ -112,17 +112,17 @@
            <div id="encryptionModal" class="modal {% if not encryption_verified %}active{% endif %}">
     <div class="modal-content">
         <div class="modal-header">
-            <h2><i class="fas fa-shield-alt"></i> Encryption Key Required</h2>
-            <p>Enter the encryption key to access user management features</p>
+            <h2><i class="fas fa-shield-alt"></i> Decryption Key Required</h2>
+            <p>Enter the Decryption key to access user management features</p>
         </div>
         <div class="modal-body">
             <form id="encryptionForm">
                 <div class="form-group">
-                    <label for="encryptionKey">Encryption Key</label>
+                    <label for="encryptionKey">Decryption Key</label>
                     <div class="input-group">
                         <i class="fas fa-key"></i>
                         <input type="password" id="encryptionKey" name="encryption_key" 
-                               placeholder="Enter encryption key" required>
+                               placeholder="Enter Decryption key" required>
                         <button type="button" class="toggle-password" id="toggleEncryptionKey">
                             <i class="fas fa-eye"></i>
                         </button>
