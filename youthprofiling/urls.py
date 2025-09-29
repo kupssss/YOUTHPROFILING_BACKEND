@@ -71,9 +71,32 @@ urlpatterns = [
     path('api/dashboard-data/', views.get_user_dashboard_data, name='dashboard_data'),
     path('api/register-event/<int:event_id>/', views.register_for_event, name='register_event'),
     path('api/events-data/', views.get_events_data, name='events_data'),
-    path('api/user-profile/', views.user_profile_api, name='user_profile_api'),
-    path('api/update-profile/', views.update_profile, name='update_profile'),
+
+    path('api/mobile/user-profile/', views.mobile_user_profile, name='mobile_user_profile'),
+    path('api/mobile/update-profile/', views.mobile_update_profile, name='mobile_update_profile'),
+    path('api/mobile/upload-file/', views.mobile_upload_file, name='mobile_upload_file'),
+    path('api/mobile/delete-file/', views.mobile_delete_file, name='mobile_delete_file'),
+    path('api/mobile/change-password/', views.mobile_change_password, name='mobile_change_password'),
+
     path('api/event/<int:event_id>/', views.event_details, name='event_details'),
+    path('api/related-events/<int:event_id>/', views.related_events, name='related_events'),
+    path('api/mobile/event-register/<int:event_id>/', views.mobile_event_register_data, name='mobile_event_register_data'),
+    path('api/mobile/submit-registration/<int:event_id>/', views.mobile_submit_registration, name='mobile_submit_registration'),
+
+    path('api/mobile/user-events/<int:user_id>/', views.MobileUserEventsView.as_view(), name='mobile_user_events'),
+    path('api/mobile/cancel-registration/<int:registration_id>/', views.mobile_cancel_registration_api, name='mobile_cancel_registration_api'),
+    path('api/mobile/submit-evaluation/<int:registration_id>/', views.mobile_submit_evaluation_api, name='mobile_submit_evaluation_api'),
+    path('api/mobile/event-registration/<int:registration_id>/', views.mobile_event_registration_detail_api, name='mobile_event_registration_detail_api'),
+
+    path('api/mobile/community/', views.mobile_community, name='mobile_community'),
+    path('api/mobile/community/posts/create/', views.mobile_create_post, name='mobile_create_post'),
+    path('api/mobile/community/posts/<int:post_id>/like/', views.mobile_like_post, name='mobile_like_post'),
+    path('api/mobile/community/posts/<int:post_id>/comment/', views.mobile_comment_on_post, name='mobile_comment_on_post'),
+
+    path('api/contact-data/', views.contact_data, name='contact_data'),
+    path('api/send-contact-message/', views.send_contact_message, name='send_contact_message'),
+    path('api/file-complaint/', views.file_complaint, name='file_complaint'),
+    path('api/make-suggestion/', views.make_suggestion, name='make_suggestion'),
 
 
 

@@ -576,24 +576,29 @@ def resend_otp(request):
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
         
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.db.models import Q
+import json
+from .models import YouthUser, UserLog
+
+
 @csrf_exempt
 def login_user(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            identifier = data.get('username')  
+            identifier = data.get('username')
             password = data.get('password')
             remember_me = data.get('rememberMe', False)
 
-            # Get user IP and user agent for logging
             ip_address = get_client_ip(request)
-            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limit length
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
 
-            # Check if user exists
             user = YouthUser.objects.filter(Q(username=identifier) | Q(email=identifier)).first()
 
             if not user:
-                # Log failed login attempt
                 UserLog.objects.create(
                     username=identifier,
                     login_type='LOGIN_FAILED',
@@ -602,14 +607,9 @@ def login_user(request):
                     success=False,
                     failure_reason='User not registered'
                 )
-                return JsonResponse({
-                    'success': False, 
-                    'message': 'User is not registered.'
-                }, status=404)
+                return JsonResponse({'success': False, 'message': 'User is not registered.'}, status=404)
 
-            # Check password
             if not user.check_password(password):
-                # Log failed login attempt
                 UserLog.objects.create(
                     youth_user=user,
                     username=user.username,
@@ -619,14 +619,9 @@ def login_user(request):
                     success=False,
                     failure_reason='Wrong password'
                 )
-                return JsonResponse({
-                    'success': False, 
-                    'message': 'Incorrect username or password.'
-                }, status=401)
+                return JsonResponse({'success': False, 'message': 'Incorrect username or password.'}, status=401)
 
-            # Check email verification
             if not user.is_email_verified:
-                # Log failed login attempt
                 UserLog.objects.create(
                     youth_user=user,
                     username=user.username,
@@ -636,14 +631,9 @@ def login_user(request):
                     success=False,
                     failure_reason='Email not verified'
                 )
-                return JsonResponse({
-                    'success': False, 
-                    'message': 'Email not verified. Please verify your email first.'
-                }, status=403)
+                return JsonResponse({'success': False, 'message': 'Email not verified. Please verify your email first.'}, status=403)
 
-            # Check admin approval
             if not user.is_admin_verified:
-                # Log failed login attempt
                 UserLog.objects.create(
                     youth_user=user,
                     username=user.username,
@@ -653,14 +643,9 @@ def login_user(request):
                     success=False,
                     failure_reason='Waiting for admin approval'
                 )
-                return JsonResponse({
-                    'success': False, 
-                    'message': 'Account not yet approved by administrator. Please wait for approval.'
-                }, status=403)
+                return JsonResponse({'success': False, 'message': 'Account not yet approved by administrator. Please wait for approval.'}, status=403)
 
-            # Check if account is active
             if not user.is_active:
-                # Log failed login attempt
                 UserLog.objects.create(
                     youth_user=user,
                     username=user.username,
@@ -670,26 +655,21 @@ def login_user(request):
                     success=False,
                     failure_reason='Account deactivated'
                 )
-                return JsonResponse({
-                    'success': False, 
-                    'message': 'Your account has been deactivated. Please contact support.'
-                }, status=403)
+                return JsonResponse({'success': False, 'message': 'Your account has been deactivated. Please contact support.'}, status=403)
 
-            # All checks passed - login successful
+            # ✅ Successful login
             request.session['user_id'] = user.id
             request.session['username'] = user.username
             request.session['is_authenticated'] = True
-            
-            # Update last login
+
             user.last_login = timezone.now()
             user.save()
-            
+
             if not remember_me:
-                request.session.set_expiry(0)  # Session expires when browser closes
+                request.session.set_expiry(0)  # Session ends on browser close
             else:
                 request.session.set_expiry(1209600)  # 2 weeks
 
-            # Log successful login
             UserLog.objects.create(
                 youth_user=user,
                 username=user.username,
@@ -699,14 +679,50 @@ def login_user(request):
                 success=True
             )
 
+            # ✅ Fixed indentation here
             return JsonResponse({
-                'success': True, 
+                'success': True,
                 'message': 'Login successful',
-                'redirect': '/mainpage/' 
+                'redirect': '/mainpage/',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'address': user.address,
+                    'purok_zone': user.purok_zone,
+                    'gender': user.gender,
+                    'birthdate': user.birthdate,
+                    'age': user.age,
+                    'contact_number': user.contact_number,
+                    'civil_status': user.civil_status,
+                    'age_group': user.age_group,
+                    'education': user.education,
+                    'youth_classification': user.youth_classification,
+                    'work_status': user.work_status,
+                    'sk_voter': user.sk_voter,
+                    'registration_no': user.registration_no,
+                    'profile_picture': user.profile_picture.url if user.profile_picture else None,
+                    'id_type': user.id_type,
+
+                    # Extra ID-related fields
+                    'id_picture': user.id_picture.url if user.id_picture else None,
+                    'birth_certificate': user.birth_certificate.url if user.birth_certificate else None,
+                    'parent_consent_letter': user.parent_consent_letter.url if user.parent_consent_letter else None,
+                    'parent_id_picture': user.parent_id_picture.url if user.parent_id_picture else None,
+
+                    'is_email_verified': user.is_email_verified,
+                    'is_admin_verified': user.is_admin_verified,
+                    'parent_name': user.parent_name,
+                    'parent_relationship': user.parent_relationship,
+                    'parent_contact_number': user.parent_contact_number,
+                    'consent_date': user.consent_date.isoformat() if user.consent_date else None,
+                    'created_at': user.created_at.isoformat(),
+                }
             })
 
         except Exception as e:
-            # Log the error
             UserLog.objects.create(
                 username=identifier if 'identifier' in locals() else 'unknown',
                 login_type='LOGIN_FAILED',
@@ -715,12 +731,11 @@ def login_user(request):
                 success=False,
                 failure_reason=f'System error: {str(e)}'
             )
-            return JsonResponse({
-                'success': False, 
-                'message': f'Login error: {str(e)}'
-            }, status=500)
-    
+            return JsonResponse({'success': False, 'message': f'Login error: {str(e)}'}, status=500)
+
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
 
 def get_client_ip(request):
     """Get the client's IP address"""
@@ -1958,7 +1973,7 @@ def usereventdetails(request, event_id):
 
 from django.http import JsonResponse
 from django.utils import timezone
-from .models import YouthUser, Announcement, Event, EventRegistration, AnnouncementInteraction
+from .models import YouthUser, Announcement, Event, EventRegistration, AnnouncementInteraction, EventQuestion
 import json
 
 @csrf_exempt
@@ -1970,19 +1985,16 @@ def get_user_dashboard_data(request):
         user = YouthUser.objects.get(id=request.session['user_id'])
         now = timezone.now()
         
-        # Get announcements - ensure we return empty list if none exist
         announcements = Announcement.objects.filter(
             is_active=True, 
             publish_date__lte=now
         ).order_by('-publish_date')[:5]
         
-        # Get upcoming events - ensure we return empty list if none exist
         upcoming_events = Event.objects.filter(
             is_active=True,
             start_date__gte=now
         ).order_by('start_date')[:5]
         
-        # User statistics
         user_registrations = EventRegistration.objects.filter(user=user)
         user_registered_event_ids = [reg.event.id for reg in user_registrations]
         user_registered_events_count = user_registrations.count()
@@ -1993,7 +2005,6 @@ def get_user_dashboard_data(request):
         )
         user_volunteer_count = user_volunteer_interactions.count()
         
-        # Format announcements for JSON - handle empty case
         announcements_data = []
         for announcement in announcements:
             announcements_data.append({
@@ -2005,7 +2016,6 @@ def get_user_dashboard_data(request):
                 'image_url': announcement.image.url if announcement.image else None
             })
         
-        # Format events for JSON - handle empty case
         events_data = []
         for event in upcoming_events:
             events_data.append({
@@ -2035,17 +2045,17 @@ def get_user_dashboard_data(request):
                 'user_volunteer_count': user_volunteer_count,
                 'user_points': user.points if hasattr(user, 'points') else 0
             },
-            'announcements': announcements_data,  # This will be [] if empty
-            'upcoming_events': events_data  # This will be [] if empty
+            'announcements': announcements_data,  
+            'upcoming_events': events_data 
         }
         
-        print("Sending dashboard data:", response_data)  # Debug print
+        print("Sending dashboard data:", response_data) 
         return JsonResponse(response_data)
         
     except YouthUser.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
     except Exception as e:
-        print("Error in dashboard data:", str(e))  # Debug print
+        print("Error in dashboard data:", str(e))  
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 @csrf_exempt
@@ -2085,26 +2095,22 @@ def get_events_data(request):
         user = YouthUser.objects.get(id=request.session['user_id'])
         now = timezone.now()
         
-        # Get upcoming events
         upcoming_events = Event.objects.filter(
             is_active=True,
             start_date__gte=now
         ).order_by('start_date')
         
-        # Get user's registered events
         user_registrations = EventRegistration.objects.filter(user=user)
         registered_events = Event.objects.filter(
             id__in=[reg.event.id for reg in user_registrations],
             is_active=True
         ).order_by('start_date')
         
-        # Get recommended events based on user profile
         recommended_events = Event.objects.filter(
             is_active=True,
             start_date__gte=now
         )
         
-        # Basic recommendation logic - you can enhance this
         if user.age_group and user.gender:
             recommended_events = recommended_events.filter(
                 Q(age_group_access='all') | 
@@ -2113,7 +2119,10 @@ def get_events_data(request):
         else:
             recommended_events = recommended_events[:3]
         
-        # Format events data
+        announcements = Announcement.objects.filter(
+            is_active=True
+        ).order_by('-publish_date')[:5] 
+        
         def format_event_data(events, user):
             events_data = []
             for event in events:
@@ -2136,17 +2145,31 @@ def get_events_data(request):
                 })
             return events_data
         
+        def format_announcement_data(announcements):
+            announcements_data = []
+            for announcement in announcements:
+                announcements_data.append({
+                    'id': announcement.id,
+                    'title': announcement.title,
+                    'content': announcement.content,
+                    'excerpt': announcement.excerpt or announcement.content[:150] + '...' if len(announcement.content) > 150 else announcement.content,
+                    'publish_date': announcement.publish_date.isoformat(),
+                    'image_url': announcement.image.url if announcement.image else None,
+                })
+            return announcements_data
+        
         response_data = {
             'success': True,
             'statistics': {
                 'upcoming_events_count': upcoming_events.count(),
                 'user_registered_events_count': user_registrations.count(),
-                'user_volunteer_count': 0,  # You can add volunteer tracking
+                'user_volunteer_count': 0, 
                 'user_points': user.points if hasattr(user, 'points') else 0
             },
             'upcoming_events': format_event_data(upcoming_events, user),
             'registered_events': format_event_data(registered_events, user),
-            'recommended_events': format_event_data(recommended_events, user)
+            'recommended_events': format_event_data(recommended_events, user),
+            'announcements': format_announcement_data(announcements)
         }
         
         return JsonResponse(response_data)
@@ -2160,32 +2183,25 @@ from django.views.decorators.http import require_GET
 
 
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET
-from django.http import JsonResponse
-from django.core.serializers.json import DjangoJSONEncoder
+from django.views.decorators.http import require_http_methods
 import json
-from django.utils import timezone
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+import os
 
 @csrf_exempt
-@require_GET
-def user_profile_api(request):
-    print("🔍 [Django] user_profile endpoint called")
-    print(f"🔍 [Django] Session data: {dict(request.session)}")
-    print(f"🔍 [Django] User ID in session: {request.session.get('user_id')}")
-    print(f"🔍 [Django] Is authenticated: {request.session.get('is_authenticated')}")
+@require_http_methods(["GET"])
+def mobile_user_profile(request):
+    """Mobile-specific user profile API"""
+    print("📱 [Django Mobile] user_profile endpoint called")
     
     if not request.session.get('is_authenticated'):
-        print("❌ [Django] User not authenticated")
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
     try:
         user_id = request.session.get('user_id')
-        print(f"🔍 [Django] Looking for user with ID: {user_id}")
-        
         user = YouthUser.objects.get(id=user_id)
-        print(f"✅ [Django] User found: {user.username}")
         
-        # Build user data with proper null handling
         user_data = {
             'id': user.id,
             'username': user.username,
@@ -2216,19 +2232,186 @@ def user_profile_api(request):
             'parent_contact_number': user.parent_contact_number if user.parent_contact_number else '',
             'consent_date': str(user.consent_date) if user.consent_date else '',
             'created_at': user.created_at.isoformat() if user.created_at else timezone.now().isoformat(),
+            'id_picture': user.id_picture.url if user.id_picture else None,
+            'birth_certificate': user.birth_certificate.url if user.birth_certificate else None,
+            'parent_consent_letter': user.parent_consent_letter.url if user.parent_consent_letter else None,
+            'parent_id_picture': user.parent_id_picture.url if user.parent_id_picture else None,
         }
         
-        print(f"📊 [Django] User data prepared: {user_data['first_name']} {user_data['last_name']}")
-        print(f"📊 [Django] Registration No: {user_data['registration_no']}")
+        print(f"📱 [Django Mobile] User data prepared with files:")
+        print(f"   - Profile Picture: {user_data['profile_picture']}")
+        print(f"   - ID Picture: {user_data['id_picture']}")
+        print(f"   - Birth Certificate: {user_data['birth_certificate']}")
+        print(f"   - Parent Consent: {user_data['parent_consent_letter']}")
+        print(f"   - Parent ID: {user_data['parent_id_picture']}")
         
         return JsonResponse({'success': True, 'user': user_data})
         
     except YouthUser.DoesNotExist:
-        print(f"❌ [Django] User with ID {user_id} not found")
         return JsonResponse({'success': False, 'message': 'User not found'})
     except Exception as e:
-        print(f"💥 [Django] Error in user_profile: {str(e)}")
+        print(f"💥 [Django Mobile] Error: {str(e)}")
         return JsonResponse({'success': False, 'message': f'Server error: {str(e)}'})
+    
+@csrf_exempt
+@require_http_methods(["POST"])
+def mobile_update_profile(request):
+    """Mobile-specific profile update"""
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        update_fields = [
+            'first_name', 'last_name', 'middle_name', 'suffix', 'address',
+            'purok_zone', 'gender', 'birthdate', 'contact_number', 
+            'civil_status', 'education', 'youth_classification', 'work_status',
+            'id_type', 'parent_name', 'parent_relationship', 'parent_contact_number',
+            'consent_date'
+        ]
+        
+        for field in update_fields:
+            if field in request.POST:
+                setattr(user, field, request.POST[field])
+        
+        if 'birthdate' in request.POST:
+            birthdate = request.POST['birthdate']
+            if birthdate:
+                user.birthdate = birthdate
+                from datetime import date
+                birth_date = date.fromisoformat(birthdate)
+                today = date.today()
+                age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                user.age = age
+                
+                if 15 <= age <= 17:
+                    user.age_group = '15-17'
+                elif 18 <= age <= 21:
+                    user.age_group = '18-21'
+                elif 22 <= age <= 25:
+                    user.age_group = '22-25'
+                elif 26 <= age <= 30:
+                    user.age_group = '26-30'
+        
+        user.sk_voter = request.POST.get('sk_voter') == 'true'
+        
+        user.save()
+        
+        return JsonResponse({'success': True, 'message': 'Profile updated successfully'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+    
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def mobile_upload_file(request):
+    """Handle file uploads for mobile"""
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        field_name = None
+        uploaded_file = None
+        
+        for key in request.FILES:
+            field_name = key
+            uploaded_file = request.FILES[key]
+            break
+        
+        if not field_name or not uploaded_file:
+            return JsonResponse({'success': False, 'message': 'No file provided'})
+        
+        valid_fields = ['profile_picture', 'id_picture', 'birth_certificate', 'parent_consent_letter', 'parent_id_picture']
+        if field_name not in valid_fields:
+            return JsonResponse({'success': False, 'message': 'Invalid field name'})
+        
+        old_file = getattr(user, field_name)
+        if old_file:
+            if default_storage.exists(old_file.name):
+                default_storage.delete(old_file.name)
+            setattr(user, field_name, None)
+        
+        setattr(user, field_name, uploaded_file)
+        user.save()
+        
+        user.refresh_from_db()
+        new_file = getattr(user, field_name)
+        file_url = new_file.url if new_file else None
+        
+        print(f"📱 [Django Mobile] File uploaded successfully: {field_name} -> {file_url}")
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'File uploaded successfully',
+            'file_url': file_url
+        })
+    
+    except Exception as e:
+        print(f"💥 [Django Mobile] Upload error: {str(e)}")
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def mobile_delete_file(request):
+    """Handle file deletion for mobile"""
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        data = json.loads(request.body)
+        field_name = data.get('field')
+        
+        if not field_name:
+            return JsonResponse({'success': False, 'message': 'No field specified'})
+        
+        valid_fields = ['profile_picture', 'id_picture', 'birth_certificate', 'parent_consent_letter', 'parent_id_picture']
+        if field_name not in valid_fields:
+            return JsonResponse({'success': False, 'message': 'Invalid field name'})
+        
+        file_field = getattr(user, field_name)
+        if file_field:
+            file_field.delete(save=False)
+            setattr(user, field_name, None)
+            user.save()
+        
+        return JsonResponse({'success': True, 'message': 'File deleted successfully'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def mobile_change_password(request):
+    """Handle password change for mobile"""
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        data = json.loads(request.body)
+        
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+        
+        if not current_password or not new_password:
+            return JsonResponse({'success': False, 'message': 'Current password and new password are required'})
+        
+        if not user.check_password(current_password):
+            return JsonResponse({'success': False, 'message': 'Current password is incorrect'})
+        
+        user.set_password(new_password)
+        user.save()
+        
+        return JsonResponse({'success': True, 'message': 'Password changed successfully'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
 
 
 from django.http import JsonResponse
@@ -2245,7 +2428,6 @@ def event_details(request, event_id):
         user_id = request.session.get('user_id')
         user = YouthUser.objects.get(id=user_id)
 
-        # Serialize event data
         event_data = {
             'id': event.id,
             'title': event.title,
@@ -2260,7 +2442,7 @@ def event_details(request, event_id):
             'current_participants': event.current_participants,
             'requires_registration': event.requires_registration,
             'is_registered': EventRegistration.objects.filter(user=user, event=event).exists(),
-            'is_eligible': True,  # Add your eligibility logic
+            'is_eligible': True,  
             'points_reward': event.points_reward,
             'age_requirement': event.age_requirement,
             'registration_deadline': event.registration_deadline,
@@ -2268,7 +2450,6 @@ def event_details(request, event_id):
             'images': [img.image.url for img in event.images.all()] if hasattr(event, 'images') else []
         }
 
-        # Get related events
         related_events = Event.objects.filter(
             is_active=True,
             category=event.category
@@ -2296,6 +2477,705 @@ def event_details(request, event_id):
         return JsonResponse({'error': 'User not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
+
+@csrf_exempt
+@require_GET
+def related_events(request, event_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        current_event = Event.objects.get(id=event_id, is_active=True)
+        
+        related_events = Event.objects.filter(
+            is_active=True,
+            category=current_event.category
+        ).exclude(id=event_id)[:3]
+
+        related_events_data = [
+            {
+                'id': event.id,
+                'title': event.title,
+                'image_url': event.image.url if event.image else None,
+                'start_date': event.start_date,
+                'location': event.location,
+                'category': event.category,
+                'description': event.description,
+                'excerpt': event.description[:100] + '...' if len(event.description) > 100 else event.description,
+                'end_date': event.end_date,
+                'maximum_participants': event.maximum_participants,
+                'current_participants': event.current_participants,
+                'requires_registration': event.requires_registration,
+                'is_registered': False, 
+                'is_eligible': True,  
+                'points_reward': event.points_reward,
+            }
+            for event in related_events
+        ]
+
+        return JsonResponse({
+            'related_events': related_events_data
+        })
+
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+from django.shortcuts import get_object_or_404
+
+@csrf_exempt
+@require_GET
+def mobile_event_register_data(request, event_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+    
+    try:
+        user_id = request.session.get('user_id')
+        user = YouthUser.objects.get(id=user_id)
+        event = get_object_or_404(Event, id=event_id, is_active=True)
+        
+        existing_registration = EventRegistration.objects.filter(
+            event=event, user=user, status__in=['pending', 'confirmed', 'waitlisted']
+        ).first()
+        
+        if existing_registration:
+            return JsonResponse({
+                'error': 'Already registered for this event',
+                'is_registered': True
+            }, status=400)
+        
+        is_eligible = event.is_eligible(user)
+        if not is_eligible:
+            return JsonResponse({
+                'error': 'Not eligible for this event',
+                'is_eligible': False
+            }, status=400)
+        
+        questions_data = []
+        for question in event.questions.all():
+            questions_data.append({
+                'id': question.id,
+                'question_text': question.question_text,
+                'question_type': question.question_type,
+                'is_required': question.is_required,
+                'options': question.options.split(';') if question.options else []
+            })
+        
+   
+        response_data = {
+            'event': {
+                'id': event.id,
+                'title': event.title,
+                'description': event.description,
+                'category': event.category,
+                'image_url': event.image.url if event.image else None,
+                'start_date': event.start_date.isoformat(),
+                'end_date': event.end_date.isoformat(),
+                'location': event.location,
+                'maximum_participants': event.maximum_participants,
+                'current_participants': event.current_participants,
+                'requires_registration': event.requires_registration,
+                'is_registered': False,
+                'is_eligible': is_eligible,
+                'points_reward': event.points_reward,
+                'registration_deadline': event.registration_deadline.isoformat() if event.registration_deadline else None,
+            },
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'address': user.address,
+                'purok_zone': user.purok_zone,
+                'gender': user.gender,
+                'birthdate': user.birthdate,
+                'age': user.age,
+                'contact_number': user.contact_number,
+                'civil_status': user.civil_status,
+                'age_group': user.age_group,
+                'education': user.education,
+                'youth_classification': user.youth_classification,
+                'work_status': user.work_status,
+                'sk_voter': user.sk_voter,
+                'registration_no': user.registration_no,
+                'profile_picture': user.profile_picture.url if user.profile_picture else None,
+                'id_type': user.id_type,
+                'is_email_verified': user.is_email_verified,
+                'is_admin_verified': user.is_admin_verified,
+                'parent_name': user.parent_name,
+                'parent_relationship': user.parent_relationship,
+                'parent_contact_number': user.parent_contact_number,
+                'consent_date': user.consent_date.isoformat() if user.consent_date else None,
+                'created_at': user.created_at.isoformat(),
+            },
+            'questions': questions_data
+        }
+        
+        return JsonResponse(response_data)
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+
+
+@csrf_exempt
+@require_POST
+def mobile_submit_registration(request, event_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+    
+    try:
+        user_id = request.session.get('user_id')
+        user = YouthUser.objects.get(id=user_id)
+        event = get_object_or_404(Event, id=event_id, is_active=True)
+        
+        if EventRegistration.objects.filter(
+            event=event, user=user, status__in=['pending', 'confirmed', 'waitlisted']
+        ).exists():
+            return JsonResponse({
+                'success': False, 
+                'error': 'You have already registered for this event'
+            })
+        
+        if not event.is_eligible(user):
+            return JsonResponse({
+                'success': False, 
+                'error': 'You are not eligible to register for this event'
+            })
+        
+        if event.maximum_participants and event.current_participants >= event.maximum_participants:
+            status = 'waitlisted'
+            message = f'Successfully added to waitlist for {event.title}! You will be notified if a spot becomes available.'
+        else:
+            status = 'pending'
+            event.current_participants += 1
+            event.save()
+            message = f'Successfully registered for {event.title}!'
+        
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        
+        registration = EventRegistration.objects.create(
+            event=event,
+            user=user,
+            status=status,
+            emergency_contact_name=data.get('emergency_contact_name', ''),
+            emergency_contact_number=data.get('emergency_contact_number', ''),
+            special_accommodations=data.get('special_accommodations', ''),
+            how_heard=data.get('how_heard', ''),
+            agree_to_terms=data.get('agree_to_terms', False),
+            agree_to_photos=data.get('agree_to_photos', False),
+        )
+        
+        question_responses = data.get('question_responses', {})
+        for question_id, response in question_responses.items():
+            try:
+                question_id_int = int(str(question_id).replace('question_', ''))
+                question = EventQuestion.objects.get(id=question_id_int, event=event)
+                if isinstance(response, list):
+                    response_str = ', '.join(response)
+                else:
+                    response_str = str(response)
+                EventRegistrationResponse.objects.create(
+                    registration=registration,
+                    question=question,
+                    response=response_str
+                )
+            except (EventQuestion.DoesNotExist, ValueError):
+                continue
+        
+        return JsonResponse({
+            'success': True, 
+            'status': status,
+            'message': message,
+            'registration_id': registration.id
+        })
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+    except Event.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Event not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class MobileUserEventsView(View):
+    def get(self, request, user_id):
+        try:
+            user = YouthUser.objects.get(id=user_id)
+            user_registrations = EventRegistration.objects.filter(user=user).select_related('event')
+            
+            now = timezone.now()
+            upcoming_events = []
+            past_events = []
+            
+            for registration in user_registrations:
+                if registration.event.end_date >= now and registration.status in ['confirmed', 'pending', 'waitlisted']:
+                    upcoming_events.append(registration)
+                elif registration.event.end_date < now or registration.status == 'attended':
+                    past_events.append(registration)
+            
+            events_attended = user_registrations.filter(status='attended').count()
+            upcoming_count = len(upcoming_events)
+            
+            total_points = sum(
+                reg.event.points_reward for reg in user_registrations 
+                if reg.status == 'attended' and reg.event.points_reward
+            )
+            
+            achievements = []
+            if events_attended >= 10:
+                achievements.append('Community Champion')
+            elif events_attended >= 5:
+                achievements.append('Active Participant')
+            elif events_attended >= 1:
+                achievements.append('Event Enthusiast')
+            
+            registrations_data = []
+            for reg in user_registrations:
+                registrations_data.append({
+                    'id': reg.id,
+                    'event': {
+                        'id': reg.event.id,
+                        'title': reg.event.title,
+                        'description': reg.event.description,
+                        'start_date': reg.event.start_date.isoformat(),
+                        'end_date': reg.event.end_date.isoformat(),
+                        'location': reg.event.location,
+                        'points_reward': reg.event.points_reward,
+                    },
+                    'registration_date': reg.registration_date.isoformat(),
+                    'status': reg.status,
+                    'emergency_contact_name': reg.emergency_contact_name,
+                    'emergency_contact_number': reg.emergency_contact_number,
+                    'feedback_provided': reg.feedback_provided,
+                    'certificate_issued': reg.certificate_issued,
+                    'rating': reg.rating,
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'registrations': registrations_data,
+                'events_attended': events_attended,
+                'upcoming_count': upcoming_count,
+                'total_points': total_points,
+                'achievements': achievements,
+            })
+            
+        except YouthUser.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'User not found'})
+
+@csrf_exempt
+def mobile_cancel_registration_api(request, registration_id):
+    if request.method == 'POST':
+        try:
+            registration = EventRegistration.objects.get(id=registration_id)
+            if registration.status in ['confirmed', 'pending', 'waitlisted']:
+                registration.status = 'cancelled'
+                registration.save()
+
+                if registration.status == 'confirmed':
+                    registration.event.current_participants = max(0, registration.event.current_participants - 1)
+                    registration.event.save()
+                
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Cannot cancel this registration'})
+        except EventRegistration.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Registration not found'})
+
+@csrf_exempt
+def mobile_submit_evaluation_api(request, registration_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            registration = EventRegistration.objects.get(id=registration_id)
+            
+            evaluation = EventEvaluation.objects.create(
+                registration=registration,
+                rating=data.get('rating'),
+                comments=data.get('comments'),
+                suggestions=data.get('suggestions'),
+                would_attend_again=data.get('would_attend_again', True)
+            )
+            
+            registration.feedback_provided = True
+            registration.rating = data.get('rating')
+            registration.save()
+            
+            return JsonResponse({'success': True})
+        except EventRegistration.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Registration not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+def mobile_event_registration_detail_api(request, registration_id):
+    if request.method == 'GET':
+        try:
+            registration = EventRegistration.objects.select_related('event').get(id=registration_id)
+            
+            data = {
+                'success': True,
+                'registration': {
+                    'id': registration.id,
+                    'event_id': registration.event.id,
+                    'event_title': registration.event.title,
+                    'event_date': registration.event.start_date.strftime('%B %d, %Y'),
+                    'event_time': f"{registration.event.start_date.strftime('%I:%M %p')} - {registration.event.end_date.strftime('%I:%M %p')}",
+                    'event_location': registration.event.location,
+                    'event_description': registration.event.description,
+                    'current_participants': registration.event.current_participants,
+                    'max_participants': registration.event.maximum_participants,
+                    'points_reward': registration.event.points_reward,
+                    'registration_date': registration.registration_date.strftime('%B %d, %Y'),
+                    'emergency_contact': f"{registration.emergency_contact_name} - {registration.emergency_contact_number}" if registration.emergency_contact_name else None,
+                    'feedback_provided': registration.feedback_provided,
+                    'certificate_issued': registration.certificate_issued,
+                }
+            }
+            return JsonResponse(data)
+        except EventRegistration.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Registration not found'})
+
+@csrf_exempt
+def mobile_community(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'}, status=401)
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        posts = CommunityPost.objects.filter(is_active=True).order_by('-created_at')[:20]
+        
+        posts_data = []
+        for post in posts:
+            is_liked = PostLike.objects.filter(
+                post=post, 
+                user=user, 
+                is_active=True
+            ).exists()
+            
+            recent_comments = PostComment.objects.filter(
+                post=post, 
+                is_active=True
+            ).select_related('user').order_by('created_at')[:3]
+            
+            comments_data = []
+            for comment in recent_comments:
+                comments_data.append({
+                    'id': comment.id,
+                    'user': {
+                        'id': comment.user.id,
+                        'first_name': comment.user.first_name,
+                        'last_name': comment.user.last_name,
+                        'profile_picture': comment.user.profile_picture.url if comment.user.profile_picture else None,
+                    },
+                    'content': comment.content,
+                    'created_at': comment.created_at.isoformat(),
+                    'like_count': comment.like_count,
+                })
+            
+            posts_data.append({
+                'id': post.id,
+                'user': {
+                    'id': post.user.id,
+                    'first_name': post.user.first_name,
+                    'last_name': post.user.last_name,
+                    'profile_picture': post.user.profile_picture.url if post.user.profile_picture else None,
+                },
+                'content': post.content,
+                'post_type': post.post_type,
+                'image_url': post.image.url if post.image else None,
+                'created_at': post.created_at.isoformat(),
+                'like_count': post.like_count,
+                'comment_count': post.comment_count,
+                'is_liked': is_liked,
+                'comments': comments_data,
+            })
+        
+        trending_topics = TrendingTopic.objects.filter(is_active=True).order_by('-post_count')[:4]
+        trending_data = [{
+            'id': topic.id,
+            'name': topic.name,
+            'post_count': topic.post_count,
+        } for topic in trending_topics]
+        
+        upcoming_events = Event.objects.filter(
+            is_active=True, 
+            start_date__gte=timezone.now()
+        ).order_by('start_date')[:2]
+        events_data = [{
+            'id': event.id,
+            'title': event.title,
+            'start_date': event.start_date.isoformat(),
+            'location': event.location,
+        } for event in upcoming_events]
+        
+        guidelines = CommunityGuideline.objects.filter(is_active=True).order_by('order')
+        guidelines_data = [{
+            'id': guideline.id,
+            'content': guideline.content,
+        } for guideline in guidelines]
+        
+        total_members = YouthUser.objects.filter(is_active=True).count()
+        
+        start_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        events_this_month = Event.objects.filter(
+            is_active=True, 
+            start_date__gte=start_of_month
+        ).count()
+        
+        week_ago = timezone.now() - timedelta(days=7)
+        posts_this_week = CommunityPost.objects.filter(
+            is_active=True,
+            created_at__gte=week_ago
+        ).count()
+        
+        response_data = {
+            'success': True,
+            'posts': posts_data,
+            'trending_topics': trending_data,
+            'upcoming_events': events_data,
+            'guidelines': guidelines_data,
+            'total_members': total_members,
+            'events_this_month': events_this_month,
+            'posts_this_week': posts_this_week,
+        }
+        
+        return JsonResponse(response_data)
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_POST
+def mobile_create_post(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        content = data.get('content', '')
+        privacy = data.get('privacy', 'public')
+        
+        if not content:
+            return JsonResponse({'success': False, 'message': 'Content is required'})
+        
+        post = CommunityPost.objects.create(
+            user=user,
+            content=content,
+            post_type='text',
+            privacy=privacy
+        )
+        
+        import re
+        hashtags = re.findall(r'#(\w+)', content)
+        for tag in hashtags:
+            topic, created = TrendingTopic.objects.get_or_create(
+                name=tag.lower(),
+                defaults={'post_count': 1}
+            )
+            if not created:
+                topic.post_count += 1
+                topic.save()
+        
+        return JsonResponse({'success': True, 'post_id': post.id})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def mobile_like_post(request, post_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id)
+        
+        like, created = PostLike.objects.get_or_create(
+            post=post,
+            user=user,
+            defaults={'is_active': True}
+        )
+        
+        if not created:
+            like.is_active = not like.is_active
+            like.save()
+        
+        return JsonResponse({
+            'success': True,
+            'liked': like.is_active,
+            'like_count': post.like_count
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def mobile_comment_on_post(request, post_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '')
+        
+        if not content:
+            return JsonResponse({'success': False, 'message': 'Comment content is required'})
+        
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id)
+        
+        comment = PostComment.objects.create(
+            post=post,
+            user=user,
+            content=content
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'comment_id': comment.id,
+            'comment_count': post.comment_count
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+
+@csrf_exempt
+@require_GET
+def contact_data(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
+        faq_data = [
+            {
+                'id': faq.id,
+                'question': faq.question,
+                'answer': faq.answer,
+                'category': faq.category,
+                'order': faq.order
+            }
+            for faq in faqs
+        ]
+        
+        complaint_count = Complaint.objects.filter(user=user).count()
+        resolved_complaints = Complaint.objects.filter(user=user, status='resolved').count()
+        suggestion_count = Suggestion.objects.filter(user=user).count()
+        implemented_suggestions = Suggestion.objects.filter(user=user, status='implemented').count()
+        open_tickets = SupportTicket.objects.filter(user=user, status='open').count()
+        resolved_tickets = SupportTicket.objects.filter(user=user, status='resolved').count()
+        
+        stats = {
+            'complaint_count': complaint_count,
+            'resolved_complaints': resolved_complaints,
+            'suggestion_count': suggestion_count,
+            'implemented_suggestions': implemented_suggestions,
+            'open_tickets': open_tickets,
+            'resolved_tickets': resolved_tickets,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'faqs': faq_data,
+            'stats': stats
+        })
+        
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def send_contact_message(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        ContactMessage.objects.create(
+            user=user,
+            subject=data.get('subject'),
+            message=data.get('message')
+        )
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def file_complaint(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        Complaint.objects.create(
+            user=user,
+            title=data.get('title'),
+            description=data.get('details'),
+            urgency=data.get('urgency', 'medium')
+        )
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def make_suggestion(request):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        
+        Suggestion.objects.create(
+            user=user,
+            title=data.get('title'),
+            description=data.get('details')
+        )
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+
+
 
 
 
