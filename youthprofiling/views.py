@@ -2620,7 +2620,6 @@ def mobile_event_register_data(request, event_id):
             },
             'questions': questions_data
         }
-        
         return JsonResponse(response_data)
         
     except YouthUser.DoesNotExist:
@@ -3126,7 +3125,6 @@ def send_contact_message(request):
         )
         
         return JsonResponse({'success': True})
-    
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
@@ -3135,7 +3133,6 @@ def send_contact_message(request):
 def file_complaint(request):
     if not request.session.get('is_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
-    
     try:
         data = json.loads(request.body)
         user = YouthUser.objects.get(id=request.session['user_id'])
@@ -3146,18 +3143,15 @@ def file_complaint(request):
             description=data.get('details'),
             urgency=data.get('urgency', 'medium')
         )
-        
         return JsonResponse({'success': True})
-    
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
-
+    
 @csrf_exempt
 @require_POST
 def make_suggestion(request):
     if not request.session.get('is_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
-    
     try:
         data = json.loads(request.body)
         user = YouthUser.objects.get(id=request.session['user_id'])
@@ -3167,7 +3161,6 @@ def make_suggestion(request):
             title=data.get('title'),
             description=data.get('details')
         )
-        
         return JsonResponse({'success': True})
     
     except Exception as e:
