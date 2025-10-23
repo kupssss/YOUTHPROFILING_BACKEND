@@ -1144,3 +1144,77 @@ class EventParticipationAnalytics(models.Model):
     
     def __str__(self):
         return f"{self.event.title}: {self.participation_count} participants"
+    
+
+
+
+from django.db import models
+from django.utils import timezone
+import uuid
+
+class APKDownload(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField()
+    device_type = models.CharField(max_length=50, blank=True)
+    device_brand = models.CharField(max_length=100, blank=True)
+    device_model = models.CharField(max_length=100, blank=True)
+    os_name = models.CharField(max_length=50, blank=True)
+    os_version = models.CharField(max_length=50, blank=True)
+    browser_name = models.CharField(max_length=100, blank=True)
+    browser_version = models.CharField(max_length=50, blank=True)
+    is_mobile = models.BooleanField(default=False)
+    is_tablet = models.BooleanField(default=False)
+    is_desktop = models.BooleanField(default=False)
+    download_method = models.CharField(max_length=20, choices=[
+        ('direct', 'Direct Download'),
+        ('qr_code', 'QR Code'),
+        ('button', 'Download Button')
+    ], default='direct')
+    download_source = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'apk_downloads'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['ip_address']),
+            models.Index(fields=['device_type']),
+        ]
+
+    def __str__(self):
+        return f"Download from {self.ip_address} at {self.created_at}"
+
+class APKVersion(models.Model):
+    version = models.CharField(max_length=20, unique=True)
+    file_size = models.CharField(max_length=20)
+    release_date = models.DateField()
+    release_notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    download_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'apk_versions'
+        ordering = ['-release_date']
+
+    def __str__(self):
+        return f"v{self.version}"
+
+class DownloadAnalytics(models.Model):
+    date = models.DateField(unique=True)
+    total_downloads = models.PositiveIntegerField(default=0)
+    mobile_downloads = models.PositiveIntegerField(default=0)
+    desktop_downloads = models.PositiveIntegerField(default=0)
+    tablet_downloads = models.PositiveIntegerField(default=0)
+    qr_code_downloads = models.PositiveIntegerField(default=0)
+    direct_downloads = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'download_analytics'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Analytics for {self.date}"

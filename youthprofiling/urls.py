@@ -11,6 +11,9 @@ urlpatterns = [
     path('contact/', views.contact, name='contact'),
 
     path('mobile-apk/', views.mobile_apk, name='mobile_apk'),
+    path('download-apk/direct/', views.download_apk, name='download_apk_direct'),
+    path('download-apk/qr/', lambda request: views.download_apk(request, 'qr_code'), name='download_apk_qr'),
+    path('download-apk/button/', lambda request: views.download_apk(request, 'button'), name='download_apk_button'),
     
     path('login/', views.login_view, name='login'),
     path('api/login/', views.login_user, name='api_login'),

@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -55,15 +54,15 @@
                 
                 <div class="apk-stats">
                     <div class="apk-stat">
-                        <h3>{{ download_count|default:"1,247+" }}</h3>
+                        <h3>{{ download_count }}</h3>
                         <p>Downloads</p>
                     </div>
                     <div class="apk-stat">
-                        <h3>{{ app_version|default:"1.0.0" }}</h3>
+                        <h3>{{ app_version }}</h3>
                         <p>Current Version</p>
                     </div>
                     <div class="apk-stat">
-                        <h3>{{ file_size|default:"15.2 MB" }}</h3>
+                        <h3>{{ file_size }}</h3>
                         <p>App Size</p>
                     </div>
                 </div>
@@ -118,10 +117,10 @@
                 
                 <div class="download-section">
                     <div class="download-buttons">
-                        <a href="{% static 'downloads/sk-mambugan.apk' %}" class="download-btn primary-download" download>
+                        <a href="{% url 'download_apk_button' %}" class="download-btn primary-download">
                             <i class="fas fa-download"></i>
                             Download APK
-                            <small>{{ file_size|default:"15.2 MB" }}</small>
+                            <small>{{ file_size }}</small>
                         </a>
                         <button class="download-btn secondary-download" id="installGuideBtn">
                             <i class="fas fa-info-circle"></i>
@@ -139,37 +138,37 @@
     </section>
 
     <section class="qr-download-section">
-    <div class="section-header">
-        <h2>Scan to Download</h2>
-        <p>Use your phone's camera to scan this QR code and download the app directly to your device</p>
-    </div>
-    <div class="qr-main-container">
-        <div class="qr-main-code" id="qrMainCode">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ apk_url|urlencode }}" alt="Download QR Code" class="qr-image">
-            <div class="qr-main-overlay">
-                <i class="fas fa-download"></i>
-                <span>Tap to Download</span>
-            </div>
+        <div class="section-header">
+            <h2>Scan to Download</h2>
+            <p>Use your phone's camera to scan this QR code and download the app directly to your device</p>
         </div>
-        <div class="qr-instructions">
-            <h3>How to use:</h3>
-            <div class="qr-steps">
-                <div class="qr-step">
-                    <i class="fas fa-camera"></i>
-                    <p>Open your phone's camera app</p>
-                </div>
-                <div class="qr-step">
-                    <i class="fas fa-qrcode"></i>
-                    <p>Point it at the QR code</p>
-                </div>
-                <div class="qr-step">
+        <div class="qr-main-container">
+            <div class="qr-main-code" id="qrMainCode">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ apk_url|urlencode }}" alt="Download QR Code" class="qr-image">
+                <div class="qr-main-overlay">
                     <i class="fas fa-download"></i>
-                    <p>Tap the download link</p>
+                    <span>Tap to Download</span>
+                </div>
+            </div>
+            <div class="qr-instructions">
+                <h3>How to use:</h3>
+                <div class="qr-steps">
+                    <div class="qr-step">
+                        <i class="fas fa-camera"></i>
+                        <p>Open your phone's camera app</p>
+                    </div>
+                    <div class="qr-step">
+                        <i class="fas fa-qrcode"></i>
+                        <p>Point it at the QR code</p>
+                    </div>
+                    <div class="qr-step">
+                        <i class="fas fa-download"></i>
+                        <p>Tap the download link</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
     <section class="apk-features">
         <div class="section-header">
@@ -313,7 +312,7 @@
                 <h2>Ready to Get the App?</h2>
                 <p>Join thousands of community members who are already using our mobile app to stay connected and engaged.</p>
                 <div class="cta-buttons">
-                    <a href="{% static 'downloads/sk-mambugan.apk' %}" class="btn-primary" download>
+                    <a href="{% url 'download_apk_direct' %}" class="btn-primary">
                         <i class="fas fa-download"></i>
                         Download Now
                     </a>
@@ -397,7 +396,7 @@
                 </div>
             </div>
             <div class="login-modal-buttons">
-                <a href="{% static 'downloads/sk-mambugan.apk' %}" class="login-modal-btn login-modal-btn-primary" download>
+                <a href="{% url 'download_apk_direct' %}" class="login-modal-btn login-modal-btn-primary">
                     Download APK
                 </a>
                 <button class="login-modal-btn login-modal-btn-secondary" id="cancelInstallModal">

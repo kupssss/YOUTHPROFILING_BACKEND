@@ -13,13 +13,7 @@ class MobileAPKPage {
         const qrContainer = document.getElementById('qrMainCode');
         if (qrContainer) {
             qrContainer.addEventListener('click', () => {
-                const apkUrl = "{% static 'downloads/sk-mambugan.apk' %}";
-                const link = document.createElement('a');
-                link.href = apkUrl;
-                link.download = 'sk-mambugan.apk';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                window.location.href = document.querySelector('.qr-image').src.replace('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=', '');
             });
         }
     }

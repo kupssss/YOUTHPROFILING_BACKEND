@@ -137,19 +137,98 @@ def the_community(request):
 
 from django.urls import reverse
 from django.conf import settings
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
+from django.utils import timezone
+from user_agents import parse
+import os
+from .models import APKDownload, APKVersion
+
+def track_download(request, download_method='direct'):
+    user_agent_string = request.META.get('HTTP_USER_AGENT', '')
+    ip_address = get_client_ip(request)
+    user_agent = parse(user_agent_string)
+
+    apk_download = APKDownload(
+        ip_address=ip_address,
+        user_agent=user_agent_string,
+        device_type=get_device_type(user_agent),
+        device_brand=user_agent.device.brand or '',
+        device_model=user_agent.device.model or '',
+        os_name=user_agent.os.family,
+        os_version=user_agent.os.version_string,
+        browser_name=user_agent.browser.family,
+        browser_version=user_agent.browser.version_string,
+        is_mobile=user_agent.is_mobile,
+        is_tablet=user_agent.is_tablet,
+        is_desktop=user_agent.is_pc,
+        download_method=download_method,
+        download_source=request.META.get('HTTP_REFERER', '')
+    )
+    apk_download.save()
+
+    current_version = APKVersion.objects.filter(is_active=True).first()
+    if current_version:
+        current_version.download_count += 1
+        current_version.save()
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def get_device_type(user_agent):
+    if user_agent.is_mobile:
+        return 'mobile'
+    elif user_agent.is_tablet:
+        return 'tablet'
+    elif user_agent.is_pc:
+        return 'desktop'
+    else:
+        return 'other'
 
 def mobile_apk(request):
     apk_url = request.build_absolute_uri(settings.STATIC_URL + 'downloads/sk-mambugan.apk')
-    
+    current_version = APKVersion.objects.filter(is_active=True).first()
+    total_downloads = APKDownload.objects.count()
+
+    if current_version:
+        app_version = current_version.version
+        file_size = current_version.file_size
+        release_date = current_version.release_date.year
+        download_count = current_version.download_count
+    else:
+        app_version = "1.0.0"
+        file_size = "15.2 MB"
+        release_date = "2025"
+        download_count = total_downloads
+
     context = {
         'page_title': 'Mobile APK Download',
-        'app_version': '1.0.0',
-        'release_date': '2025',
-        'file_size': '15.2 MB',
-        'download_count': '1,247+',
+        'app_version': app_version,
+        'release_date': release_date,
+        'file_size': file_size,
+        'download_count': f"{download_count:,}+",
+        'total_downloads': total_downloads,
         'apk_url': apk_url,
     }
     return render(request, 'index/mobile_apk.html', context)
+
+def download_apk(request, method='direct'):
+    file_path = os.path.join(settings.STATIC_ROOT, 'downloads', 'sk-mambugan.apk')
+    
+    if os.path.exists(file_path):
+        track_download(request, method)
+        
+        with open(file_path, 'rb') as f:
+            response = HttpResponse(f.read(), content_type='application/vnd.android.package-archive')
+            response['Content-Disposition'] = f'attachment; filename="sk-mambugan.apk"'
+            return response
+    else:
+        return HttpResponse("APK file not found", status=404)
 
 
 

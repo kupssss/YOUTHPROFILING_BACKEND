@@ -825,3 +825,46 @@ class EncryptionKeyAttemptAdmin(admin.ModelAdmin):
     search_fields = ("admin_user__username", "attempted_key", "ip_address")
     ordering = ("-timestamp",)
     readonly_fields = ("timestamp",)
+
+
+
+
+
+
+from django.contrib import admin
+from django.utils import timezone
+from django.db.models import Count
+from .models import APKDownload, APKVersion, DownloadAnalytics
+
+class APKDownloadAdmin(admin.ModelAdmin):
+    list_display = ['ip_address', 'device_type', 'os_name', 'browser_name', 'download_method', 'created_at']
+    list_filter = ['device_type', 'os_name', 'browser_name', 'download_method', 'created_at']
+    search_fields = ['ip_address', 'user_agent', 'device_brand', 'device_model']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+    list_per_page = 50
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related()
+
+class APKVersionAdmin(admin.ModelAdmin):
+    list_display = ['version', 'file_size', 'release_date', 'download_count', 'is_active']
+    list_filter = ['is_active', 'release_date']
+    search_fields = ['version', 'release_notes']
+    readonly_fields = ['created_at', 'updated_at', 'download_count']
+    list_editable = ['is_active']
+
+class DownloadAnalyticsAdmin(admin.ModelAdmin):
+    list_display = ['date', 'total_downloads', 'mobile_downloads', 'desktop_downloads', 'qr_code_downloads']
+    readonly_fields = ['date', 'total_downloads', 'mobile_downloads', 'desktop_downloads', 'tablet_downloads', 'qr_code_downloads', 'direct_downloads']
+    list_per_page = 30
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+admin.site.register(APKDownload, APKDownloadAdmin)
+admin.site.register(APKVersion, APKVersionAdmin)
+admin.site.register(DownloadAnalytics, DownloadAnalyticsAdmin)
