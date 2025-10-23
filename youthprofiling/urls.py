@@ -9,6 +9,8 @@ urlpatterns = [
     path('the-project/', views.the_project, name='the_project'),
     path('the-community/', views.the_community, name='the_community'),
     path('contact/', views.contact, name='contact'),
+
+    path('mobile-apk/', views.mobile_apk, name='mobile_apk'),
     
     path('login/', views.login_view, name='login'),
     path('api/login/', views.login_user, name='api_login'),

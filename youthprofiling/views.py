@@ -134,6 +134,30 @@ def the_community(request):
 
 
 
+
+from django.urls import reverse
+from django.conf import settings
+
+def mobile_apk(request):
+    apk_url = request.build_absolute_uri(settings.STATIC_URL + 'downloads/sk-mambugan.apk')
+    
+    context = {
+        'page_title': 'Mobile APK Download',
+        'app_version': '1.0.0',
+        'release_date': '2025',
+        'file_size': '15.2 MB',
+        'download_count': '1,247+',
+        'apk_url': apk_url,
+    }
+    return render(request, 'index/mobile_apk.html', context)
+
+
+
+
+
+
+
+
 def contact(request):
     faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
     
