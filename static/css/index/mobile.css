@@ -777,3 +777,38 @@
 .qr-main-code:hover .qr-main-overlay {
     opacity: 1;
 }
+
+
+
+.qrsection-header {
+    text-align: center;
+    margin-bottom: 60px;
+    position: relative;
+}
+
+.qrsection-header h2 {
+    font-size: 2.8rem;
+    color:linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    margin-bottom: 15px;
+    position: relative;
+    display: inline-block;
+}
+
+.qrsection-header h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, #1E40AF 0%, #3B82F6 100%);
+    border-radius: 2px;
+}
+
+.qrsection-header p {
+    font-size: 1.2rem;
+    color: #ffffff;
+    max-width: 600px;
+    margin: 0 auto;
+}
