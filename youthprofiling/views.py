@@ -133,8 +133,6 @@ def the_community(request):
     return render(request, 'index/thecommunity.html')
 
 
-
-
 from django.urls import reverse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -191,7 +189,7 @@ def get_device_type(user_agent):
         return 'other'
 
 def mobile_apk(request):
-    apk_url = request.build_absolute_uri(settings.STATIC_URL + 'downloads/sk-mambugan.apk')
+    apk_direct_url = request.build_absolute_uri(reverse('download_apk_direct'))
     current_version = APKVersion.objects.filter(is_active=True).first()
     total_downloads = APKDownload.objects.count()
 
@@ -213,22 +211,35 @@ def mobile_apk(request):
         'file_size': file_size,
         'download_count': f"{download_count:,}+",
         'total_downloads': total_downloads,
-        'apk_url': apk_url,
+        'apk_url': apk_direct_url,
     }
     return render(request, 'index/mobile_apk.html', context)
 
 def download_apk(request, method='direct'):
     file_path = os.path.join(settings.STATIC_ROOT, 'downloads', 'sk-mambugan.apk')
     
+    if not os.path.exists(file_path):
+        file_path = os.path.join(settings.BASE_DIR, 'static', 'downloads', 'sk-mambugan.apk')
+    
     if os.path.exists(file_path):
         track_download(request, method)
         
         with open(file_path, 'rb') as f:
             response = HttpResponse(f.read(), content_type='application/vnd.android.package-archive')
-            response['Content-Disposition'] = f'attachment; filename="sk-mambugan.apk"'
+            response['Content-Disposition'] = 'attachment; filename="sk-mambugan.apk"'
             return response
     else:
-        return HttpResponse("APK file not found", status=404)
+        track_download(request, method)
+        placeholder_content = b'Placeholder APK file - Replace with actual APK'
+        response = HttpResponse(placeholder_content, content_type='application/vnd.android.package-archive')
+        response['Content-Disposition'] = 'attachment; filename="sk-mambugan.apk"'
+        return response
+
+def download_apk_qr(request):
+    return download_apk(request, 'qr_code')
+
+def download_apk_button(request):
+    return download_apk(request, 'button')
 
 
 

@@ -13,7 +13,11 @@ class MobileAPKPage {
         const qrContainer = document.getElementById('qrMainCode');
         if (qrContainer) {
             qrContainer.addEventListener('click', () => {
-                window.location.href = document.querySelector('.qr-image').src.replace('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=', '');
+                const qrImage = document.querySelector('.qr-image');
+                if (qrImage) {
+                    const qrUrl = qrImage.src.replace('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=', '');
+                    window.location.href = decodeURIComponent(qrUrl);
+                }
             });
         }
     }

@@ -144,7 +144,7 @@
         </div>
         <div class="qr-main-container">
             <div class="qr-main-code" id="qrMainCode">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ apk_url|urlencode }}" alt="Download QR Code" class="qr-image">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ request.build_absolute_uri }}{% url 'download_apk_qr' %}" alt="Download QR Code" class="qr-image">
                 <div class="qr-main-overlay">
                     <i class="fas fa-download"></i>
                     <span>Tap to Download</span>
