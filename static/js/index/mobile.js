@@ -6,20 +6,6 @@ class MobileAPKPage {
     init() {
         this.setupEventListeners();
         this.initAnimations();
-        this.setupQRCodeClick();
-    }
-
-    setupQRCodeClick() {
-        const qrContainer = document.getElementById('qrMainCode');
-        if (qrContainer) {
-            qrContainer.addEventListener('click', () => {
-                const qrImage = document.querySelector('.qr-image');
-                if (qrImage) {
-                    const qrUrl = qrImage.src.replace('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=', '');
-                    window.location.href = decodeURIComponent(qrUrl);
-                }
-            });
-        }
     }
 
     setupEventListeners() {

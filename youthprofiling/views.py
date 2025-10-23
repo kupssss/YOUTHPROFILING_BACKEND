@@ -165,11 +165,6 @@ def track_download(request, download_method='direct'):
     )
     apk_download.save()
 
-    current_version = APKVersion.objects.filter(is_active=True).first()
-    if current_version:
-        current_version.download_count += 1
-        current_version.save()
-
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -189,7 +184,7 @@ def get_device_type(user_agent):
         return 'other'
 
 def mobile_apk(request):
-    apk_direct_url = request.build_absolute_uri(reverse('download_apk_direct'))
+    qr_download_url = request.build_absolute_uri(reverse('download_apk_qr'))
     current_version = APKVersion.objects.filter(is_active=True).first()
     total_downloads = APKDownload.objects.count()
 
@@ -211,7 +206,7 @@ def mobile_apk(request):
         'file_size': file_size,
         'download_count': f"{download_count:,}+",
         'total_downloads': total_downloads,
-        'apk_url': apk_direct_url,
+        'qr_download_url': qr_download_url,
     }
     return render(request, 'index/mobile_apk.html', context)
 
@@ -240,7 +235,6 @@ def download_apk_qr(request):
 
 def download_apk_button(request):
     return download_apk(request, 'button')
-
 
 
 

@@ -1151,6 +1151,8 @@ class EventParticipationAnalytics(models.Model):
 from django.db import models
 from django.utils import timezone
 import uuid
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 
 class APKDownload(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -1211,6 +1213,7 @@ class DownloadAnalytics(models.Model):
     tablet_downloads = models.PositiveIntegerField(default=0)
     qr_code_downloads = models.PositiveIntegerField(default=0)
     direct_downloads = models.PositiveIntegerField(default=0)
+    button_downloads = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'download_analytics'
@@ -1218,3 +1221,25 @@ class DownloadAnalytics(models.Model):
 
     def __str__(self):
         return f"Analytics for {self.date}"
+
+@receiver(post_save, sender=APKDownload)
+@receiver(post_delete, sender=APKDownload)
+def update_download_counts(sender, instance, **kwargs):
+    total_downloads = APKDownload.objects.count()
+    
+    current_version = APKVersion.objects.filter(is_active=True).first()
+    if current_version:
+        current_version.download_count = total_downloads
+        current_version.save()
+    
+    today = timezone.now().date()
+    analytics, created = DownloadAnalytics.objects.get_or_create(date=today)
+    
+    analytics.total_downloads = total_downloads
+    analytics.mobile_downloads = APKDownload.objects.filter(is_mobile=True).count()
+    analytics.desktop_downloads = APKDownload.objects.filter(is_desktop=True).count()
+    analytics.tablet_downloads = APKDownload.objects.filter(is_tablet=True).count()
+    analytics.qr_code_downloads = APKDownload.objects.filter(download_method='qr_code').count()
+    analytics.direct_downloads = APKDownload.objects.filter(download_method='direct').count()
+    analytics.button_downloads = APKDownload.objects.filter(download_method='button').count()
+    analytics.save()

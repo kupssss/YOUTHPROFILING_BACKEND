@@ -143,13 +143,13 @@
             <p>Use your phone's camera to scan this QR code and download the app directly to your device</p>
         </div>
         <div class="qr-main-container">
-            <div class="qr-main-code" id="qrMainCode">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ request.build_absolute_uri }}{% url 'download_apk_qr' %}" alt="Download QR Code" class="qr-image">
+            <a href="{% url 'download_apk_qr' %}" class="qr-main-code" id="qrMainCode">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ qr_download_url|urlencode }}" alt="Download QR Code" class="qr-image">
                 <div class="qr-main-overlay">
                     <i class="fas fa-download"></i>
                     <span>Tap to Download</span>
                 </div>
-            </div>
+            </a>
             <div class="qr-instructions">
                 <h3>How to use:</h3>
                 <div class="qr-steps">

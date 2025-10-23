@@ -844,9 +844,6 @@ class APKDownloadAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
     list_per_page = 50
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related()
-
 class APKVersionAdmin(admin.ModelAdmin):
     list_display = ['version', 'file_size', 'release_date', 'download_count', 'is_active']
     list_filter = ['is_active', 'release_date']
@@ -855,8 +852,8 @@ class APKVersionAdmin(admin.ModelAdmin):
     list_editable = ['is_active']
 
 class DownloadAnalyticsAdmin(admin.ModelAdmin):
-    list_display = ['date', 'total_downloads', 'mobile_downloads', 'desktop_downloads', 'qr_code_downloads']
-    readonly_fields = ['date', 'total_downloads', 'mobile_downloads', 'desktop_downloads', 'tablet_downloads', 'qr_code_downloads', 'direct_downloads']
+    list_display = ['date', 'total_downloads', 'mobile_downloads', 'desktop_downloads', 'qr_code_downloads', 'button_downloads']
+    readonly_fields = ['date', 'total_downloads', 'mobile_downloads', 'desktop_downloads', 'tablet_downloads', 'qr_code_downloads', 'direct_downloads', 'button_downloads']
     list_per_page = 30
 
     def has_add_permission(self, request):

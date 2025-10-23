@@ -619,6 +619,11 @@
     border-bottom: none;
 }
 
+ .login-modal{
+    margin-top: -100px;
+    height: 200%;
+ }
+
 @media (max-width: 1200px) {
     .apk-hero-content h1 {
         font-size: 3rem;
@@ -736,13 +741,15 @@
     cursor: pointer;
     transition: all 0.3s ease;
     overflow: hidden;
+    display: block;
+    text-decoration: none;
 }
 
 .qr-main-code:hover {
     transform: scale(1.05);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+    text-decoration: none;
 }
-
 .qr-main-overlay {
     position: absolute;
     top: 0;
