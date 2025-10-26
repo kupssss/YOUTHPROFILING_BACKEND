@@ -231,20 +231,7 @@
                                 <span class="attendance-status"><i class="fas fa-user-check"></i> You plan to attend</span>
                                 {% endif %}
                             </div>
-                            <div class="update-actions">
-                                <a href="#" class="update-link">Read More <i class="fas fa-arrow-right"></i></a>
-                                <div class="action-buttons">
-                                    <button class="update-save {% if announcement.id in user_saved_announcement_ids %}saved{% endif %}">
-                                        <i class="{% if announcement.id in user_saved_announcement_ids %}fas{% else %}far{% endif %} fa-bookmark"></i>
-                                    </button>
-                                    {% if announcement.effective_date %}
-                                    <button class="attendance-btn {% if announcement.id in user_attending_announcement_ids %}attending{% endif %}">
-                                        <i class="fas fa-calendar-check"></i> 
-                                        {% if announcement.id in user_attending_announcement_ids %}Attending{% else %}Attend{% endif %}
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </div>
+                           
                         </div>
                     </div>
                     {% endfor %}

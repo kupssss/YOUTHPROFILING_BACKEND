@@ -43,8 +43,6 @@ class EncryptedField(models.TextField):
             return value
         
 class YouthUser(models.Model):
-    """Main user model for youth members - NO connection to Django admin users"""
-    
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128) 
@@ -180,7 +178,6 @@ class YouthUser(models.Model):
     id_picture = models.ImageField(upload_to='id_pictures/')
     birth_certificate = models.FileField(upload_to='birth_certificates/', blank=True, null=True)
 
-    # Parent consent fields (for ages 15-17)
     parent_consent_letter = models.FileField(upload_to='parent_consents/', blank=True, null=True)
     parent_id_picture = models.ImageField(upload_to='parent_ids/', blank=True, null=True)
     parent_name = EncryptedField(max_length=255, blank=True, null=True)
@@ -200,6 +197,9 @@ class YouthUser(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     last_login = models.DateTimeField(blank=True, null=True)
     
+    no_show_count = models.PositiveIntegerField(default=0)
+    last_no_show_date = models.DateTimeField(blank=True, null=True)
+    
     class Meta:
         verbose_name = "Youth User"
         verbose_name_plural = "Youth Users"
@@ -209,7 +209,6 @@ class YouthUser(models.Model):
         return f"{self.first_name} {self.last_name} - {self.registration_no}"
     
     def get_full_name(self):
-        """Return full name with suffix if available"""
         name_parts = [self.first_name]
         if self.middle_name:
             name_parts.append(self.middle_name)
@@ -220,7 +219,6 @@ class YouthUser(models.Model):
         return " ".join(name_parts)
     
     def get_encrypted_data(self):
-        """Return a dictionary of encrypted field values (for admin purposes)"""
         return {
             'first_name': self.first_name,
             'last_name': self.last_name,
@@ -232,31 +230,99 @@ class YouthUser(models.Model):
         }
     
     def verify_email(self):
-        """Mark email as verified"""
         self.is_email_verified = True
         self.email_verification_date = timezone.now()
         self.save()
     
     def verify_by_admin(self):
-        """Mark account as verified by admin"""
         self.is_admin_verified = True
         self.admin_verification_date = timezone.now()
         self.save()
     
     def set_password(self, raw_password):
-        """Hash and set the password"""
         self.password = make_password(raw_password)
         self.save()
     
     def check_password(self, raw_password):
-        """Check if the password is correct"""
         return check_password(raw_password, self.password)
     
-
+    @property
+    def community_points(self):
+        try:
+            return self.points.points
+        except CommunityPoints.DoesNotExist:
+            points = CommunityPoints.objects.create(user=self, points=100)
+            return points.points
+    
+    def add_no_show_offense(self):
+        self.no_show_count += 1
+        self.last_no_show_date = timezone.now()
+        
+        if self.no_show_count >= 3:
+            self.no_show_count = 0
+            self.last_no_show_date = None
+        
+        self.save()
+        
+        community_points, created = CommunityPoints.objects.get_or_create(
+            user=self,
+            defaults={'points': 100}
+        )
+        current_points = community_points.points
+        
+        if self.no_show_count == 1:
+            PointsHistory.objects.create(
+                user=self,
+                points_change=0,
+                new_balance=current_points,
+                reason="First no-show offense - Warning"
+            )
+        elif self.no_show_count == 2:
+            if current_points >= 100:
+                community_points.points -= 100
+                community_points.save()
+                PointsHistory.objects.create(
+                    user=self,
+                    points_change=-100,
+                    new_balance=community_points.points,
+                    reason="Second no-show offense - 100 points deducted"
+                )
+            else:
+                community_points.points = 0
+                community_points.save()
+                PointsHistory.objects.create(
+                    user=self,
+                    points_change=-current_points,
+                    new_balance=0,
+                    reason="Second no-show offense - All points deducted"
+                )
+        elif self.no_show_count == 0:
+            if current_points > 0:
+                community_points.points = 0
+                community_points.save()
+                PointsHistory.objects.create(
+                    user=self,
+                    points_change=-current_points,
+                    new_balance=0,
+                    reason="Third no-show offense - All points removed"
+                )
+            else:
+                community_points.points = -100
+                community_points.save()
+                PointsHistory.objects.create(
+                    user=self,
+                    points_change=-100,
+                    new_balance=-100,
+                    reason="Third no-show offense - 100 points penalty"
+                )
+    
+    def reset_no_show_count(self):
+        self.no_show_count = 0
+        self.last_no_show_date = None
+        self.save()
     
     @classmethod
     def get_admin_user(cls):
-        """Get or create a special admin user for auto-posting announcements"""
         try:
             admin_user = cls.objects.get(username='sk_mambugan_admin')
         except cls.DoesNotExist:
@@ -282,7 +348,62 @@ class YouthUser(models.Model):
                 is_email_verified=True,
                 is_admin_verified=True
             )
+            CommunityPoints.objects.create(user=admin_user, points=1000)
         return admin_user
+
+class CommunityPoints(models.Model):
+    user = models.OneToOneField(YouthUser, on_delete=models.CASCADE, related_name='points')
+    points = models.IntegerField(default=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Community Points"
+        verbose_name_plural = "Community Points"
+        ordering = ['-points']
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.points} points"
+    
+    def add_points(self, amount, reason=""):
+        self.points += amount
+        self.save()
+        PointsHistory.objects.create(
+            user=self.user,
+            points_change=amount,
+            new_balance=self.points,
+            reason=reason
+        )
+        return True
+    
+    def deduct_points(self, amount, reason=""):
+        self.points -= amount
+        self.save()
+        PointsHistory.objects.create(
+            user=self.user,
+            points_change=-amount,
+            new_balance=self.points,
+            reason=reason
+        )
+        return True
+
+class PointsHistory(models.Model):
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='points_history')
+    points_change = models.IntegerField()
+    new_balance = models.IntegerField()
+    reason = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Points History"
+        verbose_name_plural = "Points History"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        change_type = "Gained" if self.points_change > 0 else "Spent"
+        return f"{self.user.get_full_name()} {change_type} {abs(self.points_change)} points"
+
+    
 
 class OTPVerification(models.Model):
     """Model for storing OTP verification attempts for email verification"""
@@ -612,6 +733,7 @@ class Event(models.Model):
     is_active = models.BooleanField(default=True)
     requires_registration = models.BooleanField(default=False)
     
+    # RESTORE THE ORIGINAL MANYTOMANY FIELDS
     gender_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
     target_genders = models.ManyToManyField(Gender, blank=True)
     
@@ -633,6 +755,7 @@ class Event(models.Model):
     age_min = models.PositiveIntegerField(blank=True, null=True)
     age_max = models.PositiveIntegerField(blank=True, null=True)
     
+    # Keep the points reward
     points_reward = models.PositiveIntegerField(default=0)
     created_by = models.ForeignKey(YouthAdmin, on_delete=models.CASCADE)
     
@@ -757,7 +880,7 @@ class EventRegistration(models.Model):
     points_earned = models.PositiveIntegerField(default=0)
     feedback_provided = models.BooleanField(default=False)
     rating = models.PositiveIntegerField(blank=True, null=True, choices=[(i, f'{i} Star') for i in range(1, 6)])  
-    certificate_issued = models.BooleanField(default=False)  # Remove the duplicate line
+    certificate_issued = models.BooleanField(default=False)
     
     emergency_contact_name = EncryptedField(max_length=100, blank=True, null=True)
     emergency_contact_number = EncryptedField(max_length=15, blank=True, null=True)
@@ -789,6 +912,69 @@ class EventRegistration(models.Model):
     @property
     def is_active(self):
         return self.status in ['pending', 'confirmed', 'waitlisted']
+    
+    def mark_attended(self):
+        if self.status != 'attended':
+            self.status = 'attended'
+            self.check_in_time = timezone.now()
+            
+            if self.points_earned == 0 and self.event.points_reward > 0:
+                self.points_earned = self.event.points_reward
+                
+                community_points, created = CommunityPoints.objects.get_or_create(
+                    user=self.user,
+                    defaults={'points': 100}
+                )
+                
+                community_points.add_points(self.event.points_reward, f"Event attendance: {self.event.title}")
+            
+            self.save()
+            return True
+        return False
+    
+    def mark_no_show(self):
+        if self.status != 'no_show':
+            old_status = self.status
+            self.status = 'no_show'
+            
+            if self.points_earned > 0:
+                try:
+                    community_points = CommunityPoints.objects.get(user=self.user)
+                    community_points.deduct_points(self.points_earned, f"No-show penalty for: {self.event.title}")
+                except CommunityPoints.DoesNotExist:
+                    pass
+                self.points_earned = 0
+            
+            self.user.add_no_show_offense()
+            
+            self.save()
+            return True
+        return False
+    
+    def update_status(self, new_status, admin_user=None):
+        old_status = self.status
+        
+        if new_status == 'attended' and old_status != 'attended':
+            return self.mark_attended()
+        
+        elif new_status == 'no_show' and old_status != 'no_show':
+            return self.mark_no_show()
+        
+        elif new_status in ['pending', 'confirmed', 'cancelled'] and old_status == 'attended':
+            if self.points_earned > 0:
+                try:
+                    community_points = CommunityPoints.objects.get(user=self.user)
+                    community_points.deduct_points(self.points_earned, f"Status changed from attended: {self.event.title}")
+                except CommunityPoints.DoesNotExist:
+                    pass
+                self.points_earned = 0
+        
+        elif new_status in ['pending', 'confirmed'] and old_status == 'no_show':
+            pass
+        
+        self.status = new_status
+        self.save()
+        return True
     
     def generate_qr_code(self):
         pass
@@ -861,12 +1047,17 @@ class EventEvaluation(models.Model):
 
 
 
-
-
 class CommunityPost(models.Model):
     POST_TYPES = [
         ('text', 'Text Post'),
         ('image', 'Image Post'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('deleted', 'Deleted'),
     ]
     
     user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='community_posts')
@@ -875,7 +1066,8 @@ class CommunityPost(models.Model):
     image = models.ImageField(upload_to='community_posts/images/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    rejection_reason = models.TextField(blank=True, null=True)
     privacy = models.CharField(max_length=10, choices=[
         ('public', 'Public'),
         ('community', 'SK Members Only'),

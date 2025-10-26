@@ -21,6 +21,7 @@ urlpatterns = [
 
     path('signup/', views.signup_view, name='signup'),
 
+
    
     path('api/check-auth/', views.check_auth, name='api_check_auth'),
     path('api/generate-otp/', views.generate_otp, name='generate_otp'),
@@ -64,6 +65,7 @@ urlpatterns = [
     path('community/posts/create/', views.create_post, name='create_post'),
     path('community/posts/<int:post_id>/like/', views.like_post, name='like_post'),
     path('community/posts/<int:post_id>/comment/', views.comment_on_post, name='comment_on_post'),
+    path('community/posts/<int:post_id>/delete/', views.delete_post, name='delete_post'),
 
     path('event/register/<int:event_id>/', views.event_register, name='event_register'),
     path('api/event/register/<int:event_id>/', views.SubmitRegistrationView.as_view(), name='submit_registration'),

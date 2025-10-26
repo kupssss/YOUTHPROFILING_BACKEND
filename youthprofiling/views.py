@@ -977,7 +977,6 @@ def initiate_password_reset(request):
             if not email:
                 return JsonResponse({'success': False, 'message': 'Email is required'})
             
-            # Check if email exists and is verified
             try:
                 user = YouthUser.objects.get(email=email)
                 if not user.is_email_verified:
@@ -987,13 +986,10 @@ def initiate_password_reset(request):
             except YouthUser.DoesNotExist:
                 return JsonResponse({'success': False, 'message': 'Email not found in our system'})
             
-            # Generate OTP
             otp_code = str(random.randint(100000, 999999))
             
-            # Delete existing OTPs for this email
             OTPVerification.objects.filter(email=email).delete()
             
-            # Create new OTP record (without purpose field)
             expires_at = timezone.now() + timedelta(minutes=10)
             otp_record = OTPVerification.objects.create(
                 email=email,
@@ -1001,7 +997,6 @@ def initiate_password_reset(request):
                 expires_at=expires_at
             )
             
-            # Send OTP email
             subject = "Password Reset Verification - SK Mambugan Youth Management System"
             html_content = render_to_string('auth/password_reset_email.html', {
                 'otp_code': otp_code,
@@ -1042,7 +1037,6 @@ def verify_reset_otp(request):
                 return JsonResponse({'success': False, 'message': 'Email and OTP are required'})
             
             try:
-                # Get the latest OTP record for this email (without purpose filter)
                 otp_record = OTPVerification.objects.filter(email=email).latest('created_at')
             except OTPVerification.DoesNotExist:
                 return JsonResponse({'success': False, 'message': 'No verification code found'})
@@ -1056,11 +1050,9 @@ def verify_reset_otp(request):
                 return JsonResponse({'success': False, 'message': 'Too many failed attempts'})
             
             if otp_attempt == otp_record.otp_code:
-                # OTP verified successfully
                 otp_record.is_verified = True
                 otp_record.save()
                 
-                # Create password reset token
                 reset_token = PasswordResetToken.objects.create(
                     user=YouthUser.objects.get(email=email),
                     token=str(random.randint(100000, 999999)) + str(random.randint(100000, 999999)),
@@ -1099,7 +1091,6 @@ def reset_password(request):
             if not email or not new_password or not token:
                 return JsonResponse({'success': False, 'message': 'All fields are required'})
             
-            # Validate token
             try:
                 reset_token = PasswordResetToken.objects.get(
                     token=token,
@@ -1110,20 +1101,16 @@ def reset_password(request):
             except PasswordResetToken.DoesNotExist:
                 return JsonResponse({'success': False, 'message': 'Invalid or expired reset token'})
             
-            # Validate password strength
             if len(new_password) < 8:
                 return JsonResponse({'success': False, 'message': 'Password must be at least 8 characters long'})
             
-            # Update user password
             user = reset_token.user
             user.set_password(new_password)
             user.save()
             
-            # Mark token as used
             reset_token.is_used = True
             reset_token.save()
             
-            # Log the password reset
             UserLog.objects.create(
                 youth_user=user,
                 username=user.username,
@@ -1503,7 +1490,6 @@ def update_profile(request):
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
         
-        # Update basic fields
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
         user.middle_name = request.POST.get('middle_name', user.middle_name)
@@ -1521,15 +1507,12 @@ def update_profile(request):
         user.sk_voter = request.POST.get('sk_voter') == 'on'
         user.id_type = request.POST.get('id_type', user.id_type)
         
-        # Update parent consent fields (for ages 15-17)
         user.parent_name = request.POST.get('parent_name', user.parent_name)
         user.parent_relationship = request.POST.get('parent_relationship', user.parent_relationship)
         user.parent_contact_number = request.POST.get('parent_contact_number', user.parent_contact_number)
         user.consent_date = request.POST.get('consent_date', user.consent_date)
         
-        # Handle file uploads
         if 'profile_picture' in request.FILES:
-            # Delete old profile picture if exists
             if user.profile_picture:
                 old_path = user.profile_picture.path
                 if os.path.exists(old_path):
@@ -1604,7 +1587,6 @@ def my_events(request):
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
         
-        # Get all user registrations with related event data
         user_registrations = EventRegistration.objects.filter(user=user).select_related('event')
         
         now = timezone.now()
@@ -1612,24 +1594,19 @@ def my_events(request):
         past_events = []
         
         for registration in user_registrations:
-            # For upcoming events: events that haven't ended yet AND user is registered/waitlisted
             if registration.event.end_date >= now and registration.status in ['confirmed', 'pending', 'waitlisted']:
                 upcoming_events.append(registration)
-            # For past events: events that have ended OR events with status 'attended' (regardless of date)
             elif registration.event.end_date < now or registration.status == 'attended':
                 past_events.append(registration)
         
-        # Calculate real statistics
         events_attended = user_registrations.filter(status='attended').count()
         upcoming_count = len(upcoming_events)
         
-        # Calculate total points from attended events
         total_points = sum(
             reg.event.points_reward for reg in user_registrations 
             if reg.status == 'attended' and reg.event.points_reward
         )
         
-        # Real achievements based on actual participation
         achievements = []
         if events_attended >= 10:
             achievements.append('Community Champion')
@@ -1670,7 +1647,7 @@ def event_registration_detail_api(request, registration_id):
             data = {
                 'success': True,
                 'registration': {
-                    'event_id': registration.event.id,  # Add this line
+                    'event_id': registration.event.id, 
                     'event_title': registration.event.title,
                     'event_date': registration.event.start_date.strftime('%B %d, %Y'),
                     'event_time': f"{registration.event.start_date.strftime('%I:%M %p')} - {registration.event.end_date.strftime('%I:%M %p')}",
@@ -1742,19 +1719,57 @@ def submit_evaluation_api(request, registration_id):
 
 
     
-
 from django.utils import timezone
-from datetime import timedelta
-from .models import CommunityPost, TrendingTopic, Event, CommunityGuideline
+from datetime import timedelta, datetime
+from django.conf import settings
+from cryptography.fernet import Fernet, InvalidToken
+from .models import CommunityPost, TrendingTopic, Event, CommunityGuideline, PostLike, PostComment, CommunityPoints, YouthUser
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+from django.shortcuts import render, redirect
 
 def user_community(request):
+    print("=== DEBUG: user_community view called ===")
     if not request.session.get('is_authenticated'):
+        print("DEBUG: User not authenticated, redirecting to login")
         return redirect('login')
     
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
+        print(f"DEBUG: User found: {user.username}")
         
-        posts = CommunityPost.objects.filter(is_active=True).order_by('-created_at')[:20]
+        show_approved_modal = request.session.pop('show_approved_modal', False)
+        show_rejected_modal = request.session.pop('show_rejected_modal', False)
+        rejected_reason = request.session.pop('rejected_reason', '')
+        
+        post_approved = request.session.pop('post_approved', False)
+        post_rejected = request.session.pop('post_rejected', False)
+        
+        if post_approved:
+            show_approved_modal = True
+        
+        if post_rejected:
+            show_rejected_modal = True
+            rejected_reason = request.session.pop('rejection_reason', 'Post violated community guidelines')
+        
+        show_points_modal = request.session.pop('show_points_modal', False)
+        points_earned = request.session.pop('points_earned', 0)
+        points_reason = request.session.pop('points_reason', '')
+        
+        show_warning_modal = request.session.pop('show_warning_modal', False)
+        warning_message = request.session.pop('warning_message', '')
+        
+        print(f"DEBUG: Modal flags - points: {show_points_modal}, warning: {show_warning_modal}, approved: {show_approved_modal}, rejected: {show_rejected_modal}")
+        print(f"DEBUG: Points earned: {points_earned}")
+        print(f"DEBUG: Warning message: {warning_message}")
+        
+        accepted_posts = CommunityPost.objects.filter(status='accepted').order_by('-created_at')[:20]
+        user_pending_posts = CommunityPost.objects.filter(user=user, status='pending')
+        
+        posts = list(accepted_posts) + list(user_pending_posts)
+        posts.sort(key=lambda x: x.created_at, reverse=True)
         
         trending_topics = TrendingTopic.objects.filter(is_active=True).order_by('-post_count')[:4]
         
@@ -1775,9 +1790,40 @@ def user_community(request):
         
         week_ago = timezone.now() - timedelta(days=7)
         posts_this_week = CommunityPost.objects.filter(
-            is_active=True,
+            status='accepted',
             created_at__gte=week_ago
         ).count()
+        
+        recently_active_users = YouthUser.objects.filter(
+            is_active=True
+        ).order_by('-last_login')[:5]
+        
+        top_contributors = CommunityPoints.objects.select_related('user').filter(
+            user__is_active=True
+        ).order_by('-points')[:15]
+        
+        today = timezone.now().date()
+        all_users = YouthUser.objects.filter(is_active=True)
+        birthdays_today = []
+        
+        for youth_user in all_users:
+            try:
+                birthdate_str = youth_user.birthdate
+                if birthdate_str and not birthdate_str.startswith('gAAAAA'):
+                    birthdate = datetime.strptime(birthdate_str, '%Y-%m-%d').date()
+                else:
+                    fernet = Fernet(settings.ENCRYPTION_KEY.encode())
+                    decrypted_birthdate = fernet.decrypt(birthdate_str.encode()).decode()
+                    birthdate = datetime.strptime(decrypted_birthdate, '%Y-%m-%d').date()
+                
+                if birthdate.month == today.month and birthdate.day == today.day:
+                    birthdays_today.append(youth_user)
+                    
+                    if len(birthdays_today) >= 5:
+                        break
+                        
+            except (ValueError, InvalidToken, Exception):
+                continue
         
         context = {
             'user': user,
@@ -1788,21 +1834,26 @@ def user_community(request):
             'total_members': total_members,
             'events_this_month': events_this_month,
             'posts_this_week': posts_this_week,
+            'recently_active_users': recently_active_users,
+            'top_contributors': top_contributors,
+            'birthdays_today': birthdays_today,
+            'show_approved_modal': show_approved_modal,
+            'show_rejected_modal': show_rejected_modal,
+            'rejected_reason': rejected_reason,
+            'show_points_modal': show_points_modal,
+            'points_earned': points_earned,
+            'points_reason': points_reason,
+            'show_warning_modal': show_warning_modal,
+            'warning_message': warning_message,
         }
         
+        print("DEBUG: Rendering template with context")
         return render(request, 'mainpage/usercommunity.html', context)
         
     except YouthUser.DoesNotExist:
+        print("DEBUG: YouthUser does not exist, flushing session")
         request.session.flush()
         return redirect('login')
-    
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-import json
-from .models import CommunityPost, PostLike, PostComment, TrendingTopic
-
 
 @csrf_exempt
 @require_POST
@@ -1825,7 +1876,8 @@ def create_post(request):
             content=content,
             post_type=post_type,
             image=image,
-            privacy=privacy
+            privacy=privacy,
+            status='pending'
         )
         
         import re
@@ -1844,7 +1896,6 @@ def create_post(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
-
 @csrf_exempt
 @require_POST
 def like_post(request, post_id):
@@ -1853,7 +1904,7 @@ def like_post(request, post_id):
     
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
-        post = CommunityPost.objects.get(id=post_id)
+        post = CommunityPost.objects.get(id=post_id, status='accepted')
         
         like, created = PostLike.objects.get_or_create(
             post=post,
@@ -1874,22 +1925,21 @@ def like_post(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
-
 @csrf_exempt
 @require_POST
-def comment_on_post(request, post_id):
+def comment_post(request, post_id):
     if not request.session.get('is_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
     try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id, status='accepted')
+        
         data = json.loads(request.body)
-        content = data.get('content', '')
+        content = data.get('content', '').strip()
         
         if not content:
-            return JsonResponse({'success': False, 'message': 'Comment content is required'})
-        
-        user = YouthUser.objects.get(id=request.session['user_id'])
-        post = CommunityPost.objects.get(id=post_id)
+            return JsonResponse({'success': False, 'message': 'Comment cannot be empty'})
         
         comment = PostComment.objects.create(
             post=post,
@@ -1905,6 +1955,81 @@ def comment_on_post(request, post_id):
     
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def delete_post(request, post_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id, user=user)
+        
+        post.delete()
+        
+        return JsonResponse({'success': True})
+    
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Post not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+@csrf_exempt
+@require_POST
+def comment_on_post(request, post_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '')
+        
+        if not content:
+            return JsonResponse({'success': False, 'message': 'Comment content is required'})
+        
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id, status='accepted')
+        
+        comment = PostComment.objects.create(
+            post=post,
+            user=user,
+            content=content
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'comment_id': comment.id,
+            'comment_count': post.comment_count
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def delete_post(request, post_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id, user=user)
+        
+        post.status = 'deleted'
+        post.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+
+
+
+        
 
 
 from django.shortcuts import get_object_or_404

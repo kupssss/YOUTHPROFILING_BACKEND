@@ -17,11 +17,10 @@
                 <span>SK Mambugan</span>
             </div>
             <div class="nav-menu" id="navMenu">
-                <a href="{% url 'mainpage' %}" class="nav-link ">Home</a>
+                <a href="{% url 'mainpage' %}" class="nav-link">Home</a>
                 <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
                 <a href="{% url 'usercommunity' %}" class="nav-link active">The Community</a>
                 <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
-                
                 <div class="dropdown user-dropdown">
                     <a href="#" class="nav-link user-welcome">
                         <i class="fas fa-user-circle"></i>
@@ -43,43 +42,46 @@
     </nav>
 
     <main class="community-container">
-        <div class="community-header">
-            <h1><i class="fas fa-users"></i> Community Hub</h1>
-            <p>Connect, share, and engage with your fellow SK Mambugan members</p>
+        <div class="community-hero">
+            <div class="hero-content">
+                <h1><i class="fas fa-users"></i> Community Hub</h1>
+                <p>Connect, share, and engage with your fellow SK Mambugan members</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">{{ total_members }}</span>
+                        <span class="stat-label">Members</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">{{ events_this_month }}</span>
+                        <span class="stat-label">Events This Month</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">{{ posts_this_week }}</span>
+                        <span class="stat-label">Posts This Week</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-illustration">
+                <i class="fas fa-comments"></i>
+            </div>
         </div>
 
         <div class="community-content">
             <div class="community-sidebar">
-                <div class="sidebar-section">
-                    <h3>Community Stats</h3>
-                    <div class="stats-item">
-                        <i class="fas fa-users"></i>
-                        <span>{{ total_members }} Members</span>
-                    </div>
-                    <div class="stats-item">
-                        <i class="fas fa-calendar"></i>
-                        <span>{{ events_this_month }} Events This Month</span>
-                    </div>
-                    <div class="stats-item">
-                        <i class="fas fa-comments"></i>
-                        <span>{{ posts_this_week }} Posts This Week</span>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <h3>Trending Topics</h3>
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-fire"></i> Trending Topics</h3>
                     {% for topic in trending_topics %}
                     <div class="topic-item">
                         <span class="hashtag">#{{ topic.name }}</span>
                         <span class="topic-count">{{ topic.post_count }} posts</span>
                     </div>
                     {% empty %}
-                    <p>No trending topics yet</p>
+                    <p class="no-data">No trending topics yet</p>
                     {% endfor %}
                 </div>
 
-                <div class="sidebar-section">
-                    <h3>Upcoming Events</h3>
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-calendar-star"></i> Upcoming Events</h3>
                     {% for event in upcoming_events %}
                     <div class="event-item">
                         <div class="event-date">
@@ -92,13 +94,27 @@
                         </div>
                     </div>
                     {% empty %}
-                    <p>No upcoming events</p>
+                    <p class="no-data">No upcoming events</p>
                     {% endfor %}
+                </div>
+
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-gem"></i> Community Guidelines</h3>
+                    <ul class="guidelines-list">
+                        {% for guideline in guidelines %}
+                        <li><i class="fas fa-check"></i> {{ guideline.content }}</li>
+                        {% empty %}
+                        <li><i class="fas fa-check"></i> Be respectful to all members</li>
+                        <li><i class="fas fa-check"></i> No spam or advertisements</li>
+                        <li><i class="fas fa-check"></i> Keep discussions relevant</li>
+                        <li><i class="fas fa-check"></i> Report inappropriate content</li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
 
             <div class="community-feed">
-                <div class="post-creator">
+                <div class="post-creator-card">
                     <div class="creator-header">
                         <div class="user-avatar">
                             {% if user.profile_picture %}
@@ -115,63 +131,94 @@
                     </div>
                     <div class="creator-actions">
                         <button class="action-btn" data-type="image">
-                            <i class="fas fa-image" style="color: #41B35D;"></i>
+                            <i class="fas fa-image"></i>
                             <span>Photo</span>
                         </button>
-                        <button class="post-btn" id="createPostBtn">Post</button>
+                        <button class="action-btn" data-type="feeling">
+                            <i class="fas fa-smile"></i>
+                            <span>Feeling</span>
+                        </button>
+                        <button class="post-btn" id="createPostBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            Post
+                        </button>
                     </div>
                 </div>
 
-                
                 <div class="posts-feed">
                     {% for post in posts %}
-<div class="post-card" data-post-id="{{ post.id }}">
-    <div class="post-header">
-        <div class="poster-info">
-            <div class="poster-avatar">
-                {% if post.user.username == 'sk_mambugan_admin' %}
-                    <!-- Special admin avatar -->
-                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan">
-                {% elif post.user.profile_picture %}
-                    <img src="{{ post.user.profile_picture.url }}" alt="{{ post.user.first_name }}">
-                {% else %}
-                    <div class="avatar-placeholder">
-                        <i class="fas fa-user"></i>
-                    </div>
-                {% endif %}
-            </div>
-            <div class="poster-details">
-                <span class="poster-name">
-                    {% if post.user.username == 'sk_mambugan_admin' %}
-                        Sangguniang Kabataan ng Barangay Mambugan
-                    {% else %}
-                        {{ post.user.get_full_name }}
-                    {% endif %}
-                </span>
-                <span class="post-time">{{ post.created_at|timesince }} ago · <i class="fas fa-globe-asia"></i></span>
-            </div>
-        </div>
-        <div class="post-options">
-            <i class="fas fa-ellipsis-h"></i>
-        </div>
-    </div>
-    <div class="post-content">
-        <p>{{ post.content }}</p>
-    </div>
-    {% if post.image %}
-    <div class="post-image">
-        <img src="{{ post.image.url }}" alt="Post image">
-    </div>
-    {% endif %}
+                    <div class="post-card {% if post.status == 'pending' %}pending-post{% endif %}" data-post-id="{{ post.id }}">
+                        {% if post.status == 'pending' %}
+                        <div class="post-pending-overlay">
+                            <div class="pending-content">
+                                <i class="fas fa-clock"></i>
+                                <h4>Waiting for Approval</h4>
+                                <p>Your post is being reviewed by our admin team</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="post-header">
+                            <div class="poster-info">
+                                <div class="poster-avatar">
+                                    {% if post.user.username == 'sk_mambugan_admin' %}
+                                        <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan">
+                                    {% elif post.user.profile_picture %}
+                                        <img src="{{ post.user.profile_picture.url }}" alt="{{ post.user.first_name }}">
+                                    {% else %}
+                                        <div class="avatar-placeholder">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="poster-details">
+                                    <span class="poster-name">
+                                        {% if post.user.username == 'sk_mambugan_admin' %}
+                                            Sangguniang Kabataan ng Barangay Mambugan
+                                        {% else %}
+                                            {{ post.user.get_full_name }}
+                                        {% endif %}
+                                    </span>
+                                    <span class="post-time">{{ post.created_at|timesince }} ago · <i class="fas fa-globe-asia"></i></span>
+                                </div>
+                            </div>
+                            <div class="post-options">
+                                <i class="fas fa-ellipsis-h options-toggle"></i>
+                                <div class="options-menu">
+                                    {% if post.user == user %}
+                                    <button class="option-item delete-post" data-post-id="{{ post.id }}">
+                                        <i class="fas fa-trash"></i> Delete Post
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="post-content">
+                            <p>{{ post.content }}</p>
+                        </div>
+                        
+                        {% if post.image %}
+                        <div class="post-image">
+                            <img src="{{ post.image.url }}" alt="Post image">
+                        </div>
+                        {% endif %}
+                        
+                        {% if post.status == 'accepted' %}
                         <div class="post-stats">
                             <div class="reactions">
-                                <span class="reaction-icons">❤️</span>
+                                <div class="reaction-icons">
+                                    <span class="reaction-emoji">❤️</span>
+                                    <span class="reaction-emoji">👍</span>
+                                    <span class="reaction-emoji">😊</span>
+                                </div>
                                 <span class="reaction-count">{{ post.like_count }}</span>
                             </div>
                             <div class="comments-share">
                                 <span>{{ post.comment_count }} comments</span>
                             </div>
                         </div>
+                        
                         <div class="post-actions">
                             <button class="post-action-btn like-btn" data-post-id="{{ post.id }}">
                                 <i class="far fa-heart"></i>
@@ -181,7 +228,12 @@
                                 <i class="far fa-comment"></i>
                                 <span>Comment</span>
                             </button>
+                            <button class="post-action-btn share-btn">
+                                <i class="far fa-share-square"></i>
+                                <span>Share</span>
+                            </button>
                         </div>
+                        
                         <div class="post-comments">
                             <div class="comment-input">
                                 <div class="comment-avatar">
@@ -215,9 +267,8 @@
                                         </div>
                                         <p>{{ comment.content }}</p>
                                         <div class="comment-actions">
-                                            <button>Like</button>
-                                            <button>Reply</button>
-                                            <span>{{ comment.like_count }} likes</span>
+                                            <button class="like-comment">Like</button>
+                                            <span class="comment-likes">{{ comment.like_count }} likes</span>
                                         </div>
                                     </div>
                                 </div>
@@ -225,50 +276,191 @@
                                 {% endfor %}
                             </div>
                         </div>
+                        {% else %}
+                        <div class="post-stats pending-stats">
+                            <div class="reactions">
+                                <div class="reaction-icons">
+                                    <span class="reaction-emoji">❤️</span>
+                                    <span class="reaction-emoji">👍</span>
+                                    <span class="reaction-emoji">😊</span>
+                                </div>
+                                <span class="reaction-count">0</span>
+                            </div>
+                            <div class="comments-share">
+                                <span>0 comments</span>
+                            </div>
+                        </div>
+                        
+                        <div class="post-actions pending-actions">
+                            <button class="post-action-btn like-btn disabled" data-post-id="{{ post.id }}">
+                                <i class="far fa-heart"></i>
+                                <span>Like</span>
+                            </button>
+                            <button class="post-action-btn comment-btn disabled">
+                                <i class="far fa-comment"></i>
+                                <span>Comment</span>
+                            </button>
+                            <button class="post-action-btn share-btn disabled">
+                                <i class="far fa-share-square"></i>
+                                <span>Share</span>
+                            </button>
+                        </div>
+                        
+                        <div class="post-comments pending-comments">
+                            <div class="comment-input">
+                                <div class="comment-avatar">
+                                    {% if user.profile_picture %}
+                                        <img src="{{ user.profile_picture.url }}" alt="{{ user.first_name }}">
+                                    {% else %}
+                                        <div class="avatar-placeholder small">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <input type="text" placeholder="Write a comment..." data-post-id="{{ post.id }}" class="comment-input-field disabled" disabled>
+                            </div>
+                            <div class="comment-list">
+                                <div class="comment-placeholder">
+                                    <i class="fas fa-comment-slash"></i>
+                                    <p>Comments will be available after post approval</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                     {% empty %}
                     <div class="no-posts">
-                        <i class="fas fa-comments" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <div class="no-posts-illustration">
+                            <i class="fas fa-comments"></i>
+                        </div>
                         <h3>No posts yet</h3>
                         <p>Be the first to share something with the community!</p>
+                        <button class="cta-button" id="firstPostBtn">
+                            <i class="fas fa-pen"></i> Create Your First Post
+                        </button>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
             <div class="community-sidebar right-sidebar">
-                <div class="sidebar-section">
-                    <h3>Birthdays Today</h3>
-                    <div class="birthday-item">
-                        <i class="fas fa-birthday-cake" style="color: #E42645;"></i>
-                        <span>No birthdays today</span>
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-birthday-cake"></i> Birthdays Today</h3>
+                    {% if birthdays_today %}
+                    <div class="birthdays-list">
+                        {% for birthday_user in birthdays_today %}
+                        <div class="birthday-item">
+                            <div class="birthday-avatar">
+                                {% if birthday_user.profile_picture %}
+                                    <img src="{{ birthday_user.profile_picture.url }}" alt="{{ birthday_user.first_name }}">
+                                {% else %}
+                                    <div class="avatar-placeholder small">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="birthday-badge">
+                                    <i class="fas fa-gift"></i>
+                                </div>
+                            </div>
+                            <div class="birthday-info">
+                                <span class="birthday-name">{{ birthday_user.get_full_name|truncatechars:18 }}</span>
+                                <span class="birthday-age">
+                                    {% with age=birthday_user.age|add:1 %}
+                                     Turns {{ age }} today!
+                                    {% endwith %}
+                                </span>
+                            </div>
+                            <button class="birthday-wish-btn" data-user-id="{{ birthday_user.id }}">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="no-birthdays">
+                        <i class="fas fa-birthday-cake"></i>
+                        <p>No birthdays today</p>
+                        <small>Check back tomorrow!</small>
+                    </div>
+                    {% endif %}
                 </div>
 
-                <div class="sidebar-section">
-                    <h3>Recently Active</h3>
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-bolt"></i> Recently Active</h3>
                     {% for active_user in recently_active_users %}
                     <div class="active-user">
                         <div class="active-indicator"></div>
+                        <div class="user-avatar small">
+                            {% if active_user.profile_picture %}
+                                <img src="{{ active_user.profile_picture.url }}" alt="{{ active_user.first_name }}">
+                            {% else %}
+                                <div class="avatar-placeholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            {% endif %}
+                        </div>
                         <span>{{ active_user.get_full_name }}</span>
                     </div>
                     {% empty %}
-                    <p>No recently active users</p>
+                    <p class="no-data">No recently active users</p>
                     {% endfor %}
                 </div>
 
-                <div class="sidebar-section">
-                    <h3>Community Guidelines</h3>
-                    <ul class="guidelines-list">
-                        {% for guideline in guidelines %}
-                        <li><i class="fas fa-check-circle"></i> {{ guideline.content }}</li>
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-trophy"></i> Top Contributors</h3>
+                    <div class="contributors-list">
+                        {% for contributor in top_contributors %}
+                        <div class="contributor-item {% if forloop.first %}top-contributor{% endif %}">
+                            <div class="contributor-rank {% if forloop.first %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
+                                {{ forloop.counter }}
+                            </div>
+                            <div class="contributor-avatar">
+                                {% if contributor.user.profile_picture %}
+                                    <img src="{{ contributor.user.profile_picture.url }}" alt="{{ contributor.user.first_name }}">
+                                {% else %}
+                                    <div class="avatar-placeholder small">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                {% if forloop.first %}
+                                <div class="crown-icon">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="contributor-info">
+                                <span class="contributor-name">{{ contributor.user.get_full_name|truncatechars:20 }}</span>
+                                <div class="contributor-stats">
+                                    <span class="contributor-points">{{ contributor.points }} pts</span>
+                                    <div class="points-bar">
+                                        <div class="points-progress"style="width: {% widthratio contributor.points top_contributors.0.points 100 %}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {% empty %}
-                        <li><i class="fas fa-check-circle"></i> Be respectful to all members</li>
-                        <li><i class="fas fa-check-circle"></i> No spam or advertisements</li>
-                        <li><i class="fas fa-check-circle"></i> Keep discussions relevant to the community</li>
-                        <li><i class="fas fa-check-circle"></i> Report any inappropriate content</li>
+                        <div class="no-contributors">
+                            <i class="fas fa-users"></i>
+                            <p>No contributors yet</p>
+                        </div>
                         {% endfor %}
-                    </ul>
+                    </div>
+                    {% if top_contributors %}
+                    <div class="contributors-footer">
+                        <div class="user-rank">
+                            <i class="fas fa-medal"></i>
+                            <span>Your Rank: 
+                                {% for contributor in top_contributors %}
+                                    {% if contributor.user == user %}
+                                        #{{ forloop.counter }}
+                                    {% endif %}
+                                {% empty %}
+                                    Not ranked
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -316,11 +508,81 @@
         </div>
     </footer>
 
+    {% if show_points_modal %}
+    <div id="pointsModal" class="modal" style="display: block;">
+        <div class="modal-content success-modal">
+            <span class="close">&times;</span>
+            <div class="modal-icon">
+                <i class="fas fa-gem"></i>
+            </div>
+            <h2>Congratulations!</h2>
+            <p>You've earned {{ points_earned }} points for your recent activity.</p>
+            <div class="modal-buttons">
+                <button class="btn-primary close-modal">Nice!</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_warning_modal %}
+    <div id="warningModal" class="modal" style="display: block;">
+        <div class="modal-content warning-modal">
+            <span class="close">&times;</span>
+            <div class="modal-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2>Warning</h2>
+            <p>{{ warning_message }}</p>
+            <div class="modal-buttons">
+                <button class="btn-primary close-modal">Understood</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_approved_modal %}
+    <div id="approvedModal" class="modal" style="display: block;">
+        <div class="modal-content success-modal">
+            <span class="close">&times;</span>
+            <div class="modal-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Post Approved!</h2>
+            <p>Your post has been approved and is now visible to the community.</p>
+            <div class="modal-buttons">
+                <button class="btn-primary close-modal">Awesome!</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_rejected_modal %}
+    <div id="rejectedModal" class="modal" style="display: block;">
+        <div class="modal-content error-modal">
+            <span class="close">&times;</span>
+            <div class="modal-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <h2>Post Rejected</h2>
+            <p>Sorry, your post has been rejected by the admin.</p>
+            {% if rejected_reason %}
+            <div class="rejection-reason">
+                <strong>Reason:</strong>
+                <p>{{ rejected_reason }}</p>
+            </div>
+            {% endif %}
+            <div class="modal-buttons">
+                <button class="btn-primary close-modal">Understand</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="modal" id="createPostModal">
         <div class="modal-content post-modal">
             <span class="close">&times;</span>
             <div class="modal-header">
-                <h2>Create Post</h2>
+                <h2><i class="fas fa-edit"></i> Create Post</h2>
             </div>
             <form id="postForm" method="post" action="{% url 'create_post' %}" enctype="multipart/form-data">
                 {% csrf_token %}
@@ -356,7 +618,9 @@
                         <div id="mediaPreview" class="media-preview"></div>
                     </div>
                     <div class="modal-actions">
-                        <button type="submit" class="modal-btn primary" id="publishPostBtn">Publish</button>
+                        <button type="submit" class="modal-btn primary" id="publishPostBtn">
+                            <i class="fas fa-paper-plane"></i> Publish Post
+                        </button>
                     </div>
                 </div>
             </form>
@@ -366,6 +630,9 @@
     <div id="logoutModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
+            <div class="modal-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
             <h2>Confirm Logout</h2>
             <p>Are you sure you want to logout from your account?</p>
             <div class="modal-buttons">

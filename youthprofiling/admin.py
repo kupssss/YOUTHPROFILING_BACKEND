@@ -12,7 +12,7 @@ from django.utils import timezone
 from django import forms
 from cryptography.fernet import Fernet, InvalidToken
 import base64
-from .models import YouthUser, UserLog, UserArchive, AuditLog
+from .models import YouthUser, UserLog, UserArchive, AuditLog, CommunityPoints, PointsHistory
 
 fernet = Fernet(settings.ENCRYPTION_KEY)
 
@@ -24,11 +24,12 @@ class DecryptionForm(forms.Form):
     )
 
 class YouthUserAdmin(admin.ModelAdmin):
-    list_display = ('registration_no', 'get_full_name', 'email', 'age_group', 'is_email_verified', 'is_admin_verified', 'is_active', 'admin_verification_actions')
-    list_filter = ('is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender', 'purok_zone')
+    list_display = ('registration_no', 'get_full_name', 'email', 'age_group', 'is_email_verified', 'is_admin_verified', 'is_active', 'get_community_points', 'no_show_count', 'last_no_show_date', 'admin_verification_actions')
+    list_filter = ('is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender', 'purok_zone', 'no_show_count')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'registration_no')
     readonly_fields = ('registration_no', 'created_at', 'updated_at', 'last_login', 'get_encrypted_data_display',
-                      'is_email_verified', 'email_verification_date', 'admin_verification_date')
+                      'is_email_verified', 'email_verification_date', 'admin_verification_date', 'get_community_points',
+                      'no_show_count', 'last_no_show_date')
     
     fieldsets = (
         ('Login Credentials', {
@@ -44,6 +45,10 @@ class YouthUserAdmin(admin.ModelAdmin):
         ('Contact Information', {
             'fields': ('purok_zone', 'contact_number')
         }),
+        ('No-Show Tracking', {
+            'fields': ('no_show_count', 'last_no_show_date'),
+            'classes': ('collapse',)
+        }),
         ('Parent Consent Information (Ages 15-17)', {
             'fields': ('parent_name', 'parent_relationship', 'parent_contact_number', 
                       'consent_date', 'parent_consent_letter', 'parent_id_picture'),
@@ -52,6 +57,9 @@ class YouthUserAdmin(admin.ModelAdmin):
         ('Verification Status', {
             'fields': ('is_email_verified', 'email_verification_date', 
                       'is_admin_verified', 'admin_verification_date', 'is_active')
+        }),
+        ('Community Points', {
+            'fields': ('get_community_points',)
         }),
         ('Documents', {
             'fields': ('profile_picture', 'id_type', 'id_picture', 'birth_certificate')
@@ -63,11 +71,16 @@ class YouthUserAdmin(admin.ModelAdmin):
     
     actions = ['verify_selected_users', 'unverify_selected_users', 
                'activate_selected_users', 'deactivate_selected_users',
-               'archive_and_delete_selected_users']
+               'archive_and_delete_selected_users', 'add_points_to_users',
+               'deduct_points_from_users', 'reset_no_show_counts']
     
     def get_full_name(self, obj):
         return obj.get_full_name()
     get_full_name.short_description = 'Full Name'
+    
+    def get_community_points(self, obj):
+        return obj.community_points
+    get_community_points.short_description = 'Community Points'
     
     def admin_verification_actions(self, obj):
         return format_html(
@@ -91,8 +104,6 @@ class YouthUserAdmin(admin.ModelAdmin):
     admin_verification_actions.short_description = 'Verification Actions'
     
     def get_encrypted_data_display(self, obj):
-        """Display encrypted data with decryption option"""
-        # Check if we have a decryption key from a previous POST
         decryption_key = getattr(self, '_decryption_key', None)
         
         if decryption_key:
@@ -106,10 +117,8 @@ class YouthUserAdmin(admin.ModelAdmin):
                     if value:
                         try:
                             if not value.startswith('gAAAAA'):
-                                # Data is not encrypted, display as is
                                 decrypted_data[field] = value
                             else:
-                                # Data is encrypted, try to decrypt
                                 decoded_value = base64.urlsafe_b64decode(value)
                                 decrypted_value = temp_fernet.decrypt(decoded_value).decode()
                                 decrypted_data[field] = decrypted_value
@@ -138,7 +147,6 @@ class YouthUserAdmin(admin.ModelAdmin):
             except Exception as e:
                 return format_html(f"<div style='color: red;'>Decryption error: {str(e)}</div>")
         else:
-            # Show the decryption form
             form = DecryptionForm()
             return format_html(f"""
             <div style='background-color: #fff3cd; padding: 10px; border-radius: 5px;'>
@@ -185,7 +193,6 @@ class YouthUserAdmin(admin.ModelAdmin):
                 elif action == 'decrypt':
                     decryption_key = request.POST.get('decryption_key', '')
                     if decryption_key:
-                        # Store the decryption key for this instance
                         self._decryption_key = decryption_key
                         self.message_user(request, "Decryption key applied. Data will be decrypted on page refresh.")
         
@@ -211,22 +218,56 @@ class YouthUserAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} users have been deactivated.")
     deactivate_selected_users.short_description = "Deactivate selected users"
     
+    def add_points_to_users(self, request, queryset):
+        points = request.POST.get('points', 100)
+        try:
+            points = int(points)
+            for user in queryset:
+                community_points, created = CommunityPoints.objects.get_or_create(
+                    user=user,
+                    defaults={'points': 100}
+                )
+                community_points.add_points(points, "Added by admin")
+            self.message_user(request, f"Added {points} points to {queryset.count()} users.")
+        except ValueError:
+            self.message_user(request, "Invalid points value.", level='error')
+    add_points_to_users.short_description = "Add points to selected users"
+    
+    def deduct_points_from_users(self, request, queryset):
+        points = request.POST.get('points', 10)
+        try:
+            points = int(points)
+            success_count = 0
+            for user in queryset:
+                try:
+                    community_points = CommunityPoints.objects.get(user=user)
+                    community_points.deduct_points(points, "Deducted by admin")
+                    success_count += 1
+                except CommunityPoints.DoesNotExist:
+                    pass
+            self.message_user(request, f"Deducted {points} points from {success_count} users.")
+        except ValueError:
+            self.message_user(request, "Invalid points value.", level='error')
+    deduct_points_from_users.short_description = "Deduct points from selected users"
+    
+    def reset_no_show_counts(self, request, queryset):
+        updated = queryset.update(no_show_count=0, last_no_show_date=None)
+        self.message_user(request, f"Reset no-show counts for {updated} users.")
+    reset_no_show_counts.short_description = "Reset no-show counts for selected users"
+    
     def delete_model(self, request, obj):
-        """Override delete to archive first"""
-        from .utils import archive_user_before_deletion  # Import the function
+        from .utils import archive_user_before_deletion
         archive_user_before_deletion(obj, deleted_by=request.user.username, reason='Deleted by admin')
         super().delete_model(request, obj)
     
     def delete_queryset(self, request, queryset):
-        """Override bulk delete to archive first"""
-        from .utils import archive_user_before_deletion  # Import the function
+        from .utils import archive_user_before_deletion
         for obj in queryset:
             archive_user_before_deletion(obj, deleted_by=request.user.username, reason='Bulk deleted by admin')
         super().delete_queryset(request, queryset)
     
     def archive_and_delete_selected_users(self, request, queryset):
-        """Custom action to archive and delete users"""
-        from .utils import archive_user_before_deletion  # Import the function
+        from .utils import archive_user_before_deletion
         count = 0
         for user in queryset:
             try:
@@ -245,7 +286,6 @@ class YouthUserAdmin(admin.ModelAdmin):
         else:
             action = 'CREATE'
             
-        # Create audit log entry
         AuditLog.objects.create(
             admin_user=request.user,
             youth_user=obj,
@@ -255,6 +295,39 @@ class YouthUserAdmin(admin.ModelAdmin):
         )
         
         super().save_model(request, obj, form, change)
+
+
+@admin.register(CommunityPoints)
+class CommunityPointsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'points', 'created_at', 'updated_at')
+    list_filter = ('created_at', 'updated_at')
+    search_fields = ('user__username', 'user__email', 'user__first_name', 'user__last_name')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user', 'points')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+
+@admin.register(PointsHistory)
+class PointsHistoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'points_change', 'new_balance', 'reason', 'created_at')
+    list_filter = ('created_at', 'points_change')
+    search_fields = ('user__username', 'user__email', 'user__first_name', 'user__last_name', 'reason')
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Transaction Information', {
+            'fields': ('user', 'points_change', 'new_balance', 'reason')
+        }),
+        ('Timestamp', {
+            'fields': ('created_at',)
+        }),
+    )
 
 class OTPVerificationAdmin(admin.ModelAdmin):
     list_display = ('email', 'is_verified', 'attempts', 'created_at', 'expires_at', 'is_expired')
@@ -494,6 +567,9 @@ class AnnouncementAdmin(admin.ModelAdmin):
     list_filter = ('category', 'is_important', 'is_active', 'publish_date')
     search_fields = ('title', 'content', 'excerpt')
     readonly_fields = ('publish_date', 'created_by', 'announcement_image_preview')
+    
+    exclude = ('created_by',)
+    
     fieldsets = (
         ('Basic Information', {
             'fields': ('title', 'content', 'excerpt', 'category', 'image', 'announcement_image_preview')
@@ -514,19 +590,37 @@ class AnnouncementAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         if not obj.pk:
-            obj.created_by = request.user
+            from .models import YouthAdmin
+            try:
+                youth_admin = YouthAdmin.objects.get(username=request.user.username)
+            except YouthAdmin.DoesNotExist:
+                youth_admin = YouthAdmin.objects.create(
+                    username=request.user.username,
+                    email=request.user.email or f"{request.user.username}@skmambugan.ph",
+                    first_name=request.user.first_name or 'Admin',
+                    last_name=request.user.last_name or 'User',
+                    role='staff',
+                    contact_number='00000000000',
+                    is_active=True
+                )
+                youth_admin.set_password('temporary_password_123') 
+                youth_admin.save()
+            
+            obj.created_by = youth_admin
         super().save_model(request, obj, form, change)
 
 class EventAdmin(admin.ModelAdmin):
     form = EventAdminForm
-    list_display = ('title', 'category', 'start_date', 'end_date', 'location', 'is_active', 'created_by')
+    list_display = ('title', 'category', 'start_date', 'end_date', 'location', 'is_active', 'created_by', 'points_reward')
     list_filter = ('category', 'is_active', 'start_date', 'requires_registration')
     search_fields = ('title', 'description', 'excerpt')
     readonly_fields = ('created_by', 'current_participants', 'event_image_preview', 'seats_available_display')
+    
     filter_horizontal = (
         'target_genders', 'target_civil_statuses', 'target_age_groups',
         'target_education_levels', 'target_youth_classifications', 'target_work_statuses'
     )
+    
     fieldsets = (
         ('Basic Information', {
             'fields': ('title', 'description', 'excerpt', 'category', 'image', 'event_image_preview')
@@ -580,23 +674,107 @@ class EventAdmin(admin.ModelAdmin):
     event_image_preview.short_description = 'Image Preview'
     
     def seats_available_display(self, obj):
-        if obj.maximum_participants:
-            return f"{obj.seats_available} / {obj.maximum_participants}"
-        return "Unlimited"
+        seats = obj.seats_available
+        if seats is None:
+            return "No limit"
+        elif seats > 0:
+            return format_html('<span style="color: green;">{} seats available</span>', seats)
+        else:
+            return format_html('<span style="color: red;">Event full</span>')
     seats_available_display.short_description = 'Seats Available'
     
     def save_model(self, request, obj, form, change):
         if not obj.pk:
-            obj.created_by = request.user
+            from .models import YouthAdmin
+            try:
+                youth_admin = YouthAdmin.objects.get(username=request.user.username)
+            except YouthAdmin.DoesNotExist:
+                youth_admin = YouthAdmin.objects.create(
+                    username=request.user.username,
+                    email=request.user.email,
+                    first_name=request.user.first_name or 'Admin',
+                    last_name=request.user.last_name or 'User',
+                    role='staff',
+                    is_active=True
+                )
+                youth_admin.set_password('temporary_password')  
+                youth_admin.save()
+            
+            obj.created_by = youth_admin
         super().save_model(request, obj, form, change)
 
 class EventRegistrationAdmin(admin.ModelAdmin):
-    list_display = ('event', 'user', 'registration_date', 'status', 'points_earned')
-    list_filter = ('status', 'points_earned', 'registration_date')
-    search_fields = ('event__title', 'user__first_name', 'user__last_name')
-    readonly_fields = ('registration_date',)
+    list_display = ['user', 'event', 'status', 'points_earned', 'registration_date', 'no_show_action']
+    list_filter = ['status', 'event']
+    actions = ['mark_attended', 'mark_no_show']
+    
+    def no_show_action(self, obj):
+        if obj.status != 'no_show':
+            return format_html(
+                '<a class="button" href="{}">Mark No Show</a>',
+                f"{obj.id}/mark_no_show/"
+            )
+        return "No Show"
+    no_show_action.short_description = 'No Show Action'
 
+    def mark_attended(self, request, queryset):
+        for registration in queryset:
+            if registration.status != 'attended':
+                registration.mark_attended()
+        self.message_user(request, f"Marked {queryset.count()} registrations as attended")
+    mark_attended.short_description = "Mark selected as attended"
 
+    def mark_no_show(self, request, queryset):
+        for registration in queryset:
+            if registration.status != 'no_show':
+                registration.mark_no_show()
+        self.message_user(request, f"Marked {queryset.count()} registrations as no-show")
+    mark_no_show.short_description = "Mark selected as no-show"
+
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('<path:object_id>/mark_no_show/', self.mark_no_show_view, name='mark_no_show'),
+        ]
+        return custom_urls + urls
+
+    def mark_no_show_view(self, request, object_id):
+        try:
+            registration = EventRegistration.objects.get(id=object_id)
+            if registration.status != 'no_show':
+                registration.mark_no_show()
+                self.message_user(request, f"Marked {registration} as no-show")
+            else:
+                self.message_user(request, "Registration is already marked as no-show", level='warning')
+        except EventRegistration.DoesNotExist:
+            self.message_user(request, "Registration not found", level='error')
+        
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin/app/eventregistration/'))
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            old_obj = EventRegistration.objects.get(pk=obj.pk)
+            if old_obj.status != 'attended' and obj.status == 'attended':
+                obj.check_in_time = timezone.now()
+                if obj.points_earned == 0 and obj.event.points_reward > 0:
+                    obj.points_earned = obj.event.points_reward
+                    community_points, created = CommunityPoints.objects.get_or_create(
+                        user=obj.user,
+                        defaults={'points': 100}
+                    )
+                    community_points.add_points(obj.event.points_reward, f"Event attendance: {obj.event.title}")
+            elif old_obj.status == 'attended' and obj.status != 'attended':
+                if obj.points_earned > 0:
+                    try:
+                        community_points = CommunityPoints.objects.get(user=obj.user)
+                        community_points.deduct_points(obj.points_earned, f"Status changed from attended: {obj.event.title}")
+                    except CommunityPoints.DoesNotExist:
+                        pass
+                    obj.points_earned = 0
+            elif old_obj.status != 'no_show' and obj.status == 'no_show':
+                obj.mark_no_show()
+        super().save_model(request, obj, form, change)
 
 from django.contrib import admin
 from .models import EventEvaluation
@@ -634,17 +812,48 @@ class PostCommentInline(admin.TabularInline):
     readonly_fields = ('created_at',)
 
 
+from django.contrib import admin
+from django.http import HttpResponseRedirect
+from django.contrib import messages
+
 @admin.register(CommunityPost)
 class CommunityPostAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'short_content', 'post_type', 'privacy', 'like_count', 'comment_count', 'created_at', 'is_active')
-    list_filter = ('post_type', 'privacy', 'is_active', 'created_at')
+    list_display = ('id', 'user', 'short_content', 'post_type', 'status', 'privacy', 'like_count', 'comment_count', 'created_at')
+    list_filter = ('post_type', 'privacy', 'status', 'created_at')
     search_fields = ('content', 'user__first_name', 'user__last_name', 'user__username')
-    inlines = [PostLikeInline, PostCommentInline]
     readonly_fields = ('created_at', 'updated_at')
+    actions = ['approve_posts', 'reject_posts']
 
     def short_content(self, obj):
         return (obj.content[:50] + '...') if len(obj.content) > 50 else obj.content
     short_content.short_description = 'Content'
+
+    def approve_posts(self, request, queryset):
+        for post in queryset:
+            post.status = 'accepted'
+            post.save()
+            request.session['post_approved'] = True
+        self.message_user(request, f"Successfully approved {queryset.count()} posts.")
+    approve_posts.short_description = "Approve selected posts"
+
+    def reject_posts(self, request, queryset):
+        for post in queryset:
+            post.status = 'rejected'
+            post.rejection_reason = 'Post violated community guidelines'
+            post.save()
+            request.session['post_rejected'] = True
+            request.session['rejection_reason'] = 'Post violated community guidelines'
+        self.message_user(request, f"Successfully rejected {queryset.count()} posts.")
+    reject_posts.short_description = "Reject selected posts"
+
+    def response_change(self, request, obj):
+        if 'status' in request.POST:
+            if request.POST['status'] == 'accepted':
+                request.session['post_approved'] = True
+            elif request.POST['status'] == 'rejected':
+                request.session['post_rejected'] = True
+                request.session['rejection_reason'] = obj.rejection_reason or 'Post violated community guidelines'
+        return super().response_change(request, obj)
 
 
 @admin.register(PostLike)
