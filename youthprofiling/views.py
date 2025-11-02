@@ -2251,12 +2251,10 @@ def usereventdetails(request, event_id):
 # _________________
 # |  MOBILE APP   |
 # --------------------
-
-
 from django.http import JsonResponse
 from django.utils import timezone
 from .models import YouthUser, Announcement, Event, EventRegistration, AnnouncementInteraction, EventQuestion
-import json
+from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def get_user_dashboard_data(request):
@@ -2312,6 +2310,12 @@ def get_user_dashboard_data(request):
                 'is_registered': event.id in user_registered_event_ids
             })
         
+        user_points = 0
+        try:
+            user_points = user.points.points
+        except:
+            pass
+        
         response_data = {
             'success': True,
             'user': {
@@ -2325,19 +2329,17 @@ def get_user_dashboard_data(request):
                 'upcoming_events_count': upcoming_events.count(),
                 'user_registered_events_count': user_registered_events_count,
                 'user_volunteer_count': user_volunteer_count,
-                'user_points': user.points if hasattr(user, 'points') else 0
+                'user_points': user_points
             },
-            'announcements': announcements_data,  
-            'upcoming_events': events_data 
+            'announcements': announcements_data,
+            'upcoming_events': events_data
         }
         
-        print("Sending dashboard data:", response_data) 
         return JsonResponse(response_data)
         
     except YouthUser.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
     except Exception as e:
-        print("Error in dashboard data:", str(e))  
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 @csrf_exempt
