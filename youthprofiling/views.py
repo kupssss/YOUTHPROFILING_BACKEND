@@ -1305,6 +1305,7 @@ def userannouncement(request):
             'upcoming_events': upcoming_events,
             'announcements_count': announcements.count(),
             'upcoming_events_count': upcoming_events.count(),
+            'user_registrations': user_registrations,
             'user_registered_event_ids': user_registered_event_ids,
             'user_registered_events_count': user_registered_events_count,
             'user_saved_announcement_ids': user_saved_announcement_ids,
@@ -1325,7 +1326,7 @@ def userannouncement(request):
         return redirect('login')
 
 
-from django.utils import timezone
+    from django.utils import timezone
 from .models import Complaint, Suggestion, SupportTicket, FAQ, CallbackRequest
 
 def usercontact(request):
@@ -1461,6 +1462,8 @@ def support_tickets(request):
 
 
 
+        
+    
 
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
@@ -1510,7 +1513,10 @@ def update_profile(request):
         user.parent_name = request.POST.get('parent_name', user.parent_name)
         user.parent_relationship = request.POST.get('parent_relationship', user.parent_relationship)
         user.parent_contact_number = request.POST.get('parent_contact_number', user.parent_contact_number)
-        user.consent_date = request.POST.get('consent_date', user.consent_date)
+        
+        consent_date = request.POST.get('consent_date')
+        if consent_date:
+            user.consent_date = consent_date
         
         if 'profile_picture' in request.FILES:
             if user.profile_picture:
@@ -1718,12 +1724,11 @@ def submit_evaluation_api(request, registration_id):
 
 
 
-    
 from django.utils import timezone
 from datetime import timedelta, datetime
 from django.conf import settings
 from cryptography.fernet import Fernet, InvalidToken
-from .models import CommunityPost, TrendingTopic, Event, CommunityGuideline, PostLike, PostComment, CommunityPoints, YouthUser
+from .models import CommunityPost, TrendingTopic, Event, CommunityGuideline, PostLike, PostComment, CommunityPoints, YouthUser, EventRegistration, PointsHistory
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -1731,14 +1736,11 @@ import json
 from django.shortcuts import render, redirect
 
 def user_community(request):
-    print("=== DEBUG: user_community view called ===")
     if not request.session.get('is_authenticated'):
-        print("DEBUG: User not authenticated, redirecting to login")
         return redirect('login')
     
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
-        print(f"DEBUG: User found: {user.username}")
         
         show_approved_modal = request.session.pop('show_approved_modal', False)
         show_rejected_modal = request.session.pop('show_rejected_modal', False)
@@ -1756,14 +1758,64 @@ def user_community(request):
         
         show_points_modal = request.session.pop('show_points_modal', False)
         points_earned = request.session.pop('points_earned', 0)
-        points_reason = request.session.pop('points_reason', '')
         
         show_warning_modal = request.session.pop('show_warning_modal', False)
         warning_message = request.session.pop('warning_message', '')
         
-        print(f"DEBUG: Modal flags - points: {show_points_modal}, warning: {show_warning_modal}, approved: {show_approved_modal}, rejected: {show_rejected_modal}")
-        print(f"DEBUG: Points earned: {points_earned}")
-        print(f"DEBUG: Warning message: {warning_message}")
+        recent_points = PointsHistory.objects.filter(
+            user=user,
+            created_at__gte=timezone.now() - timedelta(minutes=5)
+        ).order_by('-created_at').first()
+        
+        if recent_points and recent_points.points_change > 0:
+            points_key = f"points_{recent_points.id}"
+            if points_key not in user.shown_modals:
+                show_points_modal = True
+                points_earned = recent_points.points_change
+                user.shown_modals[points_key] = True
+                user.save()
+        
+        recent_no_shows = EventRegistration.objects.filter(
+            user=user,
+            status='no_show',
+            registration_date__gte=timezone.now() - timedelta(days=30)
+        )
+        
+        for registration in recent_no_shows:
+            no_show_key = f"no_show_{registration.id}"
+            if no_show_key not in user.shown_modals:
+                show_warning_modal = True
+                
+                if user.no_show_count == 1:
+                    warning_message = f"First Warning! You failed to attend '{registration.event.title}'. This is your first no-show offense. Please be more responsible with your commitments to the community."
+                elif user.no_show_count == 2:
+                    warning_message = f"Second Offense! You missed '{registration.event.title}' again. 100 points have been deducted from your account. Repeated no-shows affect community trust."
+                elif user.no_show_count >= 3:
+                    current_points = user.community_points
+                    if current_points > 0:
+                        warning_message = f"Final Warning! Due to multiple no-shows including '{registration.event.title}', all your points have been reset to zero. Further offenses will result in negative points."
+                    else:
+                        warning_message = f"Account Penalty! Your points are now -50 due to repeated no-shows. You are in negative territory! Contact admin immediately to resolve this."
+                
+                user.shown_modals[no_show_key] = True
+                user.save()
+                break
+        
+        recent_registrations = EventRegistration.objects.filter(
+            user=user,
+            status='attended',
+            check_in_time__gte=timezone.now() - timedelta(minutes=5)
+        )
+        
+        for registration in recent_registrations:
+            if registration.points_earned > 0:
+                event_key = f"event_{registration.event.id}"
+                if event_key not in user.shown_modals:
+                    show_points_modal = True
+                    points_earned = registration.points_earned
+                    user.shown_modals[event_key] = True
+                    user.save()
+                    break
         
         accepted_posts = CommunityPost.objects.filter(status='accepted').order_by('-created_at')[:20]
         user_pending_posts = CommunityPost.objects.filter(user=user, status='pending')
@@ -1842,16 +1894,13 @@ def user_community(request):
             'rejected_reason': rejected_reason,
             'show_points_modal': show_points_modal,
             'points_earned': points_earned,
-            'points_reason': points_reason,
             'show_warning_modal': show_warning_modal,
             'warning_message': warning_message,
         }
         
-        print("DEBUG: Rendering template with context")
         return render(request, 'mainpage/usercommunity.html', context)
         
     except YouthUser.DoesNotExist:
-        print("DEBUG: YouthUser does not exist, flushing session")
         request.session.flush()
         return redirect('login')
 
@@ -3343,7 +3392,7 @@ def contact_data(request):
 
 @csrf_exempt
 @require_POST
-def send_contact_message(request):
+def api_send_contact_message(request):
     if not request.session.get('is_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -3363,7 +3412,7 @@ def send_contact_message(request):
 
 @csrf_exempt
 @require_POST
-def file_complaint(request):
+def api_file_complaint(request):
     if not request.session.get('is_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     try:
@@ -3382,7 +3431,7 @@ def file_complaint(request):
     
 @csrf_exempt
 @require_POST
-def make_suggestion(request):
+def api_make_suggestion(request):
     if not request.session.get('is_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     try:

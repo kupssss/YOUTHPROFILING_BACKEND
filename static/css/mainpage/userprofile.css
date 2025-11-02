@@ -1134,7 +1134,6 @@ body {
     background: #4b5563;
 }
 
-/* Responsive Design for File Upload */
 @media (max-width: 768px) {
     .file-upload-container {
         grid-template-columns: 1fr;
@@ -1148,4 +1147,31 @@ body {
     .form-section {
         padding: 15px;
     }
+}
+
+.logos-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+.logos-row img {
+    height: 50px;
+    object-fit: contain;
+}
+
+.signature-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+}
+
+
+.qr-code img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
 }

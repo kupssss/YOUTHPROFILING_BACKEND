@@ -590,3 +590,143 @@
         flex-direction: column;
     }
 }
+
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+}
+
+.modal-content h2 {
+    color: #1E40AF;
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    margin-bottom: 25px;
+    color: #4B5563;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #1E40AF;
+}
+
+.btn-primary {
+    background-color: #1E40AF;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-secondary {
+    background-color: #6B7280;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.status-confirmed {
+    background-color: #10B981;
+    color: white;
+}
+
+.status-pending {
+    background-color: #F59E0B;
+    color: white;
+}
+
+.status-waitlisted {
+    background-color: #8B5CF6;
+    color: white;
+}
+
+.status-cancelled {
+    background-color: #EF4444;
+    color: white;
+}
+
+.status-attended {
+    background-color: #3B82F6;
+    color: white;
+}
+
+.status-no-show {
+    background-color: #6B7280;
+    color: white;
+}
+
+.event-action.status-confirmed,
+.event-action.status-pending,
+.event-action.status-waitlisted,
+.event-action.status-cancelled,
+.event-action.status-attended,
+.event-action.status-no-show {
+    cursor: default;
+    opacity: 0.8;
+}
+
+.user-indicator .status-confirmed {
+    color: #10B981;
+}
+
+.user-indicator .status-pending {
+    color: #F59E0B;
+}
+
+.user-indicator .status-waitlisted {
+    color: #8B5CF6;
+}
+
+.user-indicator .status-cancelled {
+    color: #EF4444;
+}
+
+.user-indicator .status-attended {
+    color: #3B82F6;
+}
+
+.user-indicator .status-no-show {
+    color: #6B7280;
+}

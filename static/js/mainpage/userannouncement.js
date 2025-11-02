@@ -21,12 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     hamburger.addEventListener("click", () => {
       hamburger.classList.toggle("active");
       navMenu.classList.toggle("active");
-
-      if (navMenu.classList.contains("active")) {
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "auto";
-      }
+      document.body.style.overflow = navMenu.classList.contains("active") ? "hidden" : "auto";
     });
   }
 
@@ -43,7 +38,6 @@ document.addEventListener("DOMContentLoaded", function () {
       button.addEventListener("click", () => {
         viewButtons.forEach((btn) => btn.classList.remove("active"));
         button.classList.add("active");
-
         const viewValue = button.getAttribute("data-view");
 
         if (viewValue === "all") {
@@ -51,33 +45,19 @@ document.addEventListener("DOMContentLoaded", function () {
           if (upcomingEvents) upcomingEvents.style.display = "block";
         } else if (viewValue === "announcements") {
           updateCards.forEach((card) => {
-            if (card.classList.contains("announcement")) {
-              card.style.display = "block";
-            } else {
-              card.style.display = "none";
-            }
+            card.style.display = card.classList.contains("announcement") ? "block" : "none";
           });
           if (upcomingEvents) upcomingEvents.style.display = "none";
         } else if (viewValue === "events") {
           updateCards.forEach((card) => {
-            if (card.classList.contains("event")) {
-              card.style.display = "block";
-            } else {
-              card.style.display = "none";
-            }
+            card.style.display = card.classList.contains("event") ? "block" : "none";
           });
           if (upcomingEvents) upcomingEvents.style.display = "block";
         } else if (viewValue === "registered") {
           updateCards.forEach((card) => {
-            const hasIndicator = card.querySelector(
-              ".user-indicator .registered"
-            );
+            const hasIndicator = card.querySelector(".user-indicator .status-confirmed, .user-indicator .status-pending, .user-indicator .status-waitlisted");
             const hasStatus = card.querySelector(".registration-status");
-            if (hasIndicator || hasStatus) {
-              card.style.display = "block";
-            } else {
-              card.style.display = "none";
-            }
+            card.style.display = (hasIndicator || hasStatus) ? "block" : "none";
           });
           if (upcomingEvents) upcomingEvents.style.display = "block";
         }
@@ -96,9 +76,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (searchInput) {
     searchInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        performSearch();
-      }
+      if (e.key === "Enter") performSearch();
     });
   }
 
@@ -124,25 +102,23 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   window.addEventListener("click", function (event) {
-    if (event.target === imageModal) {
+    if (event.target === imageModal || event.target === logoutModal) {
       imageModal.style.display = "none";
-      document.body.style.overflow = "auto";
-    }
-    if (event.target === logoutModal) {
       logoutModal.style.display = "none";
+      document.body.style.overflow = "auto";
     }
   });
 
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function (e) {
       e.preventDefault();
-      if (logoutModal) logoutModal.style.display = "block";
+      logoutModal.style.display = "block";
     });
   }
 
   if (cancelLogout) {
     cancelLogout.addEventListener("click", function () {
-      if (logoutModal) logoutModal.style.display = "none";
+      logoutModal.style.display = "none";
     });
   }
 
@@ -151,9 +127,6 @@ document.addEventListener("DOMContentLoaded", function () {
       window.location.href = "/logout/";
     });
   }
-
-  initializeUserFeatures();
-  initializeAnimations();
 
   function filterUpdates() {
     const categoryValue = categorySelect.value;
@@ -164,15 +137,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (categoryValue !== "all") {
         const cardCategory = card.getAttribute("data-category");
-        if (cardCategory !== categoryValue) {
-          showCard = false;
-        }
+        if (cardCategory !== categoryValue) showCard = false;
       }
 
       if (timeframeValue !== "all") {
-        if (Math.random() > 0.5) {
-          showCard = false;
-        }
+        if (Math.random() > 0.5) showCard = false;
       }
 
       card.style.display = showCard ? "block" : "none";
@@ -184,192 +153,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     updateCards.forEach((card) => {
       const title = card.querySelector("h3").textContent.toLowerCase();
-      const excerpt = card
-        .querySelector(".update-excerpt")
-        .textContent.toLowerCase();
-
-      if (title.includes(searchTerm) || excerpt.includes(searchTerm)) {
-        card.style.display = "block";
-      } else {
-        card.style.display = "none";
-      }
+      const excerpt = card.querySelector(".update-excerpt").textContent.toLowerCase();
+      card.style.display = (title.includes(searchTerm) || excerpt.includes(searchTerm)) ? "block" : "none";
     });
-  }
-
-  function initializeUserFeatures() {
-    const attendanceButtons = document.querySelectorAll(".attendance-btn");
-    const volunteerButtons = document.querySelectorAll(".volunteer-btn");
-    const remindButtons = document.querySelectorAll(".remind-btn");
-    const eventTicketButtons = document.querySelectorAll(".event-ticket");
-    const recommendationButtons = document.querySelectorAll(
-      ".recommendation-btn"
-    );
-    const saveButtons = document.querySelectorAll(".update-save");
-    const eventActions = document.querySelectorAll(".event-action");
-    const registerButtons = document.querySelectorAll(".register-btn");
-
-    if (saveButtons) {
-      saveButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          this.classList.toggle("saved");
-          const icon = this.querySelector("i");
-          if (this.classList.contains("saved")) {
-            icon.className = "fas fa-bookmark";
-            showNotification("Saved to your bookmarks");
-          } else {
-            icon.className = "far fa-bookmark";
-            showNotification("Removed from bookmarks");
-          }
-        });
-      });
-    }
-
-    if (eventActions) {
-      eventActions.forEach((button) => {
-        button.addEventListener("click", function () {
-          if (this.classList.contains("registered")) {
-            showNotification("You are already registered for this event");
-            return;
-          }
-
-          const eventTitle =
-            this.closest(".event-highlight").querySelector("h3").textContent;
-          this.classList.add("registered");
-          this.innerHTML = '<i class="fas fa-check-circle"></i> Registered';
-
-          showNotification(`Successfully registered for "${eventTitle}"`);
-        });
-      });
-    }
-
-    if (registerButtons) {
-      registerButtons.forEach((button) => {
-        button.addEventListener("click", function (e) {
-          const eventCard = this.closest(".update-card");
-          const eventId = eventCard ? eventCard.dataset.eventId : null;
-
-          if (eventId && isUserRegistered(eventId)) {
-            e.preventDefault();
-            showNotification("You are already registered for this event");
-            this.innerHTML =
-              '<i class="fas fa-check-circle"></i> Already Registered';
-            this.classList.remove("register-btn");
-            this.classList.add("registered-btn");
-            this.removeAttribute("href");
-            this.style.pointerEvents = "none";
-            this.style.opacity = "0.7";
-          }
-        });
-      });
-    }
-
-    if (attendanceButtons) {
-      attendanceButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          this.classList.toggle("attending");
-          this.innerHTML = this.classList.contains("attending")
-            ? '<i class="fas fa-calendar-check"></i> Attending'
-            : '<i class="fas fa-calendar"></i> Attend';
-
-          showNotification(
-            this.classList.contains("attending")
-              ? "Marked as attending"
-              : "No longer attending"
-          );
-        });
-      });
-    }
-
-    if (volunteerButtons) {
-      volunteerButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          this.classList.toggle("volunteered");
-          this.innerHTML = this.classList.contains("volunteered")
-            ? '<i class="fas fa-hands-helping"></i> Volunteering'
-            : '<i class="fas fa-hands-helping"></i> Volunteer';
-
-          showNotification(
-            this.classList.contains("volunteered")
-              ? "Thank you for volunteering!"
-              : "Volunteer status removed"
-          );
-        });
-      });
-    }
-
-    if (remindButtons) {
-      remindButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          showNotification("Reminder set for this event");
-        });
-      });
-    }
-
-    if (eventTicketButtons) {
-      eventTicketButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          showNotification("Your event ticket would be displayed here");
-        });
-      });
-    }
-
-    if (recommendationButtons) {
-      recommendationButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          const cardTitle = this.closest(".recommendation-card").querySelector(
-            "h3"
-          ).textContent;
-          showNotification(`Loading details for: ${cardTitle}`);
-        });
-      });
-    }
-  }
-
-  function showNotification(message) {
-    const feedback = document.createElement("div");
-    feedback.textContent = message;
-    feedback.style.position = "fixed";
-    feedback.style.bottom = "20px";
-    feedback.style.right = "20px";
-    feedback.style.background = "#1E40AF";
-    feedback.style.color = "white";
-    feedback.style.padding = "10px 20px";
-    feedback.style.borderRadius = "8px";
-    feedback.style.zIndex = "1000";
-    feedback.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-
-    document.body.appendChild(feedback);
-
-    setTimeout(() => {
-      feedback.style.opacity = "0";
-      feedback.style.transition = "opacity 0.5s ease";
-      setTimeout(() => feedback.remove(), 500);
-    }, 2000);
-  }
-
-  function isUserRegistered(eventId) {
-    const registeredEvents = document.querySelectorAll(".update-card.event");
-    for (const event of registeredEvents) {
-      if (event.dataset.eventId === eventId) {
-        return (
-          event.querySelector(".user-indicator .registered") !== null ||
-          event.querySelector(".registration-status") !== null
-        );
-      }
-    }
-    return false;
   }
 
   function initializeAnimations() {
     function animateOnScroll() {
-      const elements = document.querySelectorAll(
-        ".update-card, .event-highlight, .stat-card, .recommendation-card"
-      );
-
+      const elements = document.querySelectorAll(".update-card, .event-highlight, .stat-card, .recommendation-card");
       elements.forEach((element) => {
         const elementPosition = element.getBoundingClientRect().top;
         const screenPosition = window.innerHeight / 1.3;
-
         if (elementPosition < screenPosition) {
           element.style.opacity = 1;
           element.style.transform = "translateY(0)";
@@ -377,10 +171,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    const animatedElements = document.querySelectorAll(
-      ".update-card, .event-highlight, .stat-card, .recommendation-card"
-    );
-
+    const animatedElements = document.querySelectorAll(".update-card, .event-highlight, .stat-card, .recommendation-card");
     animatedElements.forEach((element) => {
       element.style.opacity = 0;
       element.style.transform = "translateY(20px)";
@@ -390,4 +181,6 @@ document.addEventListener("DOMContentLoaded", function () {
     window.addEventListener("scroll", animateOnScroll);
     animateOnScroll();
   }
+
+  initializeAnimations();
 });

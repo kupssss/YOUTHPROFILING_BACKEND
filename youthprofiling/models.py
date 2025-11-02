@@ -199,6 +199,8 @@ class YouthUser(models.Model):
     
     no_show_count = models.PositiveIntegerField(default=0)
     last_no_show_date = models.DateTimeField(blank=True, null=True)
+
+    shown_modals = models.JSONField(default=dict, blank=True)
     
     class Meta:
         verbose_name = "Youth User"
@@ -254,14 +256,9 @@ class YouthUser(models.Model):
             points = CommunityPoints.objects.create(user=self, points=100)
             return points.points
     
-    def add_no_show_offense(self):
+    def add_no_show_offense(self, event_registration=None):
         self.no_show_count += 1
         self.last_no_show_date = timezone.now()
-        
-        if self.no_show_count >= 3:
-            self.no_show_count = 0
-            self.last_no_show_date = None
-        
         self.save()
         
         community_points, created = CommunityPoints.objects.get_or_create(
@@ -296,7 +293,7 @@ class YouthUser(models.Model):
                     new_balance=0,
                     reason="Second no-show offense - All points deducted"
                 )
-        elif self.no_show_count == 0:
+        elif self.no_show_count >= 3:
             if current_points > 0:
                 community_points.points = 0
                 community_points.save()
@@ -307,14 +304,17 @@ class YouthUser(models.Model):
                     reason="Third no-show offense - All points removed"
                 )
             else:
-                community_points.points = -100
+                community_points.points = -50
                 community_points.save()
                 PointsHistory.objects.create(
                     user=self,
-                    points_change=-100,
-                    new_balance=-100,
-                    reason="Third no-show offense - 100 points penalty"
+                    points_change=-50,
+                    new_balance=-50,
+                    reason="Third no-show offense - 50 points penalty"
                 )
+            self.no_show_count = 0
+            self.last_no_show_date = None
+            self.save()
     
     def reset_no_show_count(self):
         self.no_show_count = 0
@@ -350,7 +350,7 @@ class YouthUser(models.Model):
             )
             CommunityPoints.objects.create(user=admin_user, points=1000)
         return admin_user
-
+    
 class CommunityPoints(models.Model):
     user = models.OneToOneField(YouthUser, on_delete=models.CASCADE, related_name='points')
     points = models.IntegerField(default=100)
@@ -733,7 +733,6 @@ class Event(models.Model):
     is_active = models.BooleanField(default=True)
     requires_registration = models.BooleanField(default=False)
     
-    # RESTORE THE ORIGINAL MANYTOMANY FIELDS
     gender_access = models.CharField(max_length=10, choices=ACCESS_CHOICES, default=ACCESS_ALL)
     target_genders = models.ManyToManyField(Gender, blank=True)
     
@@ -945,7 +944,7 @@ class EventRegistration(models.Model):
                     pass
                 self.points_earned = 0
             
-            self.user.add_no_show_offense()
+            self.user.add_no_show_offense(self)
             
             self.save()
             return True
@@ -970,7 +969,10 @@ class EventRegistration(models.Model):
                 self.points_earned = 0
         
         elif new_status in ['pending', 'confirmed'] and old_status == 'no_show':
-            pass
+            no_show_key = f"no_show_{self.id}"
+            if no_show_key in self.user.shown_modals:
+                del self.user.shown_modals[no_show_key]
+                self.user.save()
         
         self.status = new_status
         self.save()
@@ -1041,8 +1043,6 @@ class EventEvaluation(models.Model):
     def __str__(self):
         return f"Evaluation for {self.registration.event.title} by {self.registration.user.get_full_name()}"
     
-
-
 
 
 

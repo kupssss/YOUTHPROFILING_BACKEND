@@ -61,6 +61,7 @@ urlpatterns = [
     path('contact/make-suggestion/', views.make_suggestion, name='make_suggestion'),
     path('support/tickets/', views.support_tickets, name='support_tickets'),
 
+
     path('community/', views.user_community, name='usercommunity'),
     path('community/posts/create/', views.create_post, name='create_post'),
     path('community/posts/<int:post_id>/like/', views.like_post, name='like_post'),
@@ -101,9 +102,9 @@ urlpatterns = [
     path('api/mobile/community/posts/<int:post_id>/comment/', views.mobile_comment_on_post, name='mobile_comment_on_post'),
 
     path('api/contact-data/', views.contact_data, name='contact_data'),
-    path('api/send-contact-message/', views.send_contact_message, name='send_contact_message'),
-    path('api/file-complaint/', views.file_complaint, name='file_complaint'),
-    path('api/make-suggestion/', views.make_suggestion, name='make_suggestion'),
+    path('api/send-contact-message/', views.send_contact_message, name='api_send_contact_message'),
+    path('api/file-complaint/', views.file_complaint, name='api_file_complaint'),
+    path('api/make-suggestion/', views.make_suggestion, name='api_make_suggestion'),
 
 
 

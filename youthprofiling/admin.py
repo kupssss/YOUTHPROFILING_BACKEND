@@ -740,6 +740,7 @@ class EventRegistrationAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def mark_no_show_view(self, request, object_id):
+        from django.http import HttpResponseRedirect
         try:
             registration = EventRegistration.objects.get(id=object_id)
             if registration.status != 'no_show':
@@ -774,6 +775,12 @@ class EventRegistrationAdmin(admin.ModelAdmin):
                     obj.points_earned = 0
             elif old_obj.status != 'no_show' and obj.status == 'no_show':
                 obj.mark_no_show()
+                return
+            elif old_obj.status == 'no_show' and obj.status != 'no_show':
+                no_show_key = f"no_show_{obj.id}"
+                if no_show_key in obj.user.shown_modals:
+                    del obj.user.shown_modals[no_show_key]
+                    obj.user.save()
         super().save_model(request, obj, form, change)
 
 from django.contrib import admin

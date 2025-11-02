@@ -51,7 +51,6 @@
         </div>
 
         <div class="profile-content">
-            <!-- Personal Details Section -->
             <section class="profile-section personal-details">
                 <div class="section-header">
                     <h2><i class="fas fa-user-edit"></i> Personal Details</h2>
@@ -61,7 +60,6 @@
                 <form class="profile-form" id="profileForm" enctype="multipart/form-data">
                     {% csrf_token %}
                     
-                    <!-- Profile Picture Upload -->
                     <div class="form-section">
                         <h3><i class="fas fa-camera"></i> Profile Picture</h3>
                         <div class="file-upload-container">
@@ -201,7 +199,6 @@
                         </div>
                     </div>
 
-                    <!-- ID Document Section -->
                     <div class="form-section">
                         <h3><i class="fas fa-id-card"></i> Identification Documents</h3>
                         
@@ -267,7 +264,6 @@
                         </div>
                     </div>
 
-                    <!-- Parent Consent Section (for ages 15-17) -->
                     {% if user.age and user.age < 18 %}
                     <div class="form-section">
                         <h3><i class="fas fa-user-friends"></i> Parent Consent Information</h3>
@@ -290,7 +286,7 @@
                             
                             <div class="form-group">
                                 <label for="consent_date">Consent Date</label>
-                                <input type="date" id="consent_date" name="consent_date" value="{{ user.consent_date|default:'' }}">
+                                <input type="date" id="consent_date" name="consent_date" value="{{ user.consent_date|date:'Y-m-d'|default:'' }}">
                             </div>
                         </div>
 
@@ -355,7 +351,6 @@
                 </form>
             </section>
 
-            <!-- SK Mambugan ID Section -->
             <section class="profile-section id-section">
                 <div class="section-header">
                     <h2><i class="fas fa-id-card"></i> SK Mambugan ID</h2>
@@ -365,7 +360,6 @@
                 <div class="id-card-container">
                     <div class="id-card-wrapper">
                         <div class="id-card-front" id="idCardFront">
-                            <!-- ID Card Front Content (same as before) -->
                             <div class="id-flag-header">
                                 <div class="flag-stripe blue"></div>
                                 <div class="flag-stripe red"></div>
@@ -443,18 +437,17 @@
                                 <div class="id-footer-front">
                                     <div class="id-issuance">
                                         <div class="issued-date">Issued: {{ user.created_at|date:"m/d/Y" }}</div>
-                                        <div class="valid-until">Valid until: {{ user.created_at|add_years:3|date:"m/d/Y" }}</div>
+                                        <div class="valid-until">Valid until: {{ user.created_at|calculate_valid_until:user.age|date:"m/d/Y" }}</div>
                                     </div>
                                     <div class="id-signature-front">
-                                        <div class="signature-line"></div>
-                                        <div class="signature-label">SK Chairman Signature</div>
+                                        <div class="signature-name">Hon. Kristine M. Nicolas</div>
+                                        <div class="signature-label">SK CHAIRMAN</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="id-card-back" id="idCardBack">
-                            <!-- ID Card Back Content (same as before) -->
                             <div class="id-background-flag">
                                 <img src="{% static 'assets/logo/flag.png' %}" alt="Philippine Flag">
                             </div>
@@ -465,22 +458,21 @@
                                     <p>Sangguniang Kabataan - Barangay Mambugan</p>
                                 </div>
                                 
-                                <div class="antipolo-logo">
+                                <div class="logos-row">
                                     <img src="{% static 'assets/logo/antipolo.png' %}" alt="Antipolo City Logo">
+                                    <img src="{% static 'assets/logo/mambugan.png' %}" alt="Mambugan Logo">
+                                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Mambugan Logo">
                                 </div>
                                 
                                 <div class="id-qr-section">
-                                    <div class="qr-code">
-                                        <div class="qr-placeholder">
-                                            <i class="fas fa-qrcode"></i>
-                                            <span>QR Code</span>
-                                        </div>
-                                    </div>
-                                    <div class="qr-info">
-                                        <p>Scan to verify membership</p>
-                                        <div class="member-id">ID: {{ user.registration_no }}</div>
-                                    </div>
-                                </div>
+    <div class="qr-code">
+        <img src="{% static 'assets/logo/qr.png' %}" alt="QR Code">
+    </div>
+    <div class="qr-info">
+        <p>Scan to verify membership</p>
+        <div class="member-id">ID: {{ user.registration_no }}</div>
+    </div>
+</div>
                                 
                                 <div class="id-terms">
                                     <h4>TERMS AND CONDITIONS</h4>
@@ -513,7 +505,6 @@
         </div>
     </main>
 
-    <!-- Success Modal -->
     <div class="modal" id="successModal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -526,7 +517,6 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div class="modal" id="deleteModal">
         <div class="modal-content">
             <span class="close">&times;</span>

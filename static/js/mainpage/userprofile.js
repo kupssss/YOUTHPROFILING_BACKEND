@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Existing functions...
     function getCSRFToken() {
         const cookieValue = document.cookie
             .split('; ')
@@ -18,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let currentFileTypeToDelete = '';
 
-    // File input preview functionality
     const fileInputs = document.querySelectorAll('.file-input');
     fileInputs.forEach(input => {
         input.addEventListener('change', function(e) {
@@ -57,7 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Attach delete handlers to delete buttons
     function attachDeleteHandlers() {
         const deleteButtons = document.querySelectorAll('.delete-file-btn');
         deleteButtons.forEach(button => {
@@ -70,14 +67,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initial attachment of delete handlers
     attachDeleteHandlers();
 
-    // Delete confirmation
     if (deleteConfirmBtn) {
         deleteConfirmBtn.addEventListener('click', function() {
             if (currentFileTypeToDelete === 'profile_picture') {
-                // Special handling for profile picture
                 fetch('/api/delete-profile-picture/', {
                     method: 'POST',
                     headers: {
@@ -95,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span>No ${currentFileTypeToDelete.replace('_', ' ')} uploaded</span>
                             </div>
                         `;
-                        // Also update the file input
                         const fileInput = document.getElementById(currentFileTypeToDelete);
                         if (fileInput) {
                             fileInput.value = '';
@@ -106,7 +99,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     deleteModal.style.display = 'none';
                 });
             } else {
-                // For other files, just clear the preview and input
                 const previewContainer = document.querySelector(`[data-file-type="${currentFileTypeToDelete}"]`).closest('.current-file-preview');
                 previewContainer.innerHTML = `
                     <div class="no-file-placeholder">
@@ -130,7 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Form submission
     if (profileForm) {
         profileForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -139,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const saveBtn = this.querySelector('.save-btn');
             const originalText = saveBtn.innerHTML;
             
-            // Show loading state
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             saveBtn.disabled = true;
             
@@ -158,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     successModal.style.display = 'block';
                     setTimeout(adjustTextForID, 100);
                     
-                    // Reload the page to reflect changes in the ID card
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
@@ -171,14 +160,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('An error occurred while updating your profile.');
             })
             .finally(() => {
-                // Restore button state
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
             });
         });
     }
     
-    // Modal handlers (existing code)
     if (modalOkBtn) {
         modalOkBtn.addEventListener('click', function() {
             successModal.style.display = 'none';
@@ -201,7 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Existing ID card functionality
     const flipIdBtn = document.getElementById('flipIdBtn');
     const idCardWrapper = document.querySelector('.id-card-wrapper');
     
@@ -211,7 +197,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Age calculation
     const birthdateInput = document.getElementById('birthdate');
     const ageInput = document.getElementById('age');
     const ageGroupInput = document.getElementById('age_group');
@@ -227,7 +212,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             ageInput.value = age;
             
-            // Update age group based on age
             let ageGroup = '';
             if (age >= 15 && age <= 17) ageGroup = '15-17';
             else if (age >= 18 && age <= 21) ageGroup = '18-21';
@@ -240,7 +224,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Existing utility functions...
     function adjustTextForID() {
         const nameElement = document.querySelector('.id-name');
         if (nameElement) {
@@ -263,75 +246,72 @@ document.addEventListener('DOMContentLoaded', function() {
     
     adjustTextForID();
     
-        const downloadIdBtn = document.getElementById('downloadIdBtn');
-if (downloadIdBtn) {
-    downloadIdBtn.addEventListener('click', function() {
-        const pdfContainer = document.createElement('div');
-        pdfContainer.style.width = '600px';
-        pdfContainer.style.margin = '0 0';
-        pdfContainer.style.height = '1300px';
-        pdfContainer.style.padding = '20';
-        pdfContainer.style.top = '-60';
-        pdfContainer.style.backgroundColor = '#fff';
-        
+    const downloadIdBtn = document.getElementById('downloadIdBtn');
+    if (downloadIdBtn) {
+        downloadIdBtn.addEventListener('click', function() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.style.width = '600px';
+            pdfContainer.style.margin = '0 0';
+            pdfContainer.style.height = '1300px';
+            pdfContainer.style.padding = '20';
+            pdfContainer.style.top = '-60';
+            pdfContainer.style.backgroundColor = '#fff';
 
-        const frontDiv = document.createElement('div');
-        frontDiv.innerHTML = document.getElementById('idCardFront').innerHTML;
-        frontDiv.style.marginTop = '-200px';
-        frontDiv.style.marginBottom = '20px';
-        frontDiv.style.border = '1px solid #ccc';
-        frontDiv.style.borderRadius = '15px';
-        frontDiv.style.overflow = 'hidden';
-        
-        const backDiv = document.createElement('div');
-        backDiv.innerHTML = document.getElementById('idCardBack').innerHTML;  
-        backDiv.style.border = '1px solid #ccc';
-        backDiv.style.borderRadius = '15px';
-        backDiv.style.overflow = 'hidden';
-        
-        pdfContainer.appendChild(frontDiv);
-        pdfContainer.appendChild(backDiv);
-        
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.appendChild(pdfContainer);
-        document.body.appendChild(tempContainer);
-        
-        const options = {
-            margin: 2,
-            filename: 'sk_mambugan_id.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                logging: true,
-                backgroundColor: '#ffffff'
-            },
-            jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
-                orientation: 'portrait' 
-            }
-        };
-        
-        html2pdf()
-            .from(pdfContainer)
-            .set(options)
-            .save()
-            .then(() => {
-                document.body.removeChild(tempContainer);
-            })
-            .catch(error => {
-                console.error('PDF generation error:', error);
-                document.body.removeChild(tempContainer);
-                alert('Error generating PDF. Please try again.');
-            });
-    });
-}
+            const frontDiv = document.createElement('div');
+            frontDiv.innerHTML = document.getElementById('idCardFront').innerHTML;
+            frontDiv.style.marginTop = '-200px';
+            frontDiv.style.marginBottom = '20px';
+            frontDiv.style.border = '1px solid #ccc';
+            frontDiv.style.borderRadius = '15px';
+            frontDiv.style.overflow = 'hidden';
+            
+            const backDiv = document.createElement('div');
+            backDiv.innerHTML = document.getElementById('idCardBack').innerHTML;  
+            backDiv.style.border = '1px solid #ccc';
+            backDiv.style.borderRadius = '15px';
+            backDiv.style.overflow = 'hidden';
+            
+            pdfContainer.appendChild(frontDiv);
+            pdfContainer.appendChild(backDiv);
+            
+            const tempContainer = document.createElement('div');
+            tempContainer.style.position = 'absolute';
+            tempContainer.style.left = '-9999px';
+            tempContainer.appendChild(pdfContainer);
+            document.body.appendChild(tempContainer);
+            
+            const options = {
+                margin: 2,
+                filename: 'sk_mambugan_id.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    logging: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait' 
+                }
+            };
+            
+            html2pdf()
+                .from(pdfContainer)
+                .set(options)
+                .save()
+                .then(() => {
+                    document.body.removeChild(tempContainer);
+                })
+                .catch(error => {
+                    console.error('PDF generation error:', error);
+                    document.body.removeChild(tempContainer);
+                    alert('Error generating PDF. Please try again.');
+                });
+        });
+    }
   
-    
-    // Phone number validation
     const phoneInput = document.getElementById('contact_number');
     if (phoneInput) {
         phoneInput.addEventListener('input', function() {
@@ -339,7 +319,6 @@ if (downloadIdBtn) {
         });
     }
     
-    // Cancel button confirmation
     const cancelBtn = profileForm.querySelector('.cancel-btn');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', function(e) {
@@ -352,7 +331,6 @@ if (downloadIdBtn) {
         });
     }
     
-    // Add years function for ID card validity
     Date.prototype.addYears = function(years) {
         this.setFullYear(this.getFullYear() + years);
         return this;
