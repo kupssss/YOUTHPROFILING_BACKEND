@@ -15,7 +15,7 @@
 </head>
 <body>
     <div class="server-admins-container">
-        <div class="server-sidebar">
+          <div class="server-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
@@ -47,9 +47,9 @@
 
             <nav class="sidebar-nav">
                 <ul>
-                    <li class="nav-item">
+                    <li class="nav-item active">
                         <a href="{% url 'server_dashboard' %}">
-                            <i class="fas fa-tachometer-alt"></i>
+                            <i class="fas fa-tachometer-alt "></i>
                             <span>Dashboard</span>
                         </a>
                     </li>
@@ -77,6 +77,12 @@
                             <span>Events Participants</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_community_management' %}">
+                            <i class="fas fa-comments"></i>
+                            <span>Community</span>
+                        </a>
+                    </li>
                     <li class="nav-item nav-dropdown">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-cogs"></i>
@@ -84,33 +90,36 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="{% url 'server_logs_management' %}" class="system-settings-link">
+                                <a href="{% url 'server_logs_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
                                     <i class="fas fa-history"></i>
                                     <span>Logs</span>
                                 </a>
                             </li>
                             <li>
-                                <a href="#" class="system-settings-link" 
+                                <a href="{% url 'server_demographics_management' %}" class="system-settings-link" 
                                    data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
                                     <i class="fas fa-chart-pie"></i>
                                     <span>Demographics</span>
                                 </a>
                             </li>
                             <li>
-                                <a href="#" class="system-settings-link" 
+                                <a href="{% url 'server_faq_guidelines_management' %}" class="system-settings-link" 
                                    data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
                                     <i class="fas fa-question-circle"></i>
-                                    <span>FAQ</span>
+                                    <span>FAQ/Community Guidelines</span>
                                 </a>
                             </li>
                             <li>
-                                <a href="{% url 'server_user_archives_management' %}" class="system-settings-link">
+                                <a href="{% url 'server_user_archives_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
                                     <i class="fas fa-archive"></i>
                                     <span>Archives</span>
                                 </a>
                             </li>
                             <li>
-                                <a href="{% url 'server_admins_management' %}" class="system-settings-link active">
+                                <a href="{% url 'server_admins_management' %}" class="system-settings-link active" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
                                     <i class="fas fa-user-shield"></i>
                                     <span>Admins</span>
                                 </a>
