@@ -15,8 +15,7 @@
 </head>
 <body>
     <div class="server-user-management-container">
-        
-<div class="server-sidebar">
+        <div class="server-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
@@ -26,7 +25,7 @@
                     </div>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
 
@@ -54,7 +53,7 @@
                             <span>Dashboard</span>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item active">
                         <a href="{% url 'server_user_management' %}">
                             <i class="fas fa-users"></i>
                             <span>User Management</span>
@@ -72,11 +71,60 @@
                             <span>Events</span>
                         </a>
                     </li>
-                    <li class="nav-item active">
+                    <li class="nav-item">
                         <a href="{% url 'server_events_participants' %}">
                             <i class="fas fa-user-check"></i>
                             <span>Events Participants</span>
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-comments"></i>
+                            <span>Community</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </nav>
@@ -92,12 +140,17 @@
         <div class="server-main-content">
             <header class="management-header">
                 <div class="header-left">
-                    <h1>User Management</h1>
-                    <p>Manage and verify youth member accounts</p>
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>User Management</h1>
+                        <p>Manage and verify youth member accounts</p>
+                    </div>
                 </div>
                 <div class="header-right">
                     <div class="header-actions">
-                        <div class="encryption-status">
+                        <div class="encryption-status {% if encryption_verified %}verified{% endif %}">
                             <i class="fas fa-{% if encryption_verified %}lock-open{% else %}lock{% endif %}"></i>
                             <span>Encryption: {% if encryption_verified %}Verified{% else %}Required{% endif %}</span>
                         </div>
@@ -109,39 +162,39 @@
                 </div>
             </header>
 
-           <div id="encryptionModal" class="modal {% if not encryption_verified %}active{% endif %}">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2><i class="fas fa-shield-alt"></i> Decryption Key Required</h2>
-            <p>Enter the Decryption key to access user management features</p>
-        </div>
-        <div class="modal-body">
-            <form id="encryptionForm">
-                <div class="form-group">
-                    <label for="encryptionKey">Decryption Key</label>
-                    <div class="input-group">
-                        <i class="fas fa-key"></i>
-                        <input type="password" id="encryptionKey" name="encryption_key" 
-                               placeholder="Enter Decryption key" required>
-                        <button type="button" class="toggle-password" id="toggleEncryptionKey">
-                            <i class="fas fa-eye"></i>
-                        </button>
+            <div id="encryptionModal" class="modal {% if not encryption_verified %}active{% endif %}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-shield-alt"></i> Decryption Key Required</h2>
+                        <p>Enter the Decryption key to access user management features</p>
                     </div>
-                    <div class="form-help">
-                        <i class="fas fa-info-circle"></i>
-                        This key is required to decrypt sensitive user information
+                    <div class="modal-body">
+                        <form id="encryptionForm">
+                            <div class="form-group">
+                                <label for="encryptionKey">Decryption Key</label>
+                                <div class="input-group">
+                                    <i class="fas fa-key"></i>
+                                    <input type="password" id="encryptionKey" name="encryption_key" 
+                                           placeholder="Enter Decryption key" required>
+                                    <button type="button" class="toggle-password" id="toggleEncryptionKey">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-help">
+                                    <i class="fas fa-info-circle"></i>
+                                    This key is required to decrypt sensitive user information
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-unlock"></i>
+                                    Verify Key
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-unlock"></i>
-                        Verify Key
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+            </div>
 
             <div class="management-content {% if not encryption_verified %}hidden{% endif %}">
                 <div class="stats-overview">
@@ -456,6 +509,15 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
         </div>
     </div>
 

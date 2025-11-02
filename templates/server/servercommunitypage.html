@@ -1,0 +1,593 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Management - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/servercommunitypage.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-dashboard-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="{% url 'server_community_management' %}">
+                            <i class="fas fa-comments"></i>
+                            <span>Community</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>Community Management</h1>
+                        <p>Manage posts, complaints, and suggestions from community members.</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="community-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ total_posts|intcomma }}</h3>
+                        <p>Total Posts</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ pending_posts|intcomma }}</h3>
+                        <p>Pending Approval</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ pending_complaints|intcomma }}</h3>
+                        <p>Pending Complaints</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ pending_suggestions|intcomma }}</h3>
+                        <p>Pending Suggestions</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="community-management-tabs">
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="posts">Posts Management</button>
+                    <button class="tab-btn" data-tab="complaints">Complaints</button>
+                    <button class="tab-btn" data-tab="suggestions">Suggestions</button>
+                    <button class="tab-btn" data-tab="messages">Contact Messages</button>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-pane active" id="posts-tab">
+                        <div class="posts-management">
+                            <div class="section-header">
+                                <h2>Community Posts</h2>
+                                <div class="filter-controls">
+                                    <select id="postStatusFilter">
+                                        <option value="all">All Posts</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="accepted">Approved</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="posts-container">
+                                {% for post in posts %}
+                                <div class="admin-post-card {% if post.status == 'pending' %}pending{% elif post.status == 'rejected' %}rejected{% endif %}" data-post-id="{{ post.id }}" data-status="{{ post.status }}">
+                                    <div class="post-header">
+                                        <div class="poster-info">
+                                            <div class="poster-avatar">
+                                                {% if post.user.profile_picture %}
+                                                    <img src="{{ post.user.profile_picture.url }}" alt="{{ post.user.get_full_name }}">
+                                                {% else %}
+                                                    <div class="avatar-initials">
+                                                        {{ post.user.first_name|first }}{{ post.user.last_name|first }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="poster-details">
+                                                <h4>{{ post.user.get_full_name }}</h4>
+                                                <p>{{ post.created_at|naturaltime }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="post-status">
+                                            <span class="status-badge status-{{ post.status }}">
+                                                {{ post.status|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="post-content">
+                                        <p>{{ post.content }}</p>
+                                        {% if post.image %}
+                                        <div class="post-image">
+                                            <img src="{{ post.image.url }}" alt="Post image">
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="post-stats">
+                                        <div class="stat">
+                                            <i class="fas fa-heart"></i>
+                                            <span>{{ post.like_count }}</span>
+                                        </div>
+                                        <div class="stat">
+                                            <i class="fas fa-comment"></i>
+                                            <span>{{ post.comment_count }}</span>
+                                        </div>
+                                    </div>
+
+                                    {% if post.status == 'pending' %}
+                                    <div class="post-actions">
+                                        <button class="action-btn approve-btn" data-post-id="{{ post.id }}">
+                                            <i class="fas fa-check"></i>
+                                            Approve
+                                        </button>
+                                        <button class="action-btn reject-btn" data-post-id="{{ post.id }}">
+                                            <i class="fas fa-times"></i>
+                                            Reject
+                                        </button>
+                                        <button class="action-btn view-btn" data-post-id="{{ post.id }}">
+                                            <i class="fas fa-eye"></i>
+                                            View Details
+                                        </button>
+                                    </div>
+                                    {% elif post.status == 'rejected' %}
+                                    <div class="rejection-reason">
+                                        <strong>Rejection Reason:</strong>
+                                        <p>{{ post.rejection_reason|default:"No reason provided" }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% empty %}
+                                <div class="no-data">
+                                    <i class="fas fa-comments"></i>
+                                    <h3>No posts found</h3>
+                                    <p>There are no community posts to display.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="complaints-tab">
+                        <div class="complaints-management">
+                            <div class="section-header">
+                                <h2>User Complaints</h2>
+                                <div class="filter-controls">
+                                    <select id="complaintStatusFilter">
+                                        <option value="all">All Complaints</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="resolved">Resolved</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="complaints-container">
+                                {% for complaint in complaints %}
+                                <div class="complaint-card" data-complaint-id="{{ complaint.id }}" data-status="{{ complaint.status }}">
+                                    <div class="complaint-header">
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                {% if complaint.user.profile_picture %}
+                                                    <img src="{{ complaint.user.profile_picture.url }}" alt="{{ complaint.user.get_full_name }}">
+                                                {% else %}
+                                                    <div class="avatar-initials">
+                                                        {{ complaint.user.first_name|first }}{{ complaint.user.last_name|first }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="user-details">
+                                                <h4>
+                                                    {% if complaint.is_anonymous %}
+                                                    Anonymous User
+                                                    {% else %}
+                                                    {{ complaint.user.get_full_name }}
+                                                    {% endif %}
+                                                </h4>
+                                                <p>{{ complaint.created_at|naturaltime }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="complaint-meta">
+                                            <span class="urgency-badge urgency-{{ complaint.urgency }}">
+                                                {{ complaint.urgency|title }}
+                                            </span>
+                                            <span class="status-badge status-{{ complaint.status }}">
+                                                {{ complaint.status|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="complaint-content">
+                                        <h3>{{ complaint.title }}</h3>
+                                        <p>{{ complaint.description }}</p>
+                                    </div>
+
+                                    <div class="complaint-actions">
+                                      
+                                        {% if complaint.status == 'pending' %}
+                                        <button class="action-btn progress-btn" data-complaint-id="{{ complaint.id }}">
+                                            <i class="fas fa-play"></i>
+                                            Mark In Progress
+                                        </button>
+                                        {% elif complaint.status == 'in_progress' %}
+                                        <button class="action-btn resolve-btn" data-complaint-id="{{ complaint.id }}">
+                                            <i class="fas fa-check"></i>
+                                            Mark Resolved
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="no-data">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <h3>No complaints found</h3>
+                                    <p>There are no user complaints to display.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="suggestions-tab">
+                        <div class="suggestions-management">
+                            <div class="section-header">
+                                <h2>User Suggestions</h2>
+                                <div class="filter-controls">
+                                    <select id="suggestionStatusFilter">
+                                        <option value="all">All Suggestions</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="under_consideration">Under Consideration</option>
+                                        <option value="implemented">Implemented</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="suggestions-container">
+                                {% for suggestion in suggestions %}
+                                <div class="suggestion-card" data-suggestion-id="{{ suggestion.id }}" data-status="{{ suggestion.status }}">
+                                    <div class="suggestion-header">
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                {% if suggestion.user.profile_picture %}
+                                                    <img src="{{ suggestion.user.profile_picture.url }}" alt="{{ suggestion.user.get_full_name }}">
+                                                {% else %}
+                                                    <div class="avatar-initials">
+                                                        {{ suggestion.user.first_name|first }}{{ suggestion.user.last_name|first }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="user-details">
+                                                <h4>
+                                                    {% if suggestion.is_anonymous %}
+                                                    Anonymous User
+                                                    {% else %}
+                                                    {{ suggestion.user.get_full_name }}
+                                                    {% endif %}
+                                                </h4>
+                                                <p>{{ suggestion.created_at|naturaltime }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="suggestion-meta">
+                                            <span class="status-badge status-{{ suggestion.status }}">
+                                                {{ suggestion.status|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="suggestion-content">
+                                        <h3>{{ suggestion.title }}</h3>
+                                        <p>{{ suggestion.description }}</p>
+                                    </div>
+
+                                    <div class="suggestion-actions">
+                                      
+                                        {% if suggestion.status == 'pending' %}
+                                        <button class="action-btn consider-btn" data-suggestion-id="{{ suggestion.id }}">
+                                            <i class="fas fa-clock"></i>
+                                            Mark Under Consideration
+                                        </button>
+                                        {% elif suggestion.status == 'under_consideration' %}
+                                        <button class="action-btn implement-btn" data-suggestion-id="{{ suggestion.id }}">
+                                            <i class="fas fa-check"></i>
+                                            Mark Implemented
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="no-data">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <h3>No suggestions found</h3>
+                                    <p>There are no user suggestions to display.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="messages-tab">
+                        <div class="messages-management">
+                            <div class="section-header">
+                                <h2>Contact Messages</h2>
+                                <div class="filter-controls">
+                                    <select id="messageStatusFilter">
+                                        <option value="all">All Messages</option>
+                                        <option value="unread">Unread</option>
+                                        <option value="read">Read</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="messages-container">
+                                {% for message in contact_messages %}
+                                <div class="message-card {% if not message.is_read %}unread{% endif %}" data-message-id="{{ message.id }}">
+                                    <div class="message-header">
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                {% if message.user.profile_picture %}
+                                                    <img src="{{ message.user.profile_picture.url }}" alt="{{ message.user.get_full_name }}">
+                                                {% else %}
+                                                    <div class="avatar-initials">
+                                                        {{ message.user.first_name|first }}{{ message.user.last_name|first }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="user-details">
+                                                <h4>{{ message.user.get_full_name }}</h4>
+                                                <p>{{ message.created_at|naturaltime }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="message-meta">
+                                            <span class="subject-badge">
+                                                {{ message.get_subject_display }}
+                                            </span>
+                                            {% if not message.is_read %}
+                                            <span class="unread-badge">New</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="message-content">
+                                        <p>{{ message.message }}</p>
+                                    </div>
+
+                                    <div class="message-actions">
+                                       
+                                        {% if not message.is_read %}
+                                        <button class="action-btn mark-read-btn" data-message-id="{{ message.id }}">
+                                            <i class="fas fa-check"></i>
+                                            Mark as Read
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="no-data">
+                                    <i class="fas fa-envelope"></i>
+                                    <h3>No messages found</h3>
+                                    <p>There are no contact messages to display.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="postDetailModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2>Post Details</h2>
+            </div>
+            <div class="modal-body" id="postDetailContent">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="rejectPostModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2>Reject Post</h2>
+            </div>
+            <div class="modal-body">
+                <form id="rejectPostForm">
+                    <input type="hidden" id="rejectPostId">
+                    <div class="form-group">
+                        <label for="rejectionReason">Reason for Rejection</label>
+                        <textarea id="rejectionReason" rows="4" placeholder="Please provide a reason for rejecting this post..." required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Reject Post</button>
+                        <button type="button" class="btn-secondary close-modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/server/servercommunitypage.js' %}"></script>
+    <script>
+    const communityData = {
+        currentUser: {
+            name: "{{ admin_user.get_full_name|escapejs }}",
+            role: "{{ admin_user.get_role_display|escapejs }}"
+        },
+        apiEndpoints: {
+            approvePost: "{% url 'server_approve_post' %}",
+            rejectPost: "{% url 'server_reject_post' %}",
+            updateComplaint: "{% url 'server_update_complaint' %}",
+            updateSuggestion: "{% url 'server_update_suggestion' %}",
+            markMessageRead: "{% url 'server_mark_message_read' %}",
+            getPostDetails: "{% url 'server_get_post_details' %}"
+        }
+    };
+    </script>
+</body>
+</html>

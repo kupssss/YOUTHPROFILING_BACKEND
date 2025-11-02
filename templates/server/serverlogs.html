@@ -1,0 +1,512 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Logs - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serverlogs.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-logs-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'server_logs_management' %}" class="system-settings-link active">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="logs-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>System Logs & Audit Trail</h1>
+                        <p>Monitor user activities and system access in real-time</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="logs-stats-grid">
+                <div class="log-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ login_stats.total_logins|intcomma }}</h3>
+                        <p>Total Logins</p>
+                        <span class="stat-trend positive">
+                            <i class="fas fa-arrow-up"></i> 
+                            {{ login_stats.today_logins }} today
+                        </span>
+                    </div>
+                </div>
+
+                <div class="log-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ login_stats.failed_logins|intcomma }}</h3>
+                        <p>Failed Attempts</p>
+                        <span class="stat-trend {% if login_stats.failed_logins > 0 %}negative{% else %}positive{% endif %}">
+                            <i class="fas fa-arrow-{% if login_stats.failed_logins > 0 %}up{% else %}down{% endif %}"></i> 
+                            Monitor activity
+                        </span>
+                    </div>
+                </div>
+
+                <div class="log-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ audit_stats.total_actions|intcomma }}</h3>
+                        <p>Audit Actions</p>
+                        <span class="stat-trend positive">
+                            <i class="fas fa-arrow-up"></i> 
+                            {{ audit_stats.today_actions }} today
+                        </span>
+                    </div>
+                </div>
+
+                <div class="log-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ audit_stats.decrypt_actions|intcomma }}</h3>
+                        <p>Data Decryptions</p>
+                        <span class="stat-trend {% if audit_stats.decrypt_actions > 0 %}warning{% else %}positive{% endif %}">
+                            <i class="fas fa-{% if audit_stats.decrypt_actions > 0 %}eye{% else %}lock{% endif %}"></i> 
+                            {% if audit_stats.decrypt_actions > 0 %}Sensitive access{% else %}Secure{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="logs-tabs">
+                <div class="tabs-header">
+                    <button class="tab-btn active" data-tab="user-logs">
+                        <i class="fas fa-user-clock"></i>
+                        User Activity Logs
+                    </button>
+                    <button class="tab-btn" data-tab="audit-logs">
+                        <i class="fas fa-shield-alt"></i>
+                        Audit Trail
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="user-logs-tab">
+                    <div class="logs-table-container">
+                        <div class="table-header">
+                            <h3>User Login Activities</h3>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="userLogsSearch" placeholder="Search users, IP, or details...">
+                                </div>
+                                <button class="filter-btn" id="userLogsFilter">
+                                    <i class="fas fa-filter"></i>
+                                    Filter
+                                </button>
+                                <button class="export-btn">
+                                    <i class="fas fa-download"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="logs-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Activity Type</th>
+                                        <th>IP Address</th>
+                                        <th>Status</th>
+                                        <th>Timestamp</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in user_logs %}
+                                    <tr class="log-row {% if not log.success %}failed{% endif %}">
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    {% if log.youth_user and log.youth_user.profile_picture %}
+                                                        <img src="{{ log.youth_user.profile_picture.url }}" alt="{{ log.username }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {{ log.username|first|upper }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <strong>{{ log.username }}</strong>
+                                                    {% if log.youth_user %}
+                                                        <span>{{ log.youth_user.get_full_name }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="activity-badge activity-{{ log.login_type|lower }}">
+                                                <i class="fas fa-{% if log.login_type == 'LOGIN' %}sign-in-alt{% elif log.login_type == 'LOGOUT' %}sign-out-alt{% else %}exclamation-triangle{% endif %}"></i>
+                                                {{ log.login_type|title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <code class="ip-address">{{ log.ip_address|default:"N/A" }}</code>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-{% if log.success %}success{% else %}failed{% endif %}">
+                                                <i class="fas fa-{% if log.success %}check-circle{% else %}times-circle{% endif %}"></i>
+                                                {{ log.success|yesno:"Success,Failed" }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="timestamp">
+                                                <div class="date">{{ log.timestamp|date:"M d, Y" }}</div>
+                                                <div class="time">{{ log.timestamp|date:"h:i A" }}</div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if log.failure_reason %}
+                                                <button class="details-btn" data-reason="{{ log.failure_reason }}">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    View Reason
+                                                </button>
+                                            {% else %}
+                                                <span class="no-details">No details</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">
+                            <div class="pagination-info">
+                                Showing {{ user_logs|length }} of {{ login_stats.total_logins|add:login_stats.failed_logins|add:login_stats.total_logouts }} records
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn disabled">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span class="pagination-page">Page 1</span>
+                                <button class="pagination-btn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="audit-logs-tab">
+                    <div class="logs-table-container">
+                        <div class="table-header">
+                            <h3>Data Access Audit Trail</h3>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="auditLogsSearch" placeholder="Search admin, user, or action...">
+                                </div>
+                                <button class="filter-btn" id="auditLogsFilter">
+                                    <i class="fas fa-filter"></i>
+                                    Filter
+                                </button>
+                                <button class="export-btn">
+                                    <i class="fas fa-download"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="logs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Admin User</th>
+                                        <th>Action</th>
+                                        <th>Target User</th>
+                                        <th>IP Address</th>
+                                        <th>Timestamp</th>
+                                        <th>Security Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in audit_logs %}
+                                    <tr class="log-row">
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar admin">
+                                                    {% if log.admin_user and log.admin_user.profile_picture %}
+                                                        <img src="{{ log.admin_user.profile_picture.url }}" alt="{{ log.admin_user.username }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {% if log.admin_user %}{{ log.admin_user.username|first|upper }}{% else %}S{% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <strong>{% if log.admin_user %}{{ log.admin_user.username }}{% else %}System{% endif %}</strong>
+                                                    <span>{% if log.admin_user %}{{ log.admin_user.get_full_name }}{% else %}Automated System{% endif %}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="action-badge action-{{ log.action|lower }}">
+                                                <i class="fas fa-{% if log.action == 'VIEW' %}eye{% elif log.action == 'UPDATE' %}edit{% else %}key{% endif %}"></i>
+                                                {{ log.action|title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    {% if log.youth_user.profile_picture %}
+                                                        <img src="{{ log.youth_user.profile_picture.url }}" alt="{{ log.youth_user.username }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {{ log.youth_user.username|first|upper }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <strong>{{ log.youth_user.username }}</strong>
+                                                    <span>{{ log.youth_user.get_full_name }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <code class="ip-address">{{ log.ip_address|default:"N/A" }}</code>
+                                        </td>
+                                        <td>
+                                            <div class="timestamp">
+                                                <div class="date">{{ log.timestamp|date:"M d, Y" }}</div>
+                                                <div class="time">{{ log.timestamp|date:"h:i A" }}</div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="security-badge security-{% if log.action == 'DECRYPT' %}high{% else %}medium{% endif %}">
+                                                <i class="fas fa-{% if log.action == 'DECRYPT' %}shield-alt{% else %}user{% endif %}"></i>
+                                                {% if log.action == 'DECRYPT' %}High{% else %}Medium{% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">
+                            <div class="pagination-info">
+                                Showing {{ audit_logs|length }} of {{ audit_stats.total_actions }} records
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn disabled">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span class="pagination-page">Page 1</span>
+                                <button class="pagination-btn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="logs-actions-panel">
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Real-time Updates</h4>
+                        <p>Logs update automatically every 30 seconds</p>
+                        <button class="refresh-btn" id="refreshLogs">
+                            <i class="fas fa-redo"></i>
+                            Refresh Now
+                        </button>
+                    </div>
+                </div>
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Security Alerts</h4>
+                        <p>Get notified for suspicious activities</p>
+                        <button class="alert-btn" id="enableAlerts">
+                            <i class="fas fa-sliders-h"></i>
+                            Configure Alerts
+                        </button>
+                    </div>
+                </div>
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Data Retention</h4>
+                        <p>Logs are kept for 365 days automatically</p>
+                        <button class="cleanup-btn" id="cleanupLogs">
+                            <i class="fas fa-broom"></i>
+                            Run Cleanup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="reasonModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Failure Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="failureReason"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" id="closeReasonModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/server/serverlogs.js' %}"></script>
+</body>
+</html>

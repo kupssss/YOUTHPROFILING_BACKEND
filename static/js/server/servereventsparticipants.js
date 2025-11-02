@@ -1,15 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    initEventsParticipants();
-    
-    function initEventsParticipants() {
-        updateCurrentDate();
-        initSidebarToggle();
-        initModals();
-        initEventInteractions();
-        initAnimations();
-        initNotificationBell();
-    }
-    
     function updateCurrentDate() {
         const now = new Date();
         const options = { 
@@ -21,145 +10,165 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
     }
     
-    function initSidebarToggle() {
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.querySelector('.server-sidebar');
-        
-        if (sidebarToggle && sidebar) {
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-            });
-        }
-    }
+    updateCurrentDate();
     
-    function initNotificationBell() {
-        const notificationBell = document.querySelector('.notification-bell');
-        
-        if (notificationBell) {
-            notificationBell.addEventListener('click', function() {
-                showMessage('Notifications feature coming soon!', 'info');
-            });
-        }
-    }
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.server-sidebar');
+    const mainContent = document.querySelector('.server-main-content');
     
-    function initModals() {
-        const viewRegBtns = document.querySelectorAll('.view-registrations-btn');
-        const closeRegModal = document.getElementById('closeRegistrationsModal');
-        const regModal = document.getElementById('registrationsModal');
-        
-        viewRegBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const eventId = this.getAttribute('data-event-id');
-                openRegistrationsModal(eventId);
-            });
-        });
-        
-        if (closeRegModal) {
-            closeRegModal.addEventListener('click', function() {
-                regModal.classList.remove('active');
-            });
-        }
-        
-        const reviewModal = document.getElementById('reviewDocumentsModal');
-        const closeReviewModal = document.getElementById('closeReviewModal');
-        
-        if (closeReviewModal) {
-            closeReviewModal.addEventListener('click', function() {
-                reviewModal.classList.remove('active');
-            });
-        }
-        
-        const approveBtn = document.getElementById('approveRegistration');
-        const rejectBtn = document.getElementById('rejectRegistration');
-        const waitlistBtn = document.getElementById('waitlistRegistration');
-        
-        if (approveBtn) {
-            approveBtn.addEventListener('click', function() {
-                const regId = this.getAttribute('data-reg-id');
-                updateRegistrationStatus(regId, 'confirmed', 'Documents verified and approved');
-            });
-        }
-        
-        if (rejectBtn) {
-            rejectBtn.addEventListener('click', function() {
-                const regId = this.getAttribute('data-reg-id');
-                updateRegistrationStatus(regId, 'cancelled', 'Documents did not meet requirements');
-            });
-        }
-        
-        if (waitlistBtn) {
-            waitlistBtn.addEventListener('click', function() {
-                const regId = this.getAttribute('data-reg-id');
-                updateRegistrationStatus(regId, 'waitlisted', 'Placed on waitlist due to limited capacity');
-            });
-        }
-        
-        const attendanceBtns = document.querySelectorAll('.manage-attendance-btn');
-        const closeAttendanceModal = document.getElementById('closeAttendanceModal');
-        const attendanceModal = document.getElementById('attendanceModal');
-        
-        attendanceBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const eventId = this.getAttribute('data-event-id');
-                openAttendanceModal(eventId);
-            });
-        });
-        
-        if (closeAttendanceModal) {
-            closeAttendanceModal.addEventListener('click', function() {
-                attendanceModal.classList.remove('active');
-            });
-        }
-        
-        const attendeesBtns = document.querySelectorAll('.attendees-btn');
-        const closeAttendeesModal = document.getElementById('closeAttendeesModal');
-        const attendeesModal = document.getElementById('attendeesModal');
-        
-        attendeesBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const eventId = this.getAttribute('data-event-id');
-                openAttendeesModal(eventId);
-            });
-        });
-        
-        if (closeAttendeesModal) {
-            closeAttendeesModal.addEventListener('click', function() {
-                attendeesModal.classList.remove('active');
-            });
-        }
-        
-        document.addEventListener('click', function(e) {
-            if (e.target === regModal) regModal.classList.remove('active');
-            if (e.target === reviewModal) reviewModal.classList.remove('active');
-            if (e.target === attendanceModal) attendanceModal.classList.remove('active');
-            if (e.target === attendeesModal) attendeesModal.classList.remove('active');
-        });
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                regModal.classList.remove('active');
-                reviewModal.classList.remove('active');
-                attendanceModal.classList.remove('active');
-                attendeesModal.classList.remove('active');
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-bars';
+            } else {
+                icon.className = 'fas fa-times';
             }
         });
     }
     
-    function initEventInteractions() {
-        const eventItems = document.querySelectorAll('.event-item');
-        
-        eventItems.forEach(item => {
-            item.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-5px)';
-                this.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.2)';
-            });
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.nav-dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
             
-            item.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = 'none';
-            });
+            this.classList.toggle('active');
+            menu.classList.toggle('show');
+        });
+    });
+    
+    const systemSettingsLinks = document.querySelectorAll('.system-settings-link');
+    const unauthorizedModal = document.getElementById('unauthorizedModal');
+    const closeModal = document.querySelector('.close-modal');
+    
+    systemSettingsLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const hasAccess = this.getAttribute('data-has-access') === 'true';
+            
+            if (!hasAccess) {
+                e.preventDefault();
+                unauthorizedModal.style.display = 'flex';
+            }
+        });
+    });
+    
+    if (closeModal && unauthorizedModal) {
+        closeModal.addEventListener('click', function() {
+            unauthorizedModal.style.display = 'none';
+        });
+        
+        unauthorizedModal.addEventListener('click', function(e) {
+            if (e.target === unauthorizedModal) {
+                unauthorizedModal.style.display = 'none';
+            }
         });
     }
+    
+    const viewRegBtns = document.querySelectorAll('.view-registrations-btn');
+    const closeRegModal = document.getElementById('closeRegistrationsModal');
+    const regModal = document.getElementById('registrationsModal');
+    
+    viewRegBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            openRegistrationsModal(eventId);
+        });
+    });
+    
+    if (closeRegModal) {
+        closeRegModal.addEventListener('click', function() {
+            regModal.classList.remove('active');
+        });
+    }
+    
+    const reviewModal = document.getElementById('reviewDocumentsModal');
+    const closeReviewModal = document.getElementById('closeReviewModal');
+    
+    if (closeReviewModal) {
+        closeReviewModal.addEventListener('click', function() {
+            reviewModal.classList.remove('active');
+        });
+    }
+    
+    const approveBtn = document.getElementById('approveRegistration');
+    const rejectBtn = document.getElementById('rejectRegistration');
+    const waitlistBtn = document.getElementById('waitlistRegistration');
+    
+    if (approveBtn) {
+        approveBtn.addEventListener('click', function() {
+            const regId = this.getAttribute('data-reg-id');
+            updateRegistrationStatus(regId, 'confirmed', 'Documents verified and approved');
+        });
+    }
+    
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', function() {
+            const regId = this.getAttribute('data-reg-id');
+            updateRegistrationStatus(regId, 'cancelled', 'Documents did not meet requirements');
+        });
+    }
+    
+    if (waitlistBtn) {
+        waitlistBtn.addEventListener('click', function() {
+            const regId = this.getAttribute('data-reg-id');
+            updateRegistrationStatus(regId, 'waitlisted', 'Placed on waitlist due to limited capacity');
+        });
+    }
+    
+    const attendanceBtns = document.querySelectorAll('.manage-attendance-btn');
+    const closeAttendanceModal = document.getElementById('closeAttendanceModal');
+    const attendanceModal = document.getElementById('attendanceModal');
+    
+    attendanceBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            openAttendanceModal(eventId);
+        });
+    });
+    
+    if (closeAttendanceModal) {
+        closeAttendanceModal.addEventListener('click', function() {
+            attendanceModal.classList.remove('active');
+        });
+    }
+    
+    const attendeesBtns = document.querySelectorAll('.attendees-btn');
+    const closeAttendeesModal = document.getElementById('closeAttendeesModal');
+    const attendeesModal = document.getElementById('attendeesModal');
+    
+    attendeesBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            openAttendeesModal(eventId);
+        });
+    });
+    
+    if (closeAttendeesModal) {
+        closeAttendeesModal.addEventListener('click', function() {
+            attendeesModal.classList.remove('active');
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (e.target === regModal) regModal.classList.remove('active');
+        if (e.target === reviewModal) reviewModal.classList.remove('active');
+        if (e.target === attendanceModal) attendanceModal.classList.remove('active');
+        if (e.target === attendeesModal) attendeesModal.classList.remove('active');
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            regModal.classList.remove('active');
+            reviewModal.classList.remove('active');
+            attendanceModal.classList.remove('active');
+            attendeesModal.classList.remove('active');
+        }
+    });
     
     function openRegistrationsModal(eventId) {
         const modal = document.getElementById('registrationsModal');
@@ -171,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/server/events/${eventId}/registrations/`, {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCSRFToken(),
+                'X-CSRFToken': csrfToken,
             },
         })
         .then(response => response.json())
@@ -248,154 +257,154 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function openReviewDocumentsModal(registrationId) {
-    const modal = document.getElementById('reviewDocumentsModal');
-    const userInfo = document.getElementById('userDocumentsInfo');
-    const userDocuments = document.getElementById('userDocuments');
-    
-    modal.classList.add('active');
-    
-    fetch(`/server/registrations/${registrationId}/user-documents/`, {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': getCSRFToken(),
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            userInfo.innerHTML = `
-                <div class="user-details-large">
-                    <div class="user-avatar-large">
-                        ${data.user.avatar ? 
-                            `<img src="${data.user.avatar}" alt="${data.user.name}">` :
-                            `<div class="user-avatar-initials">${data.user.initials}</div>`
-                        }
-                    </div>
-                    <div class="user-info-text">
-                        <h3>${data.user.name}</h3>
-                        <p>${data.user.email}</p>
-                        <p>Registration No: ${data.user.registration_no}</p>
-                        <p>Age: ${data.user.age} • ${data.user.gender}</p>
-                        <p>Zone: ${data.user.purok_zone}</p>
-                    </div>
-                </div>
-            `;
-            
-            userDocuments.innerHTML = `
-                <div class="user-details-grid">
-                    <div class="detail-section">
-                        <h4>Personal Information</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Full Name:</span>
-                            <span class="detail-value">${data.user.name}</span>
+        const modal = document.getElementById('reviewDocumentsModal');
+        const userInfo = document.getElementById('userDocumentsInfo');
+        const userDocuments = document.getElementById('userDocuments');
+        
+        modal.classList.add('active');
+        
+        fetch(`/server/registrations/${registrationId}/user-documents/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                userInfo.innerHTML = `
+                    <div class="user-details-large">
+                        <div class="user-avatar-large">
+                            ${data.user.avatar ? 
+                                `<img src="${data.user.avatar}" alt="${data.user.name}">` :
+                                `<div class="user-avatar-initials">${data.user.initials}</div>`
+                            }
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Age:</span>
-                            <span class="detail-value">${data.user.age} years (${data.user.age_group})</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Gender:</span>
-                            <span class="detail-value">${data.user.gender}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Civil Status:</span>
-                            <span class="detail-value">${data.user.civil_status}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Contact Number:</span>
-                            <span class="detail-value">${data.user.contact_number}</span>
+                        <div class="user-info-text">
+                            <h3>${data.user.name}</h3>
+                            <p>${data.user.email}</p>
+                            <p>Registration No: ${data.user.registration_no}</p>
+                            <p>Age: ${data.user.age} • ${data.user.gender}</p>
+                            <p>Zone: ${data.user.purok_zone}</p>
                         </div>
                     </div>
-                    
-                    <div class="detail-section">
-                        <h4>Education & Employment</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Education Level:</span>
-                            <span class="detail-value">${data.user.education}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Youth Classification:</span>
-                            <span class="detail-value">${data.user.youth_classification}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Work Status:</span>
-                            <span class="detail-value">${data.user.work_status}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="detail-section">
-                        <h4>Residence Information</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Address:</span>
-                            <span class="detail-value">${data.user.address}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Purok/Zone:</span>
-                            <span class="detail-value">${data.user.purok_zone}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">SK Voter:</span>
-                            <span class="detail-value">${data.user.sk_voter}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="detail-section">
-                        <h4>Account Status</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Email Verified:</span>
-                            <span class="detail-value">${data.user.is_email_verified}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Admin Verified:</span>
-                            <span class="detail-value">${data.user.is_admin_verified}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Member Since:</span>
-                            <span class="detail-value">${data.user.created_at}</span>
-                        </div>
-                    </div>
-                </div>
+                `;
                 
-                <div class="verification-documents">
-                    <h4>Verification Documents</h4>
-                    <div class="document-item">
-                        <span>ID Document (${data.user.id_type})</span>
-                        <a href="${data.user.id_picture}" class="document-view" target="_blank">
-                            <i class="fas fa-eye"></i> View Document
-                        </a>
+                userDocuments.innerHTML = `
+                    <div class="user-details-grid">
+                        <div class="detail-section">
+                            <h4>Personal Information</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Full Name:</span>
+                                <span class="detail-value">${data.user.name}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Age:</span>
+                                <span class="detail-value">${data.user.age} years (${data.user.age_group})</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Gender:</span>
+                                <span class="detail-value">${data.user.gender}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Civil Status:</span>
+                                <span class="detail-value">${data.user.civil_status}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Contact Number:</span>
+                                <span class="detail-value">${data.user.contact_number}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Education & Employment</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Education Level:</span>
+                                <span class="detail-value">${data.user.education}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Youth Classification:</span>
+                                <span class="detail-value">${data.user.youth_classification}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Work Status:</span>
+                                <span class="detail-value">${data.user.work_status}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Residence Information</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Address:</span>
+                                <span class="detail-value">${data.user.address}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Purok/Zone:</span>
+                                <span class="detail-value">${data.user.purok_zone}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">SK Voter:</span>
+                                <span class="detail-value">${data.user.sk_voter}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Account Status</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Email Verified:</span>
+                                <span class="detail-value">${data.user.is_email_verified}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Admin Verified:</span>
+                                <span class="detail-value">${data.user.is_admin_verified}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Member Since:</span>
+                                <span class="detail-value">${data.user.created_at}</span>
+                            </div>
+                        </div>
                     </div>
-                    ${data.user.birth_certificate ? `
-                    <div class="document-item">
-                        <span>Birth Certificate</span>
-                        <a href="${data.user.birth_certificate}" class="document-view" target="_blank">
-                            <i class="fas fa-eye"></i> View Document
-                        </a>
+                    
+                    <div class="verification-documents">
+                        <h4>Verification Documents</h4>
+                        <div class="document-item">
+                            <span>ID Document (${data.user.id_type})</span>
+                            <a href="${data.user.id_picture}" class="document-view" target="_blank">
+                                <i class="fas fa-eye"></i> View Document
+                            </a>
+                        </div>
+                        ${data.user.birth_certificate ? `
+                        <div class="document-item">
+                            <span>Birth Certificate</span>
+                            <a href="${data.user.birth_certificate}" class="document-view" target="_blank">
+                                <i class="fas fa-eye"></i> View Document
+                            </a>
+                        </div>
+                        ` : ''}
                     </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            document.getElementById('approveRegistration').setAttribute('data-reg-id', registrationId);
-            document.getElementById('rejectRegistration').setAttribute('data-reg-id', registrationId);
-            document.getElementById('waitlistRegistration').setAttribute('data-reg-id', registrationId);
-        } else {
-            showMessage(data.message, 'error');
+                `;
+                
+                document.getElementById('approveRegistration').setAttribute('data-reg-id', registrationId);
+                document.getElementById('rejectRegistration').setAttribute('data-reg-id', registrationId);
+                document.getElementById('waitlistRegistration').setAttribute('data-reg-id', registrationId);
+            } else {
+                showMessage(data.message, 'error');
+                modal.classList.remove('active');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Failed to load user documents', 'error');
             modal.classList.remove('active');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Failed to load user documents', 'error');
-        modal.classList.remove('active');
-    });
-}
+        });
+    }
     
     function updateRegistrationStatus(registrationId, status, reason) {
         fetch(`/server/registrations/${registrationId}/update-status/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken(),
+                'X-CSRFToken': csrfToken,
             },
             body: JSON.stringify({
                 status: status,
@@ -433,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/server/events/${eventId}/attendance/`, {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCSRFToken(),
+                'X-CSRFToken': csrfToken,
             },
         })
         .then(response => response.json())
@@ -515,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken(),
+                'X-CSRFToken': csrfToken,
             },
             body: JSON.stringify({
                 present: isPresent
@@ -566,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/server/events/${eventId}/attendees/`, {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCSRFToken(),
+                'X-CSRFToken': csrfToken,
             },
         })
         .then(response => response.json())
@@ -630,44 +639,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `).join('');
     }
     
-    function initAnimations() {
-        const statItems = document.querySelectorAll('.stat-item');
-        const segmentCards = document.querySelectorAll('.segment-card');
-        
-        statItems.forEach((item, index) => {
-            item.style.opacity = '0';
-            item.style.transform = 'translateY(20px)';
-            item.style.transition = `opacity 0.5s ease ${index * 0.1}s, transform 0.5s ease ${index * 0.1}s`;
-            
-            setTimeout(() => {
-                item.style.opacity = '1';
-                item.style.transform = 'translateY(0)';
-            }, 100 + (index * 100));
-        });
-        
-        segmentCards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
-            card.style.transition = `opacity 0.6s ease ${0.3 + (index * 0.2)}s, transform 0.6s ease ${0.3 + (index * 0.2)}s`;
-            
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 300 + (index * 200));
-        });
-        
-        const buttons = document.querySelectorAll('button:not(.modal-close)');
-        buttons.forEach(btn => {
-            btn.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px)';
-            });
-            
-            btn.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-            });
-        });
-    }
-    
     function showMessage(message, type) {
         const existingMessage = document.querySelector('.event-message');
         if (existingMessage) {
@@ -696,11 +667,10 @@ document.addEventListener('DOMContentLoaded', function() {
             animation: slideIn 0.3s ease;
             ${type === 'success' ? 'background: rgba(46, 125, 50, 0.9); color: white;' : 
               type === 'error' ? 'background: rgba(211, 47, 47, 0.9); color: white;' :
-              type === 'info' ? 'background: rgba(25, 118, 210, 0.9); color: white;' :
-              'background: rgba(33, 37, 41, 0.9); color: white;'}
+              'background: rgba(25, 118, 210, 0.9); color: white;'}
             backdrop-filter: blur(10px);
         `;
-        
+
         const closeBtn = messageEl.querySelector('.message-close');
         closeBtn.style.cssText = `
             background: none;
@@ -726,7 +696,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 300);
             }
         }, 5000);
-        
         document.body.appendChild(messageEl);
         
         if (!document.querySelector('#message-animations')) {
@@ -746,19 +715,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function getCSRFToken() {
-        const name = 'csrftoken';
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
+    const statCards = document.querySelectorAll('.stat-card');
+    const segmentCards = document.querySelectorAll('.segment-card');
+    
+    statCards.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = `opacity 0.5s ease ${index * 0.1}s, transform 0.5s ease ${index * 0.1}s`;
+        
+        setTimeout(() => {
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
+    });
+    
+    segmentCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = `opacity 0.6s ease ${0.3 + (index * 0.2)}s, transform 0.6s ease ${0.3 + (index * 0.2)}s`;
+        
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 300 + (index * 200));
+    });
 });

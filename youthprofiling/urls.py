@@ -146,6 +146,45 @@ urlpatterns = [
     path('server/events/<int:event_id>/attendees/', views.get_event_attendees, name='get_event_attendees'),
     path('server/registrations/<int:registration_id>/user-documents/', views.get_user_documents, name='get_user_documents'),
 
+
+    path('server/community-management/', views.server_community_management, name='server_community_management'),
+    path('server/community/posts/approve/', views.server_approve_post, name='server_approve_post'),
+    path('server/community/posts/reject/', views.server_reject_post, name='server_reject_post'),
+    path('server/community/complaints/update/', views.server_update_complaint, name='server_update_complaint'),
+    path('server/community/suggestions/update/', views.server_update_suggestion, name='server_update_suggestion'),
+    path('server/community/messages/mark-read/', views.server_mark_message_read, name='server_mark_message_read'),
+    path('server/community/posts/details/', views.server_get_post_details, name='server_get_post_details'),
+
+    path('server/logs/', views.server_logs_management, name='server_logs_management'),
+
+
+    path('server/demographics-management/', views.server_demographics_management, name='server_demographics_management'),
+    path('server/demographics/add/', views.server_add_demographic_option, name='server_add_demographic_option'),
+    path('server/demographics/update/', views.server_update_demographic_option, name='server_update_demographic_option'),
+    path('server/demographics/delete/', views.server_delete_demographic_option, name='server_delete_demographic_option'),
+
+    path('server/user-archives/', views.server_user_archives_management, name='server_user_archives_management'),
+
+
+
+    path('server/faq-guidelines-management/', views.server_faq_guidelines_management, name='server_faq_guidelines_management'),
+    path('server/faq-guidelines/add/', views.server_add_faq_guideline, name='server_add_faq_guideline'),
+    path('server/faq-guidelines/update/', views.server_update_faq_guideline, name='server_update_faq_guideline'),
+    path('server/faq-guidelines/delete/', views.server_delete_faq_guideline, name='server_delete_faq_guideline'),
+    path('server/faq-guidelines/toggle-status/', views.server_toggle_faq_guideline_status, name='server_toggle_faq_guideline_status'),
+    path('server/faq-guidelines/update-order/', views.server_update_faq_guideline_order, name='server_update_faq_guideline_order'),
+
+
+    path('server/admins/', views.server_admins_management, name='server_admins_management'),
+    path('server/admins/create/', views.create_admin, name='create_admin'),
+
+
+
+
+
+
+
+
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
 ]
 

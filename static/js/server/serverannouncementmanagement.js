@@ -1,16 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    initAnnouncementManagement();
-    
-    function initAnnouncementManagement() {
-        updateCurrentDate();
-        initSidebarToggle();
-        initModals();
-        initFilters();
-        initFormValidation();
-        initAnnouncementActions();
-        initAnimations();
-    }
-    
     function updateCurrentDate() {
         const now = new Date();
         const options = { 
@@ -22,84 +10,130 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
     }
     
-    function initSidebarToggle() {
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.querySelector('.server-sidebar');
-        
-        if (sidebarToggle && sidebar) {
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-            });
-        }
+    updateCurrentDate();
+    
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.server-sidebar');
+    const mainContent = document.querySelector('.server-main-content');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-bars';
+            } else {
+                icon.className = 'fas fa-times';
+            }
+        });
     }
     
-    function initModals() {
-        const createBtn = document.getElementById('createAnnouncementBtn');
-        const createFirstBtn = document.getElementById('createFirstAnnouncement');
-        const modal = document.getElementById('announcementModal');
-        const closeModal = document.getElementById('closeModal');
-        const cancelForm = document.getElementById('cancelForm');
-        
-        if (createBtn) {
-            createBtn.addEventListener('click', function() {
-                openAnnouncementModal();
-            });
-        }
-        
-        if (createFirstBtn) {
-            createFirstBtn.addEventListener('click', function() {
-                openAnnouncementModal();
-            });
-        }
-        
-        if (closeModal) {
-            closeModal.addEventListener('click', function() {
-                closeAnnouncementModal();
-            });
-        }
-        
-        if (cancelForm) {
-            cancelForm.addEventListener('click', function() {
-                closeAnnouncementModal();
-            });
-        }
-        
-        const deleteModal = document.getElementById('deleteModal');
-        const cancelDelete = document.getElementById('cancelDelete');
-        const confirmDelete = document.getElementById('confirmDelete');
-        
-        if (cancelDelete) {
-            cancelDelete.addEventListener('click', function() {
-                deleteModal.classList.remove('active');
-            });
-        }
-        
-        if (confirmDelete) {
-            confirmDelete.addEventListener('click', function() {
-                const announcementId = deleteModal.getAttribute('data-id');
-                if (announcementId) {
-                    deleteAnnouncement(announcementId);
-                }
-                deleteModal.classList.remove('active');
-            });
-        }
-        
-        document.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                closeAnnouncementModal();
-            }
-            if (e.target === deleteModal) {
-                deleteModal.classList.remove('active');
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.nav-dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            
+            this.classList.toggle('active');
+            menu.classList.toggle('show');
+        });
+    });
+    
+    const systemSettingsLinks = document.querySelectorAll('.system-settings-link');
+    const unauthorizedModal = document.getElementById('unauthorizedModal');
+    const closeModal = document.querySelector('.close-modal');
+    
+    systemSettingsLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const hasAccess = this.getAttribute('data-has-access') === 'true';
+            
+            if (!hasAccess) {
+                e.preventDefault();
+                unauthorizedModal.style.display = 'flex';
             }
         });
+    });
+    
+    if (closeModal && unauthorizedModal) {
+        closeModal.addEventListener('click', function() {
+            unauthorizedModal.style.display = 'none';
+        });
         
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeAnnouncementModal();
-                deleteModal.classList.remove('active');
+        unauthorizedModal.addEventListener('click', function(e) {
+            if (e.target === unauthorizedModal) {
+                unauthorizedModal.style.display = 'none';
             }
         });
     }
+    
+    const createBtn = document.getElementById('createAnnouncementBtn');
+    const createFirstBtn = document.getElementById('createFirstAnnouncement');
+    const modal = document.getElementById('announcementModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelForm = document.getElementById('cancelForm');
+    
+    if (createBtn) {
+        createBtn.addEventListener('click', function() {
+            openAnnouncementModal();
+        });
+    }
+    
+    if (createFirstBtn) {
+        createFirstBtn.addEventListener('click', function() {
+            openAnnouncementModal();
+        });
+    }
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+            closeAnnouncementModal();
+        });
+    }
+    
+    if (cancelForm) {
+        cancelForm.addEventListener('click', function() {
+            closeAnnouncementModal();
+        });
+    }
+    
+    const deleteModal = document.getElementById('deleteModal');
+    const cancelDelete = document.getElementById('cancelDelete');
+    const confirmDelete = document.getElementById('confirmDelete');
+    
+    if (cancelDelete) {
+        cancelDelete.addEventListener('click', function() {
+            deleteModal.classList.remove('active');
+        });
+    }
+    
+    if (confirmDelete) {
+        confirmDelete.addEventListener('click', function() {
+            const announcementId = deleteModal.getAttribute('data-id');
+            if (announcementId) {
+                deleteAnnouncement(announcementId);
+            }
+            deleteModal.classList.remove('active');
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeAnnouncementModal();
+        }
+        if (e.target === deleteModal) {
+            deleteModal.classList.remove('active');
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAnnouncementModal();
+            deleteModal.classList.remove('active');
+        }
+    });
     
     function openAnnouncementModal(announcementId = null) {
         const modal = document.getElementById('announcementModal');
@@ -164,37 +198,35 @@ document.addEventListener('DOMContentLoaded', function() {
         return date.toISOString().slice(0, 16);
     }
     
-    function initFilters() {
-        const searchInput = document.getElementById('announcementSearch');
-        const categoryFilter = document.getElementById('categoryFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        const importanceFilter = document.getElementById('importanceFilter');
-        const applyFiltersBtn = document.getElementById('applyFilters');
-        const clearFiltersBtn = document.getElementById('clearFilters');
-        
-        if (searchInput) {
-            searchInput.addEventListener('input', filterAnnouncements);
-        }
-        
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', filterAnnouncements);
-        }
-        
-        if (statusFilter) {
-            statusFilter.addEventListener('change', filterAnnouncements);
-        }
-        
-        if (importanceFilter) {
-            importanceFilter.addEventListener('change', filterAnnouncements);
-        }
-        
-        if (applyFiltersBtn) {
-            applyFiltersBtn.addEventListener('click', filterAnnouncements);
-        }
-        
-        if (clearFiltersBtn) {
-            clearFiltersBtn.addEventListener('click', clearFilters);
-        }
+    const searchInput = document.getElementById('announcementSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const importanceFilter = document.getElementById('importanceFilter');
+    const applyFiltersBtn = document.getElementById('applyFilters');
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterAnnouncements);
+    }
+    
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterAnnouncements);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterAnnouncements);
+    }
+    
+    if (importanceFilter) {
+        importanceFilter.addEventListener('change', filterAnnouncements);
+    }
+    
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', filterAnnouncements);
+    }
+    
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearFilters);
     }
     
     function filterAnnouncements() {
@@ -242,183 +274,179 @@ document.addEventListener('DOMContentLoaded', function() {
         filterAnnouncements();
     }
     
-    function initFormValidation() {
-        const form = document.getElementById('announcementForm');
-        const excerptTextarea = document.getElementById('excerpt');
-        const imageInput = document.getElementById('image');
-        const imagePreview = document.getElementById('imagePreview');
-        
-        if (form) {
-            form.addEventListener('submit', handleFormSubmit);
-        }
-        
-        if (excerptTextarea) {
-            excerptTextarea.addEventListener('input', function() {
-                const count = this.value.length;
-                document.getElementById('excerptCount').textContent = count;
-                
-                if (count > 300) {
-                    this.value = this.value.substring(0, 300);
-                    document.getElementById('excerptCount').textContent = '300';
-                    document.getElementById('excerptCount').style.color = '#f44336';
-                } else {
-                    document.getElementById('excerptCount').style.color = '#90caf9';
-                }
-            });
-        }
-        
-        if (imageInput) {
-            imageInput.addEventListener('change', function() {
-                const file = this.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        imagePreview.innerHTML = `<img src="${e.target.result}" alt="Image Preview">`;
-                        imagePreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    imagePreview.style.display = 'none';
-                }
-            });
-        }
+    const form = document.getElementById('announcementForm');
+    const excerptTextarea = document.getElementById('excerpt');
+    const imageInput = document.getElementById('image');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
+    
+    if (excerptTextarea) {
+        excerptTextarea.addEventListener('input', function() {
+            const count = this.value.length;
+            document.getElementById('excerptCount').textContent = count;
+            
+            if (count > 300) {
+                this.value = this.value.substring(0, 300);
+                document.getElementById('excerptCount').textContent = '300';
+                document.getElementById('excerptCount').style.color = '#f44336';
+            } else {
+                document.getElementById('excerptCount').style.color = '#A0AEC0';
+            }
+        });
+    }
+    
+    if (imageInput) {
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Image Preview">`;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        });
     }
     
     function handleFormSubmit(e) {
-    e.preventDefault();
-    
-    const form = e.target;
-    const formData = new FormData(form);
-    const announcementId = formData.get('id');
-    const isEdit = !!announcementId;
-    
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalHTML = submitBtn.innerHTML;
-    
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    submitBtn.disabled = true;
-    
-    const url = isEdit 
-        ? `/server/announcements/${announcementId}/update/` 
-        : '/server/announcements/create/';
-    const method = 'POST';
-    
-    fetch(url, {
-        method: method,
-        body: formData,
-        headers: {
-            'X-CSRFToken': csrfToken,
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(data.message, 'success');
-            closeAnnouncementModal();
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            showMessage(data.message, 'error');
+        e.preventDefault();
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        const announcementId = formData.get('id');
+        const isEdit = !!announcementId;
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalHTML = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.disabled = true;
+        
+        const url = isEdit 
+            ? `/server/announcements/${announcementId}/update/` 
+            : '/server/announcements/create/';
+        const method = 'POST';
+        
+        fetch(url, {
+            method: method,
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                closeAnnouncementModal();
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.message, 'error');
+                submitBtn.innerHTML = originalHTML;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Network error. Please try again.', 'error');
             submitBtn.innerHTML = originalHTML;
             submitBtn.disabled = false;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Network error. Please try again.', 'error');
-        submitBtn.innerHTML = originalHTML;
-        submitBtn.disabled = false;
-    });
-}
-    
-    function initAnnouncementActions() {
-        document.querySelectorAll('.action-btn.edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const announcementId = this.getAttribute('data-id');
-                openAnnouncementModal(announcementId);
-            });
-        });
-        document.querySelectorAll('.action-btn.activate, .action-btn.deactivate').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const announcementId = this.getAttribute('data-id');
-                const isActivate = this.classList.contains('activate');
-                toggleAnnouncementStatus(announcementId, isActivate);
-            });
-        });
-        
-        document.querySelectorAll('.action-btn.delete').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const announcementId = this.getAttribute('data-id');
-                const deleteModal = document.getElementById('deleteModal');
-                deleteModal.setAttribute('data-id', announcementId);
-                deleteModal.classList.add('active');
-            });
         });
     }
     
-   function toggleAnnouncementStatus(announcementId, activate) {
-    const action = activate ? 'activate' : 'deactivate';
-    
-    fetch(`/server/announcements/${announcementId}/toggle-status/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(data.message, 'success');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            showMessage(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Network error. Please try again.', 'error');
+    document.querySelectorAll('.action-btn.edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const announcementId = this.getAttribute('data-id');
+            openAnnouncementModal(announcementId);
+        });
     });
-}
-
-function deleteAnnouncement(announcementId) {
-    console.log(`Attempting to delete announcement with ID: ${announcementId}`);
     
-    fetch(`/server/announcements/${announcementId}/delete/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json',
-        },
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-            showMessage(data.message, 'success');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            showMessage(data.message || 'Unknown error occurred', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error details:', error);
-        showMessage('Network error. Please try again.', 'error');
+    document.querySelectorAll('.action-btn.activate, .action-btn.deactivate').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const announcementId = this.getAttribute('data-id');
+            const isActivate = this.classList.contains('activate');
+            toggleAnnouncementStatus(announcementId, isActivate);
+        });
     });
-} 
+    
+    document.querySelectorAll('.action-btn.delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const announcementId = this.getAttribute('data-id');
+            const deleteModal = document.getElementById('deleteModal');
+            deleteModal.setAttribute('data-id', announcementId);
+            deleteModal.classList.add('active');
+        });
+    });
+    
+    function toggleAnnouncementStatus(announcementId, activate) {
+        const action = activate ? 'activate' : 'deactivate';
+        
+        fetch(`/server/announcements/${announcementId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Network error. Please try again.', 'error');
+        });
+    }
 
+    function deleteAnnouncement(announcementId) {
+        console.log(`Attempting to delete announcement with ID: ${announcementId}`);
+        
+        fetch(`/server/announcements/${announcementId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.message || 'Unknown error occurred', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error details:', error);
+            showMessage('Network error. Please try again.', 'error');
+        });
+    } 
     
     function showMessage(message, type) {
         const existingMessage = document.querySelector('.announcement-message');
@@ -497,30 +525,28 @@ function deleteAnnouncement(announcementId) {
         }
     }
     
-    function initAnimations() {
-        const statItems = document.querySelectorAll('.stat-item');
-        const announcementCards = document.querySelectorAll('.announcement-card');
+    const statCards = document.querySelectorAll('.stat-card');
+    const announcementCards = document.querySelectorAll('.announcement-card');
+    
+    statCards.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = `opacity 0.5s ease ${index * 0.1}s, transform 0.5s ease ${index * 0.1}s`;
         
-        statItems.forEach((item, index) => {
-            item.style.opacity = '0';
-            item.style.transform = 'translateY(20px)';
-            item.style.transition = `opacity 0.5s ease ${index * 0.1}s, transform 0.5s ease ${index * 0.1}s`;
-            
-            setTimeout(() => {
-                item.style.opacity = '1';
-                item.style.transform = 'translateY(0)';
-            }, 100 + (index * 100));
-        });
+        setTimeout(() => {
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
+    });
+    
+    announcementCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = `opacity 0.5s ease ${0.3 + (index * 0.05)}s, transform 0.5s ease ${0.3 + (index * 0.05)}s`;
         
-        announcementCards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            card.style.transition = `opacity 0.5s ease ${0.3 + (index * 0.05)}s, transform 0.5s ease ${0.3 + (index * 0.05)}s`;
-            
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 300 + (index * 50));
-        });
-    }
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 300 + (index * 50));
+    });
 });

@@ -1,0 +1,536 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ & Guidelines Management - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serverfaqguidelines.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-dashboard-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_community_management' %}">
+                            <i class="fas fa-comments"></i>
+                            <span>Community</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_demographics_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_faq_guidelines_management' %}" class="system-settings-link active" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ & Guidelines</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>FAQ & Guidelines Management</h1>
+                        <p>Manage frequently asked questions and community guidelines for users.</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="faq-guidelines-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ faqs_count|intcomma }}</h3>
+                        <p>Total FAQs</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ active_faqs_count|intcomma }}</h3>
+                        <p>Active FAQs</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ guidelines_count|intcomma }}</h3>
+                        <p>Guidelines</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-toggle-on"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ active_guidelines_count|intcomma }}</h3>
+                        <p>Active Guidelines</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-guidelines-management-tabs">
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="faqs">
+                        <i class="fas fa-question-circle"></i>
+                        FAQs Management
+                    </button>
+                    <button class="tab-btn" data-tab="guidelines">
+                        <i class="fas fa-list-alt"></i>
+                        Guidelines Management
+                    </button>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-pane active" id="faqs-tab">
+                        <div class="faqs-management">
+                            <div class="section-header">
+                                <h2>Frequently Asked Questions</h2>
+                                <button class="add-btn" data-type="faq">
+                                    <i class="fas fa-plus"></i>
+                                    Add FAQ
+                                </button>
+                            </div>
+
+                            <div class="categories-filter">
+                                <div class="filter-group">
+                                    <label>Filter by Category:</label>
+                                    <select id="faqCategoryFilter">
+                                        <option value="all">All Categories</option>
+                                        {% for category in faq_categories %}
+                                        <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label>Filter by Status:</label>
+                                    <select id="faqStatusFilter">
+                                        <option value="all">All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="faqs-container">
+                                {% for faq in faqs %}
+                                <div class="faq-item" data-faq-id="{{ faq.id }}" data-category="{{ faq.category }}" data-status="{{ faq.is_active|yesno:'active,inactive' }}">
+                                    <div class="faq-header">
+                                        <div class="faq-meta">
+                                            <span class="faq-order">#{{ faq.order }}</span>
+                                            <span class="category-badge">{{ faq.category }}</span>
+                                            <span class="status-badge status-{{ faq.is_active|yesno:'active,inactive' }}">
+                                                {{ faq.is_active|yesno:'Active,Inactive' }}
+                                            </span>
+                                        </div>
+                                        <div class="faq-actions">
+                                            <button class="action-btn edit-btn" data-faq-id="{{ faq.id }}">
+                                                <i class="fas fa-edit"></i>
+                                                Edit
+                                            </button>
+                                            <button class="action-btn toggle-btn" data-faq-id="{{ faq.id }}" data-current-status="{{ faq.is_active|yesno:'true,false' }}">
+                                                <i class="fas fa-toggle-{{ faq.is_active|yesno:'on,off' }}"></i>
+                                                {{ faq.is_active|yesno:'Deactivate,Activate' }}
+                                            </button>
+                                            <button class="action-btn delete-btn" data-faq-id="{{ faq.id }}">
+                                                <i class="fas fa-trash"></i>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="faq-content">
+                                        <div class="faq-question">
+                                            <h3>{{ faq.question }}</h3>
+                                        </div>
+                                        <div class="faq-answer">
+                                            <p>{{ faq.answer }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="faq-footer">
+                                        <div class="faq-dates">
+                                            <span>Created: {{ faq.created_at|date:"M d, Y" }}</span>
+                                            <span>Updated: {{ faq.updated_at|date:"M d, Y" }}</span>
+                                        </div>
+                                        <div class="order-controls">
+                                            <button class="order-btn move-up" data-faq-id="{{ faq.id }}" {% if forloop.first %}disabled{% endif %}>
+                                                <i class="fas fa-arrow-up"></i>
+                                            </button>
+                                            <button class="order-btn move-down" data-faq-id="{{ faq.id }}" {% if forloop.last %}disabled{% endif %}>
+                                                <i class="fas fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="no-data">
+                                    <i class="fas fa-question-circle"></i>
+                                    <h3>No FAQs Found</h3>
+                                    <p>There are no frequently asked questions to display.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="guidelines-tab">
+                        <div class="guidelines-management">
+                            <div class="section-header">
+                                <h2>Community Guidelines</h2>
+                                <button class="add-btn" data-type="guideline">
+                                    <i class="fas fa-plus"></i>
+                                    Add Guideline
+                                </button>
+                            </div>
+
+                            <div class="guidelines-container">
+                                {% for guideline in guidelines %}
+                                <div class="guideline-item" data-guideline-id="{{ guideline.id }}" data-status="{{ guideline.is_active|yesno:'active,inactive' }}">
+                                    <div class="guideline-header">
+                                        <div class="guideline-meta">
+                                            <span class="guideline-order">#{{ guideline.order }}</span>
+                                            <span class="status-badge status-{{ guideline.is_active|yesno:'active,inactive' }}">
+                                                {{ guideline.is_active|yesno:'Active,Inactive' }}
+                                            </span>
+                                        </div>
+                                        <div class="guideline-actions">
+                                            <button class="action-btn edit-btn" data-guideline-id="{{ guideline.id }}">
+                                                <i class="fas fa-edit"></i>
+                                                Edit
+                                            </button>
+                                            <button class="action-btn toggle-btn" data-guideline-id="{{ guideline.id }}" data-current-status="{{ guideline.is_active|yesno:'true,false' }}">
+                                                <i class="fas fa-toggle-{{ guideline.is_active|yesno:'on,off' }}"></i>
+                                                {{ guideline.is_active|yesno:'Deactivate,Activate' }}
+                                            </button>
+                                            <button class="action-btn delete-btn" data-guideline-id="{{ guideline.id }}">
+                                                <i class="fas fa-trash"></i>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="guideline-content">
+                                        <p>{{ guideline.content }}</p>
+                                    </div>
+                                    <div class="guideline-footer">
+                                        <div class="order-controls">
+                                            <button class="order-btn move-up" data-guideline-id="{{ guideline.id }}" {% if forloop.first %}disabled{% endif %}>
+                                                <i class="fas fa-arrow-up"></i>
+                                            </button>
+                                            <button class="order-btn move-down" data-guideline-id="{{ guideline.id }}" {% if forloop.last %}disabled{% endif %}>
+                                                <i class="fas fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="no-data">
+                                    <i class="fas fa-list-alt"></i>
+                                    <h3>No Guidelines Found</h3>
+                                    <p>There are no community guidelines to display.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="modal-header">
+            <h2 id="addModalTitle">Add New Item</h2>
+        </div>
+        <div class="modal-body">
+            <form id="addForm">
+                <input type="hidden" id="addType">
+                <div id="faqFields" class="form-fields">
+                    <div class="form-group">
+                        <label for="addQuestion">Question</label>
+                        <input type="text" id="addQuestion" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addAnswer">Answer</label>
+                        <textarea id="addAnswer" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCategory">Category</label>
+                        <select id="addCategory" required>
+                            <option value="General">General</option>
+                            <option value="Registration">Registration</option>
+                            <option value="Events">Events</option>
+                            <option value="Community">Community</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addOrder">Display Order</label>
+                        <input type="number" id="addOrder" min="1" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="addIsActive" checked>
+                        <label for="addIsActive">Active</label>
+                    </div>
+                </div>
+                <div id="guidelineFields" class="form-fields">
+                    <div class="form-group">
+                        <label for="addContent">Guideline Content</label>
+                        <textarea id="addContent" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="addGuidelineOrder">Display Order</label>
+                        <input type="number" id="addGuidelineOrder" min="1" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="addGuidelineIsActive" checked>
+                        <label for="addGuidelineIsActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">Add Item</button>
+                    <button type="button" class="btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2 id="editModalTitle">Edit Item</h2>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" novalidate>
+                    <input type="hidden" id="editId" name="editId">
+                    <input type="hidden" id="editType" name="editType">
+                    <div id="editFaqFields" class="form-fields">
+                        <div class="form-group">
+                            <label for="editQuestion">Question</label>
+                            <input type="text" id="editQuestion" name="editQuestion" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editAnswer">Answer</label>
+                            <textarea id="editAnswer" name="editAnswer" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCategory">Category</label>
+                            <select id="editCategory" name="editCategory" required>
+                                <option value="General">General</option>
+                                <option value="Registration">Registration</option>
+                                <option value="Events">Events</option>
+                                <option value="Community">Community</option>
+                                <option value="Technical">Technical</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editOrder">Display Order</label>
+                            <input type="number" id="editOrder" name="editOrder" min="1" required>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="editIsActive" name="editIsActive">
+                            <label for="editIsActive">Active</label>
+                        </div>
+                    </div>
+                    <div id="editGuidelineFields" class="form-fields">
+                        <div class="form-group">
+                            <label for="editContent">Guideline Content</label>
+                            <textarea id="editContent" name="editContent" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editGuidelineOrder">Display Order</label>
+                            <input type="number" id="editGuidelineOrder" name="editGuidelineOrder" min="1" required>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="editGuidelineIsActive" name="editGuidelineIsActive">
+                            <label for="editGuidelineIsActive">Active</label>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Update Item</button>
+                        <button type="button" class="btn-secondary close-modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2>Confirm Deletion</h2>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button class="btn-danger" id="confirmDelete">Delete</button>
+                    <button class="btn-secondary close-modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
+        </div>
+    </div>
+
+    <script>
+const faqGuidelinesData = {
+    currentUser: {
+        name: "{{ admin_user.get_full_name|escapejs }}",
+        role: "{{ admin_user.get_role_display|escapejs }}"
+    },
+    apiEndpoints: {
+        addItem: "{% url 'server_add_faq_guideline' %}",
+        updateItem: "{% url 'server_update_faq_guideline' %}",
+        deleteItem: "{% url 'server_delete_faq_guideline' %}",
+        toggleStatus: "{% url 'server_toggle_faq_guideline_status' %}",
+        updateOrder: "{% url 'server_update_faq_guideline_order' %}"
+    }
+};
+</script>
+
+<script src="{% static 'js/server/serverfaqguidelines.js' %}"></script>
+</body>
+</html>

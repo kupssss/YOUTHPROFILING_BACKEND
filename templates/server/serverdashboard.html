@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
 
@@ -48,7 +48,7 @@
 
             <nav class="sidebar-nav">
                 <ul>
-                    <li class="nav-item">
+                    <li class="nav-item active">
                         <a href="{% url 'server_dashboard' %}">
                             <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
@@ -72,11 +72,60 @@
                             <span>Events</span>
                         </a>
                     </li>
-                    <li class="nav-item active">
+                    <li class="nav-item">
                         <a href="{% url 'server_events_participants' %}">
                             <i class="fas fa-user-check"></i>
                             <span>Events Participants</span>
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_community_management' %}">
+                            <i class="fas fa-comments"></i>
+                            <span>Community</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'server_logs_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_demographics_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_faq_guidelines_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ/Community Guidelines</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_user_archives_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_admins_management' %}" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </nav>
@@ -92,8 +141,13 @@
         <div class="server-main-content">
             <header class="dashboard-header">
                 <div class="header-left">
-                    <h1>Dashboard Overview</h1>
-                    <p>Welcome back, {{ admin_user.first_name }}! Here's what's happening today.</p>
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>Dashboard Overview</h1>
+                        <p>Welcome back, {{ admin_user.first_name }}! Here's what's happening today.</p>
+                    </div>
                 </div>
                 <div class="header-right">
                     <div class="header-actions">
@@ -105,63 +159,87 @@
                 </div>
             </header>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-content">
-            <h3>{{ total_users|intcomma }}</h3>
-            <p>Total Registered Users</p>
-            <span class="stat-trend {% if user_registration_trend >= 0 %}positive{% else %}negative{% endif %}">
-                <i class="fas fa-arrow-{% if user_registration_trend >= 0 %}up{% else %}down{% endif %}"></i> 
-                {{ user_registration_trend|floatformat:1 }}% this month
-            </span>
-        </div>
-    </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ total_users|intcomma }}</h3>
+                        <p>Total Registered Users</p>
+                        <span class="stat-trend {% if user_registration_trend >= 0 %}positive{% else %}negative{% endif %}">
+                            <i class="fas fa-arrow-{% if user_registration_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                            {{ user_registration_trend|floatformat:1 }}% this month
+                        </span>
+                    </div>
+                </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-calendar-check"></i>
-        </div>
-        <div class="stat-content">
-            <h3>{{ total_events|intcomma }}</h3>
-            <p>Total Events</p>
-            <span class="stat-trend {% if event_trend >= 0 %}positive{% else %}negative{% endif %}">
-                <i class="fas fa-arrow-{% if event_trend >= 0 %}up{% else %}down{% endif %}"></i> 
-                {{ event_trend|floatformat:1 }}% this month
-            </span>
-        </div>
-    </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ total_events|intcomma }}</h3>
+                        <p>Total Events</p>
+                        <span class="stat-trend {% if event_trend >= 0 %}positive{% else %}negative{% endif %}">
+                            <i class="fas fa-arrow-{% if event_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                            {{ event_trend|floatformat:1 }}% this month
+                        </span>
+                    </div>
+                </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-bullhorn"></i>
-        </div>
-        <div class="stat-content">
-            <h3>{{ total_announcements|intcomma }}</h3>
-            <p>Total Announcements</p>
-            <span class="stat-trend {% if announcement_trend >= 0 %}positive{% else %}negative{% endif %}">
-                <i class="fas fa-arrow-{% if announcement_trend >= 0 %}up{% else %}down{% endif %}"></i> 
-                {{ announcement_trend|floatformat:1 }}% this month
-            </span>
-        </div>
-    </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ total_announcements|intcomma }}</h3>
+                        <p>Total Announcements</p>
+                        <span class="stat-trend {% if announcement_trend >= 0 %}positive{% else %}negative{% endif %}">
+                            <i class="fas fa-arrow-{% if announcement_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                            {{ announcement_trend|floatformat:1 }}% this month
+                        </span>
+                    </div>
+                </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-chart-line"></i>
-        </div>
-        <div class="stat-content">
-            <h3>{{ active_registrations|intcomma }}</h3>
-            <p>Active Registrations</p>
-            <span class="stat-trend {% if registration_trend >= 0 %}positive{% else %}negative{% endif %}">
-                <i class="fas fa-arrow-{% if registration_trend >= 0 %}up{% else %}down{% endif %}"></i> 
-                {{ registration_trend|floatformat:1 }}% this month
-            </span>
-        </div>
-    </div>
-</div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ active_registrations|intcomma }}</h3>
+                        <p>Active Registrations</p>
+                        <span class="stat-trend {% if registration_trend >= 0 %}positive{% else %}negative{% endif %}">
+                            <i class="fas fa-arrow-{% if registration_trend >= 0 %}up{% else %}down{% endif %}"></i> 
+                            {{ registration_trend|floatformat:1 }}% this month
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="apk-analytics-section">
+                <div class="section-header">
+                    <h2>APK Download Analytics</h2>
+                </div>
+                <div class="apk-stats-grid">
+                    <div class="apk-stat-card">
+                        <div class="apk-stat-number">{{ total_downloads|intcomma }}</div>
+                        <div class="apk-stat-label">Total Downloads</div>
+                    </div>
+                    <div class="apk-stat-card">
+                        <div class="apk-stat-number">{{ mobile_downloads|intcomma }}</div>
+                        <div class="apk-stat-label">Mobile Downloads</div>
+                    </div>
+                    <div class="apk-stat-card">
+                        <div class="apk-stat-number">{{ desktop_downloads|intcomma }}</div>
+                        <div class="apk-stat-label">Desktop Downloads</div>
+                    </div>
+                    <div class="apk-stat-card">
+                        <div class="apk-stat-number">{{ qr_downloads|intcomma }}</div>
+                        <div class="apk-stat-label">QR Code Downloads</div>
+                    </div>
+                </div>
+            </div>
 
             <div class="charts-grid">
                 <div class="chart-card">
@@ -189,6 +267,67 @@
                     </div>
                     <div class="chart-container">
                         <canvas id="eventParticipationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demographics-section">
+                <div class="section-header">
+                    <h2>Demographics Analytics</h2>
+                </div>
+                <div class="demographics-grid">
+                    <div class="demographic-card">
+                        <div class="demographic-header">
+                            <h3>Age Group Distribution</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ageGroupChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="demographic-card">
+                        <div class="demographic-header">
+                            <h3>Gender Distribution</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="genderChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="demographic-card">
+                        <div class="demographic-header">
+                            <h3>Education Level</h3>
+                        </div>
+                        <div class="demographic-chart-container">
+                            <canvas id="educationChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="demographic-card">
+                        <div class="demographic-header">
+                            <h3>Youth Classification</h3>
+                        </div>
+                        <div class="demographic-chart-container">
+                            <canvas id="youthClassChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="demographic-card">
+                        <div class="demographic-header">
+                            <h3>Work Status</h3>
+                        </div>
+                        <div class="demographic-chart-container">
+                            <canvas id="workStatusChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="demographic-card">
+                        <div class="demographic-header">
+                            <h3>Civil Status</h3>
+                        </div>
+                        <div class="demographic-chart-container">
+                            <canvas id="civilStatusChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -296,18 +435,32 @@
         </div>
     </div>
 
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="{% static 'js/server/serverdashboard.js' %}"></script>
     <script>
     const dashboardData = {
         userRegistration: JSON.parse('{{ user_registration_data|escapejs }}'),
         eventParticipation: JSON.parse('{{ event_participation_data|escapejs }}'),
+        ageGroups: JSON.parse('{{ age_groups_data|escapejs }}'),
+        genders: JSON.parse('{{ genders_data|escapejs }}'),
+        educations: JSON.parse('{{ educations_data|escapejs }}'),
+        youthClassifications: JSON.parse('{{ youth_classifications_data|escapejs }}'),
+        workStatuses: JSON.parse('{{ work_statuses_data|escapejs }}'),
+        civilStatuses: JSON.parse('{{ civil_statuses_data|escapejs }}'),
         currentUser: {
             name: "{{ admin_user.get_full_name|escapejs }}",
             role: "{{ admin_user.get_role_display|escapejs }}"
         }
     };
-</script>
-
+    </script>
 </body>
 </html>

@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
 <body>
     <div class="server-participants-container">
@@ -26,7 +25,7 @@
                     </div>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
 
@@ -78,6 +77,55 @@
                             <span>Events Participants</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-comments"></i>
+                            <span>Community</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </nav>
 
@@ -92,8 +140,13 @@
         <div class="server-main-content">
             <header class="management-header">
                 <div class="header-left">
-                    <h1>Events Participants Management</h1>
-                    <p>Manage event registrations, attendance, and attendees</p>
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>Events Participants Management</h1>
+                        <p>Manage event registrations, attendance, and attendees</p>
+                    </div>
                 </div>
                 <div class="header-right">
                     <div class="header-actions">
@@ -101,44 +154,43 @@
                             <i class="fas fa-calendar"></i>
                             <span id="current-date"></span>
                         </div>
-                        
                     </div>
                 </div>
             </header>
 
-            <div class="stats-overview">
-                <div class="stat-item">
+            <div class="stats-grid">
+                <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-user-clock"></i>
                     </div>
-                    <div class="stat-info">
+                    <div class="stat-content">
                         <h3>{{ pending_registrations|intcomma }}</h3>
                         <p>Pending Registrations</p>
                     </div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-calendar-check"></i>
                     </div>
-                    <div class="stat-info">
+                    <div class="stat-content">
                         <h3>{{ upcoming_events|intcomma }}</h3>
                         <p>Upcoming Events</p>
                     </div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-running"></i>
                     </div>
-                    <div class="stat-info">
+                    <div class="stat-content">
                         <h3>{{ ongoing_events|intcomma }}</h3>
                         <p>Ongoing Events</p>
                     </div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-star"></i>
                     </div>
-                    <div class="stat-info">
+                    <div class="stat-content">
                         <h3>{{ attendance_rate|floatformat:1 }}%</h3>
                         <p>Attendance Rate</p>
                     </div>
@@ -480,6 +532,15 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
         </div>
     </div>
     

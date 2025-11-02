@@ -2255,6 +2255,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from .models import YouthUser, Announcement, Event, EventRegistration, AnnouncementInteraction, EventQuestion
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 
 @csrf_exempt
 def get_user_dashboard_data(request):
@@ -2393,22 +2394,15 @@ def get_events_data(request):
         recommended_events = Event.objects.filter(
             is_active=True,
             start_date__gte=now
-        )
-        
-        if user.age_group and user.gender:
-            recommended_events = recommended_events.filter(
-                Q(age_group_access='all') | 
-                Q(target_age_groups__name__icontains=user.age_group)
-            )[:3]
-        else:
-            recommended_events = recommended_events[:3]
+        )[:3]
         
         announcements = Announcement.objects.filter(
             is_active=True
-        ).order_by('-publish_date')[:5] 
+        ).order_by('-publish_date')[:5]
         
         def format_event_data(events, user):
             events_data = []
+            user_registered_event_ids = [reg.event.id for reg in user_registrations]
             for event in events:
                 events_data.append({
                     'id': event.id,
@@ -2423,8 +2417,8 @@ def get_events_data(request):
                     'maximum_participants': event.maximum_participants,
                     'current_participants': event.current_participants or 0,
                     'requires_registration': event.requires_registration,
-                    'is_registered': event.id in [reg.event.id for reg in user_registrations],
-                    'is_eligible': event.is_eligible(user) if hasattr(event, 'is_eligible') else True,
+                    'is_registered': event.id in user_registered_event_ids,
+                    'is_eligible': True,
                     'points_reward': event.points_reward
                 })
             return events_data
@@ -2442,13 +2436,19 @@ def get_events_data(request):
                 })
             return announcements_data
         
+        user_points = 0
+        try:
+            user_points = user.points.points
+        except:
+            pass
+        
         response_data = {
             'success': True,
             'statistics': {
                 'upcoming_events_count': upcoming_events.count(),
                 'user_registered_events_count': user_registrations.count(),
-                'user_volunteer_count': 0, 
-                'user_points': user.points if hasattr(user, 'points') else 0
+                'user_volunteer_count': 0,
+                'user_points': user_points
             },
             'upcoming_events': format_event_data(upcoming_events, user),
             'registered_events': format_event_data(registered_events, user),
@@ -3131,6 +3131,15 @@ def mobile_event_registration_detail_api(request, registration_id):
             return JsonResponse(data)
         except EventRegistration.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Registration not found'})
+from datetime import timedelta, datetime
+from django.conf import settings
+from cryptography.fernet import Fernet, InvalidToken
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+from .models import CommunityPost, TrendingTopic, Event, CommunityGuideline, PostLike, PostComment, CommunityPoints, YouthUser, EventRegistration, PointsHistory
 
 @csrf_exempt
 def mobile_community(request):
@@ -3140,7 +3149,19 @@ def mobile_community(request):
     try:
         user = YouthUser.objects.get(id=request.session['user_id'])
         
-        posts = CommunityPost.objects.filter(is_active=True).order_by('-created_at')[:20]
+        show_approved_modal = request.session.pop('show_approved_modal', False)
+        show_rejected_modal = request.session.pop('show_rejected_modal', False)
+        rejected_reason = request.session.pop('rejected_reason', '')
+        show_points_modal = request.session.pop('show_points_modal', False)
+        points_earned = request.session.pop('points_earned', 0)
+        show_warning_modal = request.session.pop('show_warning_modal', False)
+        warning_message = request.session.pop('warning_message', '')
+        
+        accepted_posts = CommunityPost.objects.filter(status='accepted').order_by('-created_at')[:20]
+        user_pending_posts = CommunityPost.objects.filter(user=user, status='pending')
+        
+        posts = list(accepted_posts) + list(user_pending_posts)
+        posts.sort(key=lambda x: x.created_at, reverse=True)
         
         posts_data = []
         for post in posts:
@@ -3186,6 +3207,7 @@ def mobile_community(request):
                 'comment_count': post.comment_count,
                 'is_liked': is_liked,
                 'comments': comments_data,
+                'status': post.status,
             })
         
         trending_topics = TrendingTopic.objects.filter(is_active=True).order_by('-post_count')[:4]
@@ -3222,9 +3244,62 @@ def mobile_community(request):
         
         week_ago = timezone.now() - timedelta(days=7)
         posts_this_week = CommunityPost.objects.filter(
-            is_active=True,
+            status='accepted',
             created_at__gte=week_ago
         ).count()
+        
+        recently_active_users = YouthUser.objects.filter(
+            is_active=True
+        ).order_by('-last_login')[:5]
+        active_users_data = [{
+            'id': active_user.id,
+            'first_name': active_user.first_name,
+            'last_name': active_user.last_name,
+            'profile_picture': active_user.profile_picture.url if active_user.profile_picture else None,
+            'last_login': active_user.last_login.isoformat() if active_user.last_login else None,
+        } for active_user in recently_active_users]
+        
+        top_contributors = CommunityPoints.objects.select_related('user').filter(
+            user__is_active=True
+        ).order_by('-points')[:15]
+        contributors_data = [{
+            'user': {
+                'id': contributor.user.id,
+                'first_name': contributor.user.first_name,
+                'last_name': contributor.user.last_name,
+                'profile_picture': contributor.user.profile_picture.url if contributor.user.profile_picture else None,
+            },
+            'points': contributor.points,
+        } for contributor in top_contributors]
+        
+        today = timezone.now().date()
+        all_users = YouthUser.objects.filter(is_active=True)
+        birthdays_today = []
+        
+        for youth_user in all_users:
+            try:
+                birthdate_str = youth_user.birthdate
+                if birthdate_str and not birthdate_str.startswith('gAAAAA'):
+                    birthdate = datetime.strptime(birthdate_str, '%Y-%m-%d').date()
+                else:
+                    fernet = Fernet(settings.ENCRYPTION_KEY.encode())
+                    decrypted_birthdate = fernet.decrypt(birthdate_str.encode()).decode()
+                    birthdate = datetime.strptime(decrypted_birthdate, '%Y-%m-%d').date()
+                
+                if birthdate.month == today.month and birthdate.day == today.day:
+                    birthdays_today.append({
+                        'id': youth_user.id,
+                        'first_name': youth_user.first_name,
+                        'last_name': youth_user.last_name,
+                        'profile_picture': youth_user.profile_picture.url if youth_user.profile_picture else None,
+                        'age': youth_user.age,
+                    })
+                    
+                    if len(birthdays_today) >= 5:
+                        break
+                        
+            except (ValueError, InvalidToken, Exception):
+                continue
         
         response_data = {
             'success': True,
@@ -3235,6 +3310,16 @@ def mobile_community(request):
             'total_members': total_members,
             'events_this_month': events_this_month,
             'posts_this_week': posts_this_week,
+            'recently_active_users': active_users_data,
+            'top_contributors': contributors_data,
+            'birthdays_today': birthdays_today,
+            'show_approved_modal': show_approved_modal,
+            'show_rejected_modal': show_rejected_modal,
+            'rejected_reason': rejected_reason,
+            'show_points_modal': show_points_modal,
+            'points_earned': points_earned,
+            'show_warning_modal': show_warning_modal,
+            'warning_message': warning_message,
         }
         
         return JsonResponse(response_data)
@@ -3243,6 +3328,43 @@ def mobile_community(request):
         return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_POST
+def mobile_delete_post(request, post_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        post = CommunityPost.objects.get(id=post_id, user=user)
+        
+        post.status = 'deleted'
+        post.save()
+        
+        return JsonResponse({'success': True})
+    
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Post not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def mobile_wish_birthday(request, user_id):
+    if not request.session.get('is_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        user = YouthUser.objects.get(id=request.session['user_id'])
+        birthday_user = YouthUser.objects.get(id=user_id)
+        
+        return JsonResponse({'success': True})
+    
+    except YouthUser.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
 
 @csrf_exempt
 @require_POST
@@ -3263,7 +3385,8 @@ def mobile_create_post(request):
             user=user,
             content=content,
             post_type='text',
-            privacy=privacy
+            privacy=privacy,
+            status='pending'
         )
         
         import re
@@ -3341,7 +3464,6 @@ def mobile_comment_on_post(request, post_id):
     
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
-
 
 
 @csrf_exempt
@@ -3590,7 +3712,7 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 from django.db.models import Count, Q
-from .models import YouthUser, Event, Announcement, EventRegistration, YouthAdmin, UserRegistrationAnalytics, EventParticipationAnalytics
+from .models import YouthUser, Event, Announcement, EventRegistration, YouthAdmin, UserRegistrationAnalytics, EventParticipationAnalytics, APKDownload, DownloadAnalytics
 
 def server_dashboard(request):
     if not request.session.get('is_server_authenticated'):
@@ -3652,6 +3774,60 @@ def server_dashboard(request):
         ).count()
         event_participation_data['data'].append(participation_count)
     
+    age_groups_data = {
+        'labels': [],
+        'data': []
+    }
+    age_groups = YouthUser.objects.values('age_group').annotate(count=Count('id')).order_by('age_group')
+    for group in age_groups:
+        age_groups_data['labels'].append(group['age_group'])
+        age_groups_data['data'].append(group['count'])
+    
+    genders_data = {
+        'labels': [],
+        'data': []
+    }
+    genders = YouthUser.objects.values('gender').annotate(count=Count('id')).order_by('gender')
+    for gender in genders:
+        genders_data['labels'].append(gender['gender'])
+        genders_data['data'].append(gender['count'])
+    
+    educations_data = {
+        'labels': [],
+        'data': []
+    }
+    educations = YouthUser.objects.values('education').annotate(count=Count('id')).order_by('education')
+    for education in educations:
+        educations_data['labels'].append(education['education'])
+        educations_data['data'].append(education['count'])
+    
+    youth_classifications_data = {
+        'labels': [],
+        'data': []
+    }
+    youth_classifications = YouthUser.objects.values('youth_classification').annotate(count=Count('id')).order_by('youth_classification')
+    for classification in youth_classifications:
+        youth_classifications_data['labels'].append(classification['youth_classification'])
+        youth_classifications_data['data'].append(classification['count'])
+    
+    work_statuses_data = {
+        'labels': [],
+        'data': []
+    }
+    work_statuses = YouthUser.objects.values('work_status').annotate(count=Count('id')).order_by('work_status')
+    for status in work_statuses:
+        work_statuses_data['labels'].append(status['work_status'])
+        work_statuses_data['data'].append(status['count'])
+    
+    civil_statuses_data = {
+        'labels': [],
+        'data': []
+    }
+    civil_statuses = YouthUser.objects.values('civil_status').annotate(count=Count('id')).order_by('civil_status')
+    for status in civil_statuses:
+        civil_statuses_data['labels'].append(status['civil_status'])
+        civil_statuses_data['data'].append(status['count'])
+    
     today = timezone.now().date()
     current_period_start = today - timedelta(days=30)
     previous_period_start = current_period_start - timedelta(days=30)
@@ -3712,6 +3888,11 @@ def server_dashboard(request):
     else:
         registration_trend = 100 if current_period_registrations_count > 0 else 0
     
+    total_downloads = APKDownload.objects.count()
+    mobile_downloads = APKDownload.objects.filter(is_mobile=True).count()
+    desktop_downloads = APKDownload.objects.filter(is_desktop=True).count()
+    qr_downloads = APKDownload.objects.filter(download_method='qr_code').count()
+    
     context = {
         'admin_user': admin_user,
         'total_users': total_users,
@@ -3722,10 +3903,20 @@ def server_dashboard(request):
         'upcoming_events': upcoming_events,
         'user_registration_data': json.dumps(user_registration_data),
         'event_participation_data': json.dumps(event_participation_data),
+        'age_groups_data': json.dumps(age_groups_data),
+        'genders_data': json.dumps(genders_data),
+        'educations_data': json.dumps(educations_data),
+        'youth_classifications_data': json.dumps(youth_classifications_data),
+        'work_statuses_data': json.dumps(work_statuses_data),
+        'civil_statuses_data': json.dumps(civil_statuses_data),
         'user_registration_trend': user_registration_trend,
         'event_trend': event_trend,
         'announcement_trend': announcement_trend,
         'registration_trend': registration_trend,
+        'total_downloads': total_downloads,
+        'mobile_downloads': mobile_downloads,
+        'desktop_downloads': desktop_downloads,
+        'qr_downloads': qr_downloads,
     }
     
     return render(request, 'server/serverdashboard.html', context)
@@ -4023,7 +4214,6 @@ def get_user_details(request, user_id):
     
 
 
-    from django.shortcuts import render
 from django.http import JsonResponse
 from django.core import serializers
 import json
@@ -4943,3 +5133,895 @@ def get_user_documents(request, registration_id):
         return JsonResponse({'success': False, 'message': 'Registration not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+
+
+
+
+
+
+
+
+
+
+
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+import json
+from .models import CommunityPost, Complaint, Suggestion, ContactMessage, YouthAdmin
+
+def server_community_management(request):
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    total_posts = CommunityPost.objects.count()
+    pending_posts = CommunityPost.objects.filter(status='pending').count()
+    pending_complaints = Complaint.objects.filter(status='pending').count()
+    pending_suggestions = Suggestion.objects.filter(status='pending').count()
+    
+    posts = CommunityPost.objects.select_related('user').prefetch_related('likes', 'comments').order_by('-created_at')[:50]
+    complaints = Complaint.objects.select_related('user').order_by('-created_at')[:50]
+    suggestions = Suggestion.objects.select_related('user').order_by('-created_at')[:50]
+    contact_messages = ContactMessage.objects.select_related('user').order_by('-created_at')[:50]
+    
+    context = {
+        'admin_user': admin_user,
+        'total_posts': total_posts,
+        'pending_posts': pending_posts,
+        'pending_complaints': pending_complaints,
+        'pending_suggestions': pending_suggestions,
+        'posts': posts,
+        'complaints': complaints,
+        'suggestions': suggestions,
+        'contact_messages': contact_messages,
+    }
+    
+    return render(request, 'server/servercommunitypage.html', context)
+
+@csrf_exempt
+@require_POST
+def server_approve_post(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        post_id = data.get('post_id')
+        
+        post = CommunityPost.objects.get(id=post_id)
+        post.status = 'accepted'
+        post.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_reject_post(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        post_id = data.get('post_id')
+        reason = data.get('reason')
+        
+        post = CommunityPost.objects.get(id=post_id)
+        post.status = 'rejected'
+        post.rejection_reason = reason
+        post.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_update_complaint(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        complaint_id = data.get('complaint_id')
+        status = data.get('status')
+        
+        complaint = Complaint.objects.get(id=complaint_id)
+        complaint.status = status
+        
+        if status == 'resolved':
+            complaint.resolved_at = timezone.now()
+        
+        complaint.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_update_suggestion(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        suggestion_id = data.get('suggestion_id')
+        status = data.get('status')
+        
+        suggestion = Suggestion.objects.get(id=suggestion_id)
+        suggestion.status = status
+        
+        if status == 'implemented':
+            suggestion.implemented_at = timezone.now()
+        
+        suggestion.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_mark_message_read(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        message = ContactMessage.objects.get(id=message_id)
+        message.is_read = True
+        message.save()
+        
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+def server_get_post_details(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        post_id = request.GET.get('post_id')
+        if not post_id:
+            return JsonResponse({'success': False, 'message': 'Post ID is required'})
+        
+        post = CommunityPost.objects.get(id=post_id)
+        
+        user_initials = ""
+        if post.user.first_name and post.user.last_name:
+            user_initials = f"{post.user.first_name[0]}{post.user.last_name[0]}"
+        elif post.user.username:
+            user_initials = post.user.username[0].upper()
+        else:
+            user_initials = "U"
+        
+        post_data = {
+            'user_name': post.user.get_full_name(),
+            'user_initials': user_initials,
+            'profile_picture': post.user.profile_picture.url if post.user.profile_picture else None,
+            'content': post.content,
+            'image': post.image.url if post.image else None,
+            'like_count': post.like_count,
+            'comment_count': post.comment_count,
+            'status': post.status,
+            'rejection_reason': post.rejection_reason,
+            'created_at': post.created_at.strftime('%B %d, %Y at %I:%M %p')
+        }
+        
+        return JsonResponse({'success': True, 'post': post_data})
+    
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Post not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from datetime import timedelta
+from .models import UserLog, AuditLog, YouthAdmin
+
+def server_logs_management(request):
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    user_logs = UserLog.objects.all().order_by('-timestamp')[:1000]
+    audit_logs = AuditLog.objects.all().order_by('-timestamp')[:1000]
+    
+    today = timezone.now().date()
+    
+    login_stats = {
+        'total_logins': UserLog.objects.filter(login_type='LOGIN', success=True).count(),
+        'failed_logins': UserLog.objects.filter(login_type='LOGIN_FAILED').count(),
+        'total_logouts': UserLog.objects.filter(login_type='LOGOUT').count(),
+        'today_logins': UserLog.objects.filter(
+            login_type='LOGIN', 
+            success=True,
+            timestamp__date=today
+        ).count(),
+    }
+    
+    audit_stats = {
+        'total_actions': AuditLog.objects.count(),
+        'view_actions': AuditLog.objects.filter(action='VIEW').count(),
+        'update_actions': AuditLog.objects.filter(action='UPDATE').count(),
+        'decrypt_actions': AuditLog.objects.filter(action='DECRYPT').count(),
+        'today_actions': AuditLog.objects.filter(timestamp__date=today).count(),
+    }
+    
+    context = {
+        'admin_user': admin_user,
+        'user_logs': user_logs,
+        'audit_logs': audit_logs,
+        'login_stats': login_stats,
+        'audit_stats': audit_stats,
+    }
+    
+    return render(request, 'server/serverlogs.html', context)
+    
+
+
+
+
+
+def server_demographics_management(request):
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    from django.db.models import Count, Q
+    
+    genders = []
+    for gender in Gender.objects.all():
+        user_count = YouthUser.objects.filter(gender=gender.name).count()
+        gender.user_count = user_count
+        genders.append(gender)
+    
+    civil_statuses = []
+    for civil_status in CivilStatus.objects.all():
+        user_count = YouthUser.objects.filter(civil_status=civil_status.name).count()
+        civil_status.user_count = user_count
+        civil_statuses.append(civil_status)
+    
+    age_groups = []
+    for age_group in AgeGroup.objects.all():
+        user_count = YouthUser.objects.filter(age_group=age_group.name).count()
+        age_group.user_count = user_count
+        age_groups.append(age_group)
+    
+    education_levels = []
+    for education_level in EducationLevel.objects.all():
+        user_count = YouthUser.objects.filter(education=education_level.name).count()
+        education_level.user_count = user_count
+        education_levels.append(education_level)
+    
+    youth_classifications = []
+    for youth_classification in YouthClassification.objects.all():
+        user_count = YouthUser.objects.filter(youth_classification=youth_classification.name).count()
+        youth_classification.user_count = user_count
+        youth_classifications.append(youth_classification)
+    
+    work_statuses = []
+    for work_status in WorkStatus.objects.all():
+        user_count = YouthUser.objects.filter(work_status=work_status.name).count()
+        work_status.user_count = user_count
+        work_statuses.append(work_status)
+    
+    context = {
+        'admin_user': admin_user,
+        'genders_count': len(genders),
+        'civil_statuses_count': len(civil_statuses),
+        'age_groups_count': len(age_groups),
+        'education_levels_count': len(education_levels),
+        'youth_classifications_count': len(youth_classifications),
+        'work_statuses_count': len(work_statuses),
+        'genders': genders,
+        'civil_statuses': civil_statuses,
+        'age_groups': age_groups,
+        'education_levels': education_levels,
+        'youth_classifications': youth_classifications,
+        'work_statuses': work_statuses,
+    }
+    
+    return render(request, 'server/serverdemographics.html', context)
+
+@csrf_exempt
+@require_POST
+def server_add_demographic_option(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        option_type = data.get('type')
+        name = data.get('name')
+        
+        if not name:
+            return JsonResponse({'success': False, 'message': 'Name is required'})
+        
+        model_map = {
+            'gender': Gender,
+            'civil_status': CivilStatus,
+            'age_group': AgeGroup,
+            'education_level': EducationLevel,
+            'youth_classification': YouthClassification,
+            'work_status': WorkStatus,
+        }
+        
+        model_class = model_map.get(option_type)
+        if not model_class:
+            return JsonResponse({'success': False, 'message': 'Invalid option type'})
+        
+        option, created = model_class.objects.get_or_create(name=name)
+        
+        if created:
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'message': 'Option already exists'})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_update_demographic_option(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        option_id = data.get('id')
+        option_type = data.get('type')
+        name = data.get('name')
+        
+        if not name:
+            return JsonResponse({'success': False, 'message': 'Name is required'})
+        
+        model_map = {
+            'gender': Gender,
+            'civil_status': CivilStatus,
+            'age_group': AgeGroup,
+            'education_level': EducationLevel,
+            'youth_classification': YouthClassification,
+            'work_status': WorkStatus,
+        }
+        
+        model_class = model_map.get(option_type)
+        if not model_class:
+            return JsonResponse({'success': False, 'message': 'Invalid option type'})
+        
+        option = model_class.objects.get(id=option_id)
+        old_name = option.name
+        option.name = name
+        option.save()
+        
+        if option_type == 'gender':
+            YouthUser.objects.filter(gender=old_name).update(gender=name)
+        elif option_type == 'civil_status':
+            YouthUser.objects.filter(civil_status=old_name).update(civil_status=name)
+        elif option_type == 'age_group':
+            YouthUser.objects.filter(age_group=old_name).update(age_group=name)
+        elif option_type == 'education_level':
+            YouthUser.objects.filter(education=old_name).update(education=name)
+        elif option_type == 'youth_classification':
+            YouthUser.objects.filter(youth_classification=old_name).update(youth_classification=name)
+        elif option_type == 'work_status':
+            YouthUser.objects.filter(work_status=old_name).update(work_status=name)
+        
+        return JsonResponse({'success': True})
+    
+    except model_class.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Option not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_delete_demographic_option(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        option_id = data.get('id')
+        option_type = data.get('type')
+        
+        model_map = {
+            'gender': Gender,
+            'civil_status': CivilStatus,
+            'age_group': AgeGroup,
+            'education_level': EducationLevel,
+            'youth_classification': YouthClassification,
+            'work_status': WorkStatus,
+        }
+        
+        model_class = model_map.get(option_type)
+        if not model_class:
+            return JsonResponse({'success': False, 'message': 'Invalid option type'})
+        
+        option = model_class.objects.get(id=option_id)
+        
+        user_count = 0
+        if option_type == 'gender':
+            user_count = YouthUser.objects.filter(gender=option.name).count()
+        elif option_type == 'civil_status':
+            user_count = YouthUser.objects.filter(civil_status=option.name).count()
+        elif option_type == 'age_group':
+            user_count = YouthUser.objects.filter(age_group=option.name).count()
+        elif option_type == 'education_level':
+            user_count = YouthUser.objects.filter(education=option.name).count()
+        elif option_type == 'youth_classification':
+            user_count = YouthUser.objects.filter(youth_classification=option.name).count()
+        elif option_type == 'work_status':
+            user_count = YouthUser.objects.filter(work_status=option.name).count()
+        
+        if user_count > 0:
+            return JsonResponse({'success': False, 'message': 'Cannot delete option that is in use by users'})
+        
+        option.delete()
+        
+        return JsonResponse({'success': True})
+    
+    except model_class.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Option not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from datetime import timedelta
+from .models import UserArchive, YouthAdmin
+
+def server_user_archives_management(request):
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    user_archives = UserArchive.objects.all().order_by('-archived_at')[:500]
+    
+    today = timezone.now().date()
+    
+    archive_stats = {
+        'total_archives': UserArchive.objects.count(),
+        'today_archives': UserArchive.objects.filter(archived_at__date=today).count(),
+        'last_7_days': UserArchive.objects.filter(archived_at__date__gte=today-timedelta(days=7)).count(),
+        'last_30_days': UserArchive.objects.filter(archived_at__date__gte=today-timedelta(days=30)).count(),
+    }
+    
+    context = {
+        'admin_user': admin_user,
+        'user_archives': user_archives,
+        'archive_stats': archive_stats,
+    }
+    
+    return render(request, 'server/serveruserarchives.html', context)
+
+
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
+from .models import YouthAdmin
+
+def server_admins_management(request):
+    if not request.session.get('is_server_authenticated'):
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    all_admins = YouthAdmin.objects.all().order_by('-date_joined')
+    
+    today = timezone.now().date()
+    
+    admin_stats = {
+        'total_admins': YouthAdmin.objects.count(),
+        'active_admins': YouthAdmin.objects.filter(is_active=True).count(),
+        'super_admins': YouthAdmin.objects.filter(is_super_admin=True).count(),
+        'today_logins': YouthAdmin.objects.filter(last_login__date=today).count(),
+    }
+    
+    context = {
+        'admin_user': admin_user,
+        'all_admins': all_admins,
+        'admin_stats': admin_stats,
+        'can_add_admin': admin_user.role in ['super_admin', 'sk_chairman'],
+    }
+    
+    return render(request, 'server/serveradmins.html', context)
+
+def create_admin(request):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        current_admin = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Admin not found'})
+    
+    if current_admin.role not in ['super_admin', 'sk_chairman']:
+        return JsonResponse({'success': False, 'error': 'Unauthorized to add admins'})
+    
+    if request.method == 'POST':
+        try:
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            role = request.POST.get('role')
+            department = request.POST.get('department')
+            contact_number = request.POST.get('contact_number')
+            
+            if YouthAdmin.objects.filter(username=username).exists():
+                return JsonResponse({'success': False, 'error': 'Username already exists'})
+            
+            if YouthAdmin.objects.filter(email=email).exists():
+                return JsonResponse({'success': False, 'error': 'Email already exists'})
+            
+            admin = YouthAdmin(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                role=role,
+                department=department,
+                contact_number=contact_number,
+                is_active=True
+            )
+            
+            default_password = "sk_mambugan_2024"
+            admin.set_password(default_password)
+            admin.save()
+            
+            return JsonResponse({'success': True, 'message': 'Admin created successfully'})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+def server_faq_guidelines_management(request):
+    print("DEBUG: server_faq_guidelines_management called")
+    if not request.session.get('is_server_authenticated'):
+        print("DEBUG: Not authenticated, redirecting to login")
+        return redirect('server_login_page')
+    
+    admin_id = request.session.get('admin_id')
+    try:
+        admin_user = YouthAdmin.objects.get(id=admin_id)
+        print(f"DEBUG: Admin user found: {admin_user.get_full_name()}")
+    except YouthAdmin.DoesNotExist:
+        print("DEBUG: Admin user not found, flushing session")
+        request.session.flush()
+        return redirect('server_login_page')
+    
+    faqs = FAQ.objects.all().order_by('order', 'created_at')
+    guidelines = CommunityGuideline.objects.all().order_by('order')
+    
+    faq_categories = FAQ.objects.values_list('category', flat=True).distinct()
+    
+    context = {
+        'admin_user': admin_user,
+        'faqs_count': faqs.count(),
+        'active_faqs_count': faqs.filter(is_active=True).count(),
+        'guidelines_count': guidelines.count(),
+        'active_guidelines_count': guidelines.filter(is_active=True).count(),
+        'faqs': faqs,
+        'guidelines': guidelines,
+        'faq_categories': faq_categories,
+    }
+    
+    print("DEBUG: Rendering template with context")
+    return render(request, 'server/serverfaqguidelines.html', context)
+
+@csrf_exempt
+@require_POST
+def server_add_faq_guideline(request):
+    print("=" * 50)
+    print("DEBUG: server_add_faq_guideline called")
+    print(f"DEBUG: Request method: {request.method}")
+    print(f"DEBUG: Authenticated: {request.session.get('is_server_authenticated')}")
+    
+    if not request.session.get('is_server_authenticated'):
+        print("DEBUG: Not authenticated")
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        print("DEBUG: Reading request body...")
+        body = request.body.decode('utf-8')
+        print(f"DEBUG: Raw request body: {body}")
+        
+        data = json.loads(body)
+        print(f"DEBUG: Parsed JSON data: {data}")
+        
+        item_type = data.get('type')
+        print(f"DEBUG: Item type: {item_type}")
+        
+        if item_type == 'faq':
+            print("DEBUG: Processing FAQ creation")
+            question = data.get('question')
+            answer = data.get('answer')
+            category = data.get('category', 'General') 
+            order = data.get('order')
+            is_active = data.get('is_active', True)
+            
+            print(f"DEBUG: FAQ data - Question: {question}, Answer: {answer}, Category: {category}, Order: {order}, Active: {is_active}")
+            
+            if not question or not answer:
+                print("DEBUG: Missing question or answer")
+                return JsonResponse({'success': False, 'message': 'Question and answer are required'})
+            
+            faq = FAQ.objects.create(
+                question=question,
+                answer=answer,
+                category=category,
+                order=order,
+                is_active=is_active
+            )
+            
+            print(f"DEBUG: FAQ created successfully with ID: {faq.id}")
+            return JsonResponse({'success': True})
+        
+        elif item_type == 'guideline':
+            print("DEBUG: Processing Guideline creation")
+            content = data.get('content')
+            order = data.get('order')
+            is_active = data.get('is_active', True)
+            
+            print(f"DEBUG: Guideline data - Content: {content}, Order: {order}, Active: {is_active}")
+            
+            if not content:
+                print("DEBUG: Missing content")
+                return JsonResponse({'success': False, 'message': 'Content is required'})
+            
+            guideline = CommunityGuideline.objects.create(
+                content=content,
+                order=order,
+                is_active=is_active
+            )
+            
+            print(f"DEBUG: Guideline created successfully with ID: {guideline.id}")
+            return JsonResponse({'success': True})
+        
+        else:
+            print(f"DEBUG: Invalid item type: {item_type}")
+            return JsonResponse({'success': False, 'message': 'Invalid item type'})
+    
+    except json.JSONDecodeError as e:
+        print(f"DEBUG: JSON decode error: {e}")
+        return JsonResponse({'success': False, 'message': f'Invalid JSON: {str(e)}'})
+    except Exception as e:
+        print(f"DEBUG: General exception: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_update_faq_guideline(request):
+    print("DEBUG: server_update_faq_guideline called")
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('id')
+        item_type = data.get('type')
+        
+        if item_type == 'faq':
+            faq = FAQ.objects.get(id=item_id)
+            faq.question = data.get('question')
+            faq.answer = data.get('answer')
+            faq.category = data.get('category')
+            faq.order = data.get('order')
+            faq.is_active = data.get('is_active', True)
+            faq.save()
+            
+            return JsonResponse({'success': True})
+        
+        elif item_type == 'guideline':
+            guideline = CommunityGuideline.objects.get(id=item_id)
+            guideline.content = data.get('content')
+            guideline.order = data.get('order')
+            guideline.is_active = data.get('is_active', True)
+            guideline.save()
+            
+            return JsonResponse({'success': True})
+        
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid item type'})
+    
+    except (FAQ.DoesNotExist, CommunityGuideline.DoesNotExist):
+        return JsonResponse({'success': False, 'message': 'Item not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_delete_faq_guideline(request):
+    print("DEBUG: server_delete_faq_guideline called")
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('id')
+        item_type = data.get('type')
+        
+        if item_type == 'faq':
+            faq = FAQ.objects.get(id=item_id)
+            faq.delete()
+        elif item_type == 'guideline':
+            guideline = CommunityGuideline.objects.get(id=item_id)
+            guideline.delete()
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid item type'})
+        
+        return JsonResponse({'success': True})
+    
+    except (FAQ.DoesNotExist, CommunityGuideline.DoesNotExist):
+        return JsonResponse({'success': False, 'message': 'Item not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_toggle_faq_guideline_status(request):
+    print("DEBUG: server_toggle_faq_guideline_status called")
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('id')
+        item_type = data.get('type')
+        is_active = data.get('is_active')
+        
+        if item_type == 'faq':
+            faq = FAQ.objects.get(id=item_id)
+            faq.is_active = is_active
+            faq.save()
+        elif item_type == 'guideline':
+            guideline = CommunityGuideline.objects.get(id=item_id)
+            guideline.is_active = is_active
+            guideline.save()
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid item type'})
+        
+        return JsonResponse({'success': True})
+    
+    except (FAQ.DoesNotExist, CommunityGuideline.DoesNotExist):
+        return JsonResponse({'success': False, 'message': 'Item not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+@require_POST
+def server_update_faq_guideline_order(request):
+    print("DEBUG: server_update_faq_guideline_order called")
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('id')
+        item_type = data.get('type')
+        direction = data.get('direction')
+        
+        if item_type == 'faq':
+            faq = FAQ.objects.get(id=item_id)
+            if direction == 'up':
+                previous_faq = FAQ.objects.filter(order__lt=faq.order).order_by('-order').first()
+                if previous_faq:
+                    faq.order, previous_faq.order = previous_faq.order, faq.order
+                    faq.save()
+                    previous_faq.save()
+            else:
+                next_faq = FAQ.objects.filter(order__gt=faq.order).order_by('order').first()
+                if next_faq:
+                    faq.order, next_faq.order = next_faq.order, faq.order
+                    faq.save()
+                    next_faq.save()
+        
+        elif item_type == 'guideline':
+            guideline = CommunityGuideline.objects.get(id=item_id)
+            if direction == 'up':
+                previous_guideline = CommunityGuideline.objects.filter(order__lt=guideline.order).order_by('-order').first()
+                if previous_guideline:
+                    guideline.order, previous_guideline.order = previous_guideline.order, guideline.order
+                    guideline.save()
+                    previous_guideline.save()
+            else:
+                next_guideline = CommunityGuideline.objects.filter(order__gt=guideline.order).order_by('order').first()
+                if next_guideline:
+                    guideline.order, next_guideline.order = next_guideline.order, guideline.order
+                    guideline.save()
+                    next_guideline.save()
+        
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid item type'})
+        
+        return JsonResponse({'success': True})
+    
+    except (FAQ.DoesNotExist, CommunityGuideline.DoesNotExist):
+        return JsonResponse({'success': False, 'message': 'Item not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})

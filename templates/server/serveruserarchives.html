@@ -1,0 +1,421 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Archives - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serveruserarchives.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-archives-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'server_logs_management' %}" class="system-settings-link">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_user_archives_management' %}" class="system-settings-link active">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="archives-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>User Archives & Deletion History</h1>
+                        <p>Preserved records of deleted user accounts and their data</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="archives-stats-grid">
+                <div class="archive-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-archive"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ archive_stats.total_archives|intcomma }}</h3>
+                        <p>Total Archives</p>
+                        <span class="stat-trend positive">
+                            <i class="fas fa-database"></i> 
+                            All-time records
+                        </span>
+                    </div>
+                </div>
+
+                <div class="archive-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ archive_stats.today_archives|intcomma }}</h3>
+                        <p>Archived Today</p>
+                        <span class="stat-trend {% if archive_stats.today_archives > 0 %}warning{% else %}positive{% endif %}">
+                            <i class="fas fa-{% if archive_stats.today_archives > 0 %}exclamation{% else %}check{% endif %}-circle"></i> 
+                            {{ archive_stats.today_archives }} today
+                        </span>
+                    </div>
+                </div>
+
+                <div class="archive-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ archive_stats.last_7_days|intcomma }}</h3>
+                        <p>Last 7 Days</p>
+                        <span class="stat-trend {% if archive_stats.last_7_days > 10 %}negative{% else %}positive{% endif %}">
+                            <i class="fas fa-{% if archive_stats.last_7_days > 10 %}arrow-up{% else %}arrow-down{% endif %}"></i> 
+                            Recent activity
+                        </span>
+                    </div>
+                </div>
+
+                <div class="archive-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ archive_stats.last_30_days|intcomma }}</h3>
+                        <p>Last 30 Days</p>
+                        <span class="stat-trend info">
+                            <i class="fas fa-chart-line"></i> 
+                            Monthly trend
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="archives-content">
+                <div class="archives-table-container">
+                    <div class="table-header">
+                        <h3>Archived User Records</h3>
+                        <div class="table-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="archivesSearch" placeholder="Search archives...">
+                            </div>
+                            <button class="filter-btn" id="archivesFilter">
+                                <i class="fas fa-filter"></i>
+                                Filter
+                            </button>
+                            <button class="export-btn">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="archives-table">
+                            <thead>
+                                <tr>
+                                    <th>Original User ID</th>
+                                    <th>Archived By</th>
+                                    <th>Archived Date</th>
+                                    <th>User Data</th>
+                                    <th>Files</th>
+                                    <th>Deletion Reason</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for archive in user_archives %}
+                                <tr class="archive-row">
+                                    <td>
+                                        <div class="user-id">
+                                            <i class="fas fa-user-circle"></i>
+                                            <strong>#{{ archive.original_user_id }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="archiver-info">
+                                            <div class="archiver-avatar">
+                                                <div class="avatar-initials">
+                                                    {{ archive.archived_by|first|upper }}
+                                                </div>
+                                            </div>
+                                            <span>{{ archive.archived_by|default:"System" }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="timestamp">
+                                            <div class="date">{{ archive.archived_at|date:"M d, Y" }}</div>
+                                            <div class="time">{{ archive.archived_at|date:"h:i A" }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="view-data-btn" data-archive-id="{{ archive.id }}">
+                                            <i class="fas fa-eye"></i>
+                                            View Data
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <div class="file-badges">
+                                            {% if archive.profile_picture_path %}
+                                            <span class="file-badge">
+                                                <i class="fas fa-image"></i>
+                                                Profile
+                                            </span>
+                                            {% endif %}
+                                            {% if archive.id_picture_path %}
+                                            <span class="file-badge">
+                                                <i class="fas fa-id-card"></i>
+                                                ID
+                                            </span>
+                                            {% endif %}
+                                            {% if archive.birth_certificate_path %}
+                                            <span class="file-badge">
+                                                <i class="fas fa-file-certificate"></i>
+                                                Birth Cert
+                                            </span>
+                                            {% endif %}
+                                            {% if archive.parent_consent_letter_path %}
+                                            <span class="file-badge">
+                                                <i class="fas fa-file-signature"></i>
+                                                Consent
+                                            </span>
+                                            {% endif %}
+                                            {% if archive.parent_id_picture_path %}
+                                            <span class="file-badge">
+                                                <i class="fas fa-id-badge"></i>
+                                                Parent ID
+                                            </span>
+                                            {% endif %}
+                                            {% if not archive.profile_picture_path and not archive.id_picture_path and not archive.birth_certificate_path and not archive.parent_consent_letter_path and not archive.parent_id_picture_path %}
+                                            <span class="no-files">No Files</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if archive.deletion_reason %}
+                                        <div class="deletion-reason">
+                                            {{ archive.deletion_reason|truncatewords:10 }}
+                                        </div>
+                                        {% else %}
+                                        <span class="no-reason">No reason provided</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="action-btn view-btn" data-archive-id="{{ archive.id }}">
+                                                <i class="fas fa-expand"></i>
+                                            </button>
+                                            <button class="action-btn restore-btn">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                            <button class="action-btn delete-btn">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <div class="pagination-info">
+                            Showing {{ user_archives|length }} of {{ archive_stats.total_archives }} archived records
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="pagination-page">Page 1</span>
+                            <button class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+      
+        </div>
+    </div>
+
+    <div class="modal" id="archiveDetailModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Archive Details - User #<span id="archiveUserId"></span></h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="archive-details-grid">
+                    <div class="detail-section">
+                        <h4>Basic Information</h4>
+                        <div class="detail-item">
+                            <label>Original User ID:</label>
+                            <span id="detailOriginalId"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Archived By:</label>
+                            <span id="detailArchivedBy"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Archived Date:</label>
+                            <span id="detailArchivedAt"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Deletion Reason:</label>
+                            <span id="detailDeletionReason"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>File Attachments</h4>
+                        <div class="files-list" id="detailFilesList">
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section full-width">
+                        <h4>User Data</h4>
+                        <div class="json-viewer" id="userDataViewer">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="closeDetailModal">Close</button>
+                <button class="modal-btn primary" id="exportArchive">
+                    <i class="fas fa-download"></i>
+                    Export This Archive
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="unauthorized-modal" id="unauthorizedModal">
+        <div class="unauthorized-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have authorization to access this section. Please contact your administrator.</p>
+            <button class="close-modal">OK</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/server/serveruserarchives.js' %}"></script>
+</body>
+</html>

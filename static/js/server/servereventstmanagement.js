@@ -1,38 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    initEventsManagement();
-    
-    function initEventsManagement() {
-        updateCurrentDate();
-        initSidebarToggle();
-        initModals();
-        initFilters();
-        initFormValidation();
-        initEventActions();
-        initAnimations();
-        initAudienceFields(); 
-    }
-    
-    function initAudienceFields() {
-        const genderAccess = document.getElementById('gender_access');
-        const genderTargets = document.getElementById('gender_targets');
-        
-        if (genderAccess && genderTargets) {
-            genderAccess.addEventListener('change', function() {
-                genderTargets.style.display = this.value === 'specific' ? 'block' : 'none';
-            });
-        }
-        
-        const civilStatusAccess = document.getElementById('civil_status_access');
-        const civilStatusTargets = document.getElementById('civil_status_targets');
-        
-        if (civilStatusAccess && civilStatusTargets) {
-            civilStatusAccess.addEventListener('change', function() {
-                civilStatusTargets.style.display = this.value === 'specific' ? 'block' : 'none';
-            });
-        }
-        
-    }
-    
     function updateCurrentDate() {
         const now = new Date();
         const options = { 
@@ -44,91 +10,138 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
     }
     
-    function initSidebarToggle() {
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.querySelector('.server-sidebar');
-        
-        if (sidebarToggle && sidebar) {
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-            });
-        }
+    updateCurrentDate();
+    
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.server-sidebar');
+    const mainContent = document.querySelector('.server-main-content');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-bars';
+            } else {
+                icon.className = 'fas fa-times';
+            }
+        });
     }
     
-    function initModals() {
-        const createBtn = document.getElementById('createEventBtn');
-        const createFirstBtn = document.getElementById('createFirstEvent');
-        const modal = document.getElementById('eventModal');
-        const closeModal = document.getElementById('closeModal');
-        const cancelForm = document.getElementById('cancelForm');
-        
-        if (createBtn) {
-            createBtn.addEventListener('click', function() {
-                openEventModal();
-            });
-        }
-        
-        if (createFirstBtn) {
-            createFirstBtn.addEventListener('click', function() {
-                openEventModal();
-            });
-        }
-        
-        if (closeModal) {
-            closeModal.addEventListener('click', function() {
-                closeEventModal();
-            });
-        }
-        
-        if (cancelForm) {
-            cancelForm.addEventListener('click', function() {
-                closeEventModal();
-            });
-        }
-        
-        const deleteModal = document.getElementById('deleteModal');
-        const cancelDelete = document.getElementById('cancelDelete');
-        const confirmDelete = document.getElementById('confirmDelete');
-        
-        if (cancelDelete) {
-            cancelDelete.addEventListener('click', function() {
-                deleteModal.classList.remove('active');
-            });
-        }
-        
-        if (confirmDelete) {
-            confirmDelete.addEventListener('click', function() {
-                const eventId = deleteModal.getAttribute('data-id');
-                if (eventId) {
-                    deleteEvent(eventId);
-                }
-                deleteModal.classList.remove('active');
-            });
-        }
-        document.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                closeEventModal();
-            }
-            if (e.target === deleteModal) {
-                deleteModal.classList.remove('active');
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.nav-dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            
+            this.classList.toggle('active');
+            menu.classList.toggle('show');
+        });
+    });
+    
+    const systemSettingsLinks = document.querySelectorAll('.system-settings-link');
+    const unauthorizedModal = document.getElementById('unauthorizedModal');
+    const closeModal = document.querySelector('.close-modal');
+    
+    systemSettingsLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const hasAccess = this.getAttribute('data-has-access') === 'true';
+            
+            if (!hasAccess) {
+                e.preventDefault();
+                unauthorizedModal.style.display = 'flex';
             }
         });
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeEventModal();
-                deleteModal.classList.remove('active');
-            }
+    });
+    
+    if (closeModal && unauthorizedModal) {
+        closeModal.addEventListener('click', function() {
+            unauthorizedModal.style.display = 'none';
         });
         
-        const requiresRegistration = document.getElementById('requires_registration');
-        const registrationFields = document.getElementById('registrationFields');
-        
-        if (requiresRegistration && registrationFields) {
-            requiresRegistration.addEventListener('change', function() {
-                registrationFields.style.display = this.checked ? 'grid' : 'none';
-            });
+        unauthorizedModal.addEventListener('click', function(e) {
+            if (e.target === unauthorizedModal) {
+                unauthorizedModal.style.display = 'none';
+            }
+        });
+    }
+    
+    const createBtn = document.getElementById('createEventBtn');
+    const createFirstBtn = document.getElementById('createFirstEvent');
+    const modal = document.getElementById('eventModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelForm = document.getElementById('cancelForm');
+    
+    if (createBtn) {
+        createBtn.addEventListener('click', function() {
+            openEventModal();
+        });
+    }
+    
+    if (createFirstBtn) {
+        createFirstBtn.addEventListener('click', function() {
+            openEventModal();
+        });
+    }
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+            closeEventModal();
+        });
+    }
+    
+    if (cancelForm) {
+        cancelForm.addEventListener('click', function() {
+            closeEventModal();
+        });
+    }
+    
+    const deleteModal = document.getElementById('deleteModal');
+    const cancelDelete = document.getElementById('cancelDelete');
+    const confirmDelete = document.getElementById('confirmDelete');
+    
+    if (cancelDelete) {
+        cancelDelete.addEventListener('click', function() {
+            deleteModal.classList.remove('active');
+        });
+    }
+    
+    if (confirmDelete) {
+        confirmDelete.addEventListener('click', function() {
+            const eventId = deleteModal.getAttribute('data-id');
+            if (eventId) {
+                deleteEvent(eventId);
+            }
+            deleteModal.classList.remove('active');
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeEventModal();
         }
+        if (e.target === deleteModal) {
+            deleteModal.classList.remove('active');
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEventModal();
+            deleteModal.classList.remove('active');
+        }
+    });
+    
+    const requiresRegistration = document.getElementById('requires_registration');
+    const registrationFields = document.getElementById('registrationFields');
+    
+    if (requiresRegistration && registrationFields) {
+        requiresRegistration.addEventListener('change', function() {
+            registrationFields.style.display = this.checked ? 'grid' : 'none';
+        });
     }
     
     function openEventModal(eventId = null) {
@@ -205,37 +218,35 @@ document.addEventListener('DOMContentLoaded', function() {
         return date.toISOString().slice(0, 16);
     }
     
-    function initFilters() {
-        const searchInput = document.getElementById('eventSearch');
-        const categoryFilter = document.getElementById('categoryFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        const registrationFilter = document.getElementById('registrationFilter');
-        const applyFiltersBtn = document.getElementById('applyFilters');
-        const clearFiltersBtn = document.getElementById('clearFilters');
-        
-        if (searchInput) {
-            searchInput.addEventListener('input', filterEvents);
-        }
-        
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', filterEvents);
-        }
-        
-        if (statusFilter) {
-            statusFilter.addEventListener('change', filterEvents);
-        }
-        
-        if (registrationFilter) {
-            registrationFilter.addEventListener('change', filterEvents);
-        }
-        
-        if (applyFiltersBtn) {
-            applyFiltersBtn.addEventListener('click', filterEvents);
-        }
-        
-        if (clearFiltersBtn) {
-            clearFiltersBtn.addEventListener('click', clearFilters);
-        }
+    const searchInput = document.getElementById('eventSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const registrationFilter = document.getElementById('registrationFilter');
+    const applyFiltersBtn = document.getElementById('applyFilters');
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterEvents);
+    }
+    
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterEvents);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterEvents);
+    }
+    
+    if (registrationFilter) {
+        registrationFilter.addEventListener('change', filterEvents);
+    }
+    
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', filterEvents);
+    }
+    
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearFilters);
     }
     
     function filterEvents() {
@@ -287,46 +298,44 @@ document.addEventListener('DOMContentLoaded', function() {
         filterEvents();
     }
     
-    function initFormValidation() {
-        const form = document.getElementById('eventForm');
-        const excerptTextarea = document.getElementById('excerpt');
-        const imageInput = document.getElementById('image');
-        const imagePreview = document.getElementById('imagePreview');
-        
-        if (form) {
-            form.addEventListener('submit', handleFormSubmit);
-        }
-        
-        if (excerptTextarea) {
-            excerptTextarea.addEventListener('input', function() {
-                const count = this.value.length;
-                document.getElementById('excerptCount').textContent = count;
-                
-                if (count > 300) {
-                    this.value = this.value.substring(0, 300);
-                    document.getElementById('excerptCount').textContent = '300';
-                    document.getElementById('excerptCount').style.color = '#f44336';
-                } else {
-                    document.getElementById('excerptCount').style.color = '#90caf9';
-                }
-            });
-        }
-        
-        if (imageInput) {
-            imageInput.addEventListener('change', function() {
-                const file = this.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        imagePreview.innerHTML = `<img src="${e.target.result}" alt="Image Preview">`;
-                        imagePreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    imagePreview.style.display = 'none';
-                }
-            });
-        }
+    const form = document.getElementById('eventForm');
+    const excerptTextarea = document.getElementById('excerpt');
+    const imageInput = document.getElementById('image');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
+    
+    if (excerptTextarea) {
+        excerptTextarea.addEventListener('input', function() {
+            const count = this.value.length;
+            document.getElementById('excerptCount').textContent = count;
+            
+            if (count > 300) {
+                this.value = this.value.substring(0, 300);
+                document.getElementById('excerptCount').textContent = '300';
+                document.getElementById('excerptCount').style.color = '#f44336';
+            } else {
+                document.getElementById('excerptCount').style.color = '#A0AEC0';
+            }
+        });
+    }
+    
+    if (imageInput) {
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Image Preview">`;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        });
     }
     
     function handleFormSubmit(e) {
@@ -378,31 +387,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function initEventActions() {
-        document.querySelectorAll('.action-btn.edit').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const eventId = this.getAttribute('data-id');
-                openEventModal(eventId);
-            });
+    document.querySelectorAll('.action-btn.edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-id');
+            openEventModal(eventId);
         });
-        
-        document.querySelectorAll('.action-btn.activate, .action-btn.deactivate').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const eventId = this.getAttribute('data-id');
-                const isActivate = this.classList.contains('activate');
-                toggleEventStatus(eventId, isActivate);
-            });
+    });
+    
+    document.querySelectorAll('.action-btn.activate, .action-btn.deactivate').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-id');
+            const isActivate = this.classList.contains('activate');
+            toggleEventStatus(eventId, isActivate);
         });
-        
-        document.querySelectorAll('.action-btn.delete').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const eventId = this.getAttribute('data-id');
-                const deleteModal = document.getElementById('deleteModal');
-                deleteModal.setAttribute('data-id', eventId);
-                deleteModal.classList.add('active');
-            });
+    });
+    
+    document.querySelectorAll('.action-btn.delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-id');
+            const deleteModal = document.getElementById('deleteModal');
+            deleteModal.setAttribute('data-id', eventId);
+            deleteModal.classList.add('active');
         });
-    }
+    });
     
     function toggleEventStatus(eventId, activate) {
         fetch(`/server/events/${eventId}/toggle-status/`, {
@@ -530,11 +537,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-   function initAnimations() {
-    const statItems = document.querySelectorAll('.stat-item');
+    const statCards = document.querySelectorAll('.stat-card');
     const eventCards = document.querySelectorAll('.event-card');
     
-    statItems.forEach((item, index) => {
+    statCards.forEach((item, index) => {
         item.style.opacity = '0';
         item.style.transform = 'translateY(20px)';
         item.style.transition = `opacity 0.5s ease ${index * 0.1}s, transform 0.5s ease ${index * 0.1}s`;
@@ -555,5 +561,4 @@ document.addEventListener('DOMContentLoaded', function() {
             card.style.transform = 'translateY(0)';
         }, 300 + (index * 50));
     });
-}
 });

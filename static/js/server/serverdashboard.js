@@ -14,10 +14,58 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.querySelector('.server-sidebar');
+    const mainContent = document.querySelector('.server-main-content');
     
     if (sidebarToggle && sidebar) {
         sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-bars';
+            } else {
+                icon.className = 'fas fa-times';
+            }
+        });
+    }
+    
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.nav-dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            
+            this.classList.toggle('active');
+            menu.classList.toggle('show');
+        });
+    });
+    
+    const systemSettingsLinks = document.querySelectorAll('.system-settings-link');
+    const unauthorizedModal = document.getElementById('unauthorizedModal');
+    const closeModal = document.querySelector('.close-modal');
+    
+    systemSettingsLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const hasAccess = this.getAttribute('data-has-access') === 'true';
+            
+            if (!hasAccess) {
+                e.preventDefault();
+                unauthorizedModal.style.display = 'flex';
+            }
+        });
+    });
+    
+    if (closeModal && unauthorizedModal) {
+        closeModal.addEventListener('click', function() {
+            unauthorizedModal.style.display = 'none';
+        });
+        
+        unauthorizedModal.addEventListener('click', function(e) {
+            if (e.target === unauthorizedModal) {
+                unauthorizedModal.style.display = 'none';
+            }
         });
     }
     
@@ -30,13 +78,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'User Registrations',
                     data: dashboardData.userRegistration.data,
-                    borderColor: '#42a5f5',
-                    backgroundColor: 'rgba(66, 165, 245, 0.1)',
+                    borderColor: '#E64980',
+                    backgroundColor: 'rgba(230, 73, 128, 0.1)',
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointBackgroundColor: '#42a5f5',
-                    pointBorderColor: '#ffffff',
+                    pointBackgroundColor: '#E64980',
+                    pointBorderColor: '#151C2C',
                     pointBorderWidth: 2,
                     pointRadius: 5,
                     pointHoverRadius: 7
@@ -50,9 +98,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        backgroundColor: 'rgba(26, 35, 126, 0.9)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#bbdefb',
+                        backgroundColor: '#151C2C',
+                        titleColor: '#E8EAF6',
+                        bodyColor: '#A0AEC0',
                         borderColor: 'rgba(255, 255, 255, 0.1)',
                         borderWidth: 1
                     }
@@ -60,11 +108,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     x: {
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#bbdefb' }
+                        ticks: { color: '#A0AEC0' }
                     },
                     y: {
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#bbdefb', precision: 0 },
+                        ticks: { color: '#A0AEC0', precision: 0 },
                         beginAtZero: true
                     }
                 }
@@ -79,11 +127,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Participants',
                     data: dashboardData.eventParticipation.data,
-                    backgroundColor: 'rgba(76, 175, 80, 0.8)',
-                    borderColor: 'rgba(76, 175, 80, 1)',
+                    backgroundColor: '#6D6AFF',
+                    borderColor: '#7C5CFF',
                     borderWidth: 2,
                     borderRadius: 6,
-                    hoverBackgroundColor: 'rgba(76, 175, 80, 1)'
+                    hoverBackgroundColor: '#7C5CFF'
                 }]
             },
             options: {
@@ -92,9 +140,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(26, 35, 126, 0.9)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#bbdefb',
+                        backgroundColor: '#151C2C',
+                        titleColor: '#E8EAF6',
+                        bodyColor: '#A0AEC0',
                         borderColor: 'rgba(255, 255, 255, 0.1)',
                         borderWidth: 1
                     }
@@ -102,11 +150,210 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     x: {
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#bbdefb' }
+                        ticks: { color: '#A0AEC0' }
                     },
                     y: {
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#bbdefb', precision: 0 },
+                        ticks: { color: '#A0AEC0', precision: 0 },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        const ageGroupCtx = document.getElementById('ageGroupChart').getContext('2d');
+        const ageGroupChart = new Chart(ageGroupCtx, {
+            type: 'pie',
+            data: {
+                labels: dashboardData.ageGroups.labels,
+                datasets: [{
+                    data: dashboardData.ageGroups.data,
+                    backgroundColor: [
+                        '#3A7BFA',
+                        '#7C5CFF',
+                        '#E64980',
+                        '#29E3A8'
+                    ],
+                    borderColor: '#151C2C',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#A0AEC0',
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+        
+        const genderCtx = document.getElementById('genderChart').getContext('2d');
+        const genderChart = new Chart(genderCtx, {
+            type: 'doughnut',
+            data: {
+                labels: dashboardData.genders.labels,
+                datasets: [{
+                    data: dashboardData.genders.data,
+                    backgroundColor: [
+                        '#3A7BFA',
+                        '#E64980',
+                        '#29E3A8'
+                    ],
+                    borderColor: '#151C2C',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#A0AEC0',
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+        
+        const educationCtx = document.getElementById('educationChart').getContext('2d');
+        const educationChart = new Chart(educationCtx, {
+            type: 'bar',
+            data: {
+                labels: dashboardData.educations.labels,
+                datasets: [{
+                    label: 'Users',
+                    data: dashboardData.educations.data,
+                    backgroundColor: '#3A7BFA',
+                    borderColor: '#7C5CFF',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0', precision: 0 },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        const youthClassCtx = document.getElementById('youthClassChart').getContext('2d');
+        const youthClassChart = new Chart(youthClassCtx, {
+            type: 'bar',
+            data: {
+                labels: dashboardData.youthClassifications.labels,
+                datasets: [{
+                    label: 'Users',
+                    data: dashboardData.youthClassifications.data,
+                    backgroundColor: '#7C5CFF',
+                    borderColor: '#6D6AFF',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0', precision: 0 },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        const workStatusCtx = document.getElementById('workStatusChart').getContext('2d');
+        const workStatusChart = new Chart(workStatusCtx, {
+            type: 'bar',
+            data: {
+                labels: dashboardData.workStatuses.labels,
+                datasets: [{
+                    label: 'Users',
+                    data: dashboardData.workStatuses.data,
+                    backgroundColor: '#E64980',
+                    borderColor: '#FF6B9C',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0', precision: 0 },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        const civilStatusCtx = document.getElementById('civilStatusChart').getContext('2d');
+        const civilStatusChart = new Chart(civilStatusCtx, {
+            type: 'bar',
+            data: {
+                labels: dashboardData.civilStatuses.labels,
+                datasets: [{
+                    label: 'Users',
+                    data: dashboardData.civilStatuses.data,
+                    backgroundColor: '#29E3A8',
+                    borderColor: '#4ADE80',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#A0AEC0', precision: 0 },
                         beginAtZero: true
                     }
                 }
@@ -129,19 +376,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function simulateLoading(chart) {
-        chart.data.datasets[0].data = chart.data.datasets[0].data.map(() => 0);
-        chart.update();
-        
-        setTimeout(() => {
-            chart.data.datasets[0].data = dashboardData.userRegistration.data;
-            chart.update();
-        }, 1000);
-    }
-    
     function initAnimations() {
         const statCards = document.querySelectorAll('.stat-card');
         const chartCards = document.querySelectorAll('.chart-card');
+        const demographicCards = document.querySelectorAll('.demographic-card');
         const activityCards = document.querySelectorAll('.activity-card');
         
         statCards.forEach((card, index) => {
@@ -164,6 +402,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300 + (index * 100));
         });
         
+        demographicCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = `opacity 0.5s ease ${0.4 + (index * 0.1)}s, transform 0.5s ease ${0.4 + (index * 0.1)}s`;
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 400 + (index * 100));
+        });
+        
         activityCards.forEach((card, index) => {
             card.style.opacity = '0';
             card.style.transform = 'translateY(20px)';
@@ -184,17 +432,4 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeCharts();
     initAnimations();
     refreshDashboardData();
-    
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
 });

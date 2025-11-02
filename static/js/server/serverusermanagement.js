@@ -14,10 +14,58 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.querySelector('.server-sidebar');
+    const mainContent = document.querySelector('.server-main-content');
     
     if (sidebarToggle && sidebar) {
         sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            const icon = sidebarToggle.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-bars';
+            } else {
+                icon.className = 'fas fa-times';
+            }
+        });
+    }
+    
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.nav-dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            
+            this.classList.toggle('active');
+            menu.classList.toggle('show');
+        });
+    });
+    
+    const systemSettingsLinks = document.querySelectorAll('.system-settings-link');
+    const unauthorizedModal = document.getElementById('unauthorizedModal');
+    const closeModal = document.querySelector('.close-modal');
+    
+    systemSettingsLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const hasAccess = this.getAttribute('data-has-access') === 'true';
+            
+            if (!hasAccess) {
+                e.preventDefault();
+                unauthorizedModal.style.display = 'flex';
+            }
+        });
+    });
+    
+    if (closeModal && unauthorizedModal) {
+        closeModal.addEventListener('click', function() {
+            unauthorizedModal.style.display = 'none';
+        });
+        
+        unauthorizedModal.addEventListener('click', function(e) {
+            if (e.target === unauthorizedModal) {
+                unauthorizedModal.style.display = 'none';
+            }
         });
     }
     
@@ -57,125 +105,118 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const encryptionForm = document.getElementById('encryptionForm');
     
-   // Update the encryption form submission handler
-if (encryptionForm) {
-    encryptionForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const encryptionKey = document.getElementById('encryptionKey').value;
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalHTML = submitBtn.innerHTML;
-        const errorDiv = document.getElementById('encryptionError') || createErrorElement();
-        
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-        submitBtn.disabled = true;
-        
-        // Clear previous errors
-        errorDiv.style.display = 'none';
-        errorDiv.textContent = '';
-        document.getElementById('encryptionKey').classList.remove('error');
-        
-        try {
-            const response = await fetch('/server/auth/verify-encryption-key/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    encryption_key: encryptionKey
-                })
-            });
+    if (encryptionForm) {
+        encryptionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            const data = await response.json();
+            const encryptionKey = document.getElementById('encryptionKey').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalHTML = submitBtn.innerHTML;
+            const errorDiv = document.getElementById('encryptionError') || createErrorElement();
             
-            if (data.success) {
-                showMessage('Encryption key verified successfully!', 'success');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            submitBtn.disabled = true;
+            
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            document.getElementById('encryptionKey').classList.remove('error');
+            
+            try {
+                const response = await fetch('/server/auth/verify-encryption-key/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        encryption_key: encryptionKey
+                    })
+                });
                 
-                setTimeout(() => {
-                    document.getElementById('encryptionModal').classList.remove('active');
-                    document.querySelector('.management-content').classList.remove('hidden');
-                    document.querySelector('.encryption-status').innerHTML = `
-                        <i class="fas fa-lock-open"></i>
-                        <span>Encryption: Verified</span>
-                    `;
-                    document.querySelector('.encryption-status').classList.add('verified');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Encryption key verified successfully!', 'success');
                     
-                    // Reset failed attempts on success
-                    if (request.session) {
-                        request.session['encryption_failed_attempts'] = 0;
+                    setTimeout(() => {
+                        document.getElementById('encryptionModal').classList.remove('active');
+                        document.querySelector('.management-content').classList.remove('hidden');
+                        document.querySelector('.encryption-status').innerHTML = `
+                            <i class="fas fa-lock-open"></i>
+                            <span>Encryption: Verified</span>
+                        `;
+                        document.querySelector('.encryption-status').classList.add('verified');
+                        
+                        initAnimations();
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                    document.getElementById('encryptionKey').classList.add('error');
+                    
+                    document.getElementById('encryptionKey').classList.add('shake');
+                    setTimeout(() => {
+                        document.getElementById('encryptionKey').classList.remove('shake');
+                    }, 500);
+                    
+                    submitBtn.innerHTML = originalHTML;
+                    submitBtn.disabled = false;
+                    
+                    if (data.failed_attempts >= 3) {
+                        document.getElementById('encryptionKey').value = '';
+                        errorDiv.textContent += ' The input has been cleared for security.';
                     }
-                    
-                    initAnimations();
-                }, 1500);
-            } else {
-                errorDiv.textContent = data.message;
+                }
+            } catch (error) {
+                console.error('Encryption verification error:', error);
+                errorDiv.textContent = 'Network error. Please try again.';
                 errorDiv.style.display = 'block';
-                document.getElementById('encryptionKey').classList.add('error');
-                
-                document.getElementById('encryptionKey').classList.add('shake');
-                setTimeout(() => {
-                    document.getElementById('encryptionKey').classList.remove('shake');
-                }, 500);
-                
                 submitBtn.innerHTML = originalHTML;
                 submitBtn.disabled = false;
-                
-                if (data.failed_attempts >= 3) {
-                    document.getElementById('encryptionKey').value = '';
-                    errorDiv.textContent += ' The input has been cleared for security.';
-                }
             }
-        } catch (error) {
-            console.error('Encryption verification error:', error);
-            errorDiv.textContent = 'Network error. Please try again.';
-            errorDiv.style.display = 'block';
-            submitBtn.innerHTML = originalHTML;
-            submitBtn.disabled = false;
+        });
+    }
+    
+    function createErrorElement() {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'encryptionError';
+        errorDiv.className = 'error-message';
+        errorDiv.style.cssText = `
+            color: #EF4444;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+            border-left: 4px solid #EF4444;
+        `;
+        
+        const formGroup = document.querySelector('.form-group');
+        if (formGroup) {
+            formGroup.appendChild(errorDiv);
         }
-    });
-}
-
-function createErrorElement() {
-    const errorDiv = document.createElement('div');
-    errorDiv.id = 'encryptionError';
-    errorDiv.className = 'error-message';
-    errorDiv.style.cssText = `
-        color: #f44336;
-        background: rgba(244, 67, 54, 0.1);
-        padding: 10px 15px;
-        border-radius: 8px;
-        margin-top: 15px;
-        display: none;
-        border-left: 4px solid #f44336;
+        
+        return errorDiv;
+    }
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        .input-group input.error {
+            border-color: #EF4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
     `;
-    
-    const formGroup = document.querySelector('.form-group');
-    if (formGroup) {
-        formGroup.appendChild(errorDiv);
-    }
-    
-    return errorDiv;
-}
-
-const style = document.createElement('style');
-style.textContent = `
-    .input-group input.error {
-        border-color: #f44336 !important;
-        box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.2) !important;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    .shake {
-        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-`;
-document.head.appendChild(style);
+    document.head.appendChild(style);
     
     const viewButtons = document.querySelectorAll('.btn-view');
     const userDetailModal = document.getElementById('userDetailModal');
@@ -590,9 +631,9 @@ document.head.appendChild(style);
             z-index: 1000;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             animation: slideIn 0.3s ease;
-            ${type === 'success' ? 'background: rgba(46, 125, 50, 0.9); color: white;' : 
-              type === 'error' ? 'background: rgba(211, 47, 47, 0.9); color: white;' :
-              'background: rgba(25, 118, 210, 0.9); color: white;'}
+            ${type === 'success' ? 'background: rgba(74, 222, 128, 0.9); color: white;' : 
+              type === 'error' ? 'background: rgba(239, 68, 68, 0.9); color: white;' :
+              'background: rgba(58, 123, 250, 0.9); color: white;'}
             backdrop-filter: blur(10px);
         `;
         
@@ -657,16 +698,15 @@ document.head.appendChild(style);
         });
         
         tableRows.forEach((row, index) => {
-    row.style.opacity = '0';
-    row.style.transform = 'translateX(20px)';
-    row.style.transition = `opacity 0.5s ease ${0.3 + (index * 0.05)}s, transform 0.5s ease ${0.3 + (index * 0.05)}s`;
-    
-    setTimeout(() => {
-        row.style.opacity = '1';
-        row.style.transform = 'translateX(0)';
-    }, 300 + (index * 50));
-});
-
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(20px)';
+            row.style.transition = `opacity 0.5s ease ${0.3 + (index * 0.05)}s, transform 0.5s ease ${0.3 + (index * 0.05)}s`;
+            
+            setTimeout(() => {
+                row.style.opacity = '1';
+                row.style.transform = 'translateX(0)';
+            }, 300 + (index * 50));
+        });
     }
 
     if (encryptionVerified) {

@@ -754,7 +754,6 @@ class Event(models.Model):
     age_min = models.PositiveIntegerField(blank=True, null=True)
     age_max = models.PositiveIntegerField(blank=True, null=True)
     
-    # Keep the points reward
     points_reward = models.PositiveIntegerField(default=0)
     created_by = models.ForeignKey(YouthAdmin, on_delete=models.CASCADE)
     

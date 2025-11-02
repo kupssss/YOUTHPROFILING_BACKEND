@@ -1,0 +1,509 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Management - SK Mambugan Admin Portal</title>
+    <link rel="icon" href="{% static 'assets/logo/logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'css/server/serveradmins.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="server-admins-container">
+        <div class="server-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
+                    <div class="sidebar-logo-text">
+                        <h2>SK Mambugan</h2>
+                        <span>Admin Portal</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-profile">
+                <div class="profile-image">
+                    {% if admin_user.profile_picture %}
+                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    {% else %}
+                        <div class="profile-initials">
+                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4>{{ admin_user.get_full_name }}</h4>
+                    <p>{{ admin_user.get_role_display }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="{% url 'server_dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_user_management' %}">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_announcement_management' %}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_management' %}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'server_events_participants' %}">
+                            <i class="fas fa-user-check"></i>
+                            <span>Events Participants</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cogs"></i>
+                            <span>System Settings</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{% url 'server_logs_management' %}" class="system-settings-link">
+                                    <i class="fas fa-history"></i>
+                                    <span>Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Demographics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="system-settings-link" 
+                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-question-circle"></i>
+                                    <span>FAQ</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_user_archives_management' %}" class="system-settings-link">
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archives</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'server_admins_management' %}" class="system-settings-link active">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Admins</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'server_logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="server-main-content">
+            <header class="admins-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="mobileSidebarToggle" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>Administrator Management</h1>
+                        <p>Manage system administrators and their permissions</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        {% if can_add_admin %}
+                        <button class="add-admin-btn" id="addAdminBtn">
+                            <i class="fas fa-plus"></i>
+                            Add New Admin
+                        </button>
+                        {% endif %}
+                        <div class="date-display">
+                            <i class="fas fa-calendar"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="admins-stats-grid">
+                <div class="admin-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ admin_stats.total_admins|intcomma }}</h3>
+                        <p>Total Administrators</p>
+                        <span class="stat-trend positive">
+                            <i class="fas fa-users"></i> 
+                            System access
+                        </span>
+                    </div>
+                </div>
+
+                <div class="admin-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ admin_stats.active_admins|intcomma }}</h3>
+                        <p>Active Administrators</p>
+                        <span class="stat-trend {% if admin_stats.active_admins == admin_stats.total_admins %}positive{% else %}warning{% endif %}">
+                            <i class="fas fa-{% if admin_stats.active_admins == admin_stats.total_admins %}check{% else %}exclamation{% endif %}-circle"></i> 
+                            {{ admin_stats.active_admins }}/{{ admin_stats.total_admins }} active
+                        </span>
+                    </div>
+                </div>
+
+                <div class="admin-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ admin_stats.super_admins|intcomma }}</h3>
+                        <p>Super Administrators</p>
+                        <span class="stat-trend info">
+                            <i class="fas fa-shield-alt"></i> 
+                            Full system access
+                        </span>
+                    </div>
+                </div>
+
+                <div class="admin-stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ admin_stats.today_logins|intcomma }}</h3>
+                        <p>Today's Logins</p>
+                        <span class="stat-trend {% if admin_stats.today_logins > 0 %}positive{% else %}negative{% endif %}">
+                            <i class="fas fa-{% if admin_stats.today_logins > 0 %}arrow-up{% else %}arrow-down{% endif %}"></i> 
+                            {{ admin_stats.today_logins }} today
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admins-content">
+                <div class="admins-table-container">
+                    <div class="table-header">
+                        <h3>Administrator Accounts</h3>
+                        <div class="table-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="adminsSearch" placeholder="Search admins...">
+                            </div>
+                            <button class="filter-btn" id="adminsFilter">
+                                <i class="fas fa-filter"></i>
+                                Filter
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="admins-table">
+                            <thead>
+                                <tr>
+                                    <th>Admin Profile</th>
+                                    <th>Role & Permissions</th>
+                                    <th>Contact Information</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                    <th>Date Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for admin in all_admins %}
+                                <tr class="admin-row {% if not admin.is_active %}inactive{% endif %}">
+                                    <td>
+                                        <div class="admin-profile">
+                                            <div class="admin-avatar">
+                                                {% if admin.profile_picture %}
+                                                    <img src="{{ admin.profile_picture.url }}" alt="{{ admin.username }}">
+                                                {% else %}
+                                                    <div class="avatar-initials">
+                                                        {{ admin.first_name|first|upper }}{{ admin.last_name|first|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="admin-details">
+                                                <strong>{{ admin.get_full_name }}</strong>
+                                                <span>@{{ admin.username }}</span>
+                                                <small>{{ admin.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="role-permissions">
+                                            <span class="role-badge role-{{ admin.role }}">
+                                                <i class="fas fa-{% if admin.role == 'super_admin' %}crown{% elif admin.role == 'sk_chairman' %}user-tie{% elif admin.role == 'sk_secretary' %}file-alt{% elif admin.role == 'sk_treasurer' %}money-bill{% elif admin.role == 'sk_councilor' %}users{% else %}user{% endif %}"></i>
+                                                {{ admin.get_role_display }}
+                                            </span>
+                                            {% if admin.department %}
+                                            <div class="department">
+                                                <small>{{ admin.department }}</small>
+                                            </div>
+                                            {% endif %}
+                                            <div class="permissions">
+                                                {% if admin.can_manage_users %}
+                                                <span class="perm-badge">Users</span>
+                                                {% endif %}
+                                                {% if admin.can_manage_announcements %}
+                                                <span class="perm-badge">Announcements</span>
+                                                {% endif %}
+                                                {% if admin.can_manage_events %}
+                                                <span class="perm-badge">Events</span>
+                                                {% endif %}
+                                                {% if admin.can_view_reports %}
+                                                <span class="perm-badge">Reports</span>
+                                                {% endif %}
+                                                {% if admin.can_manage_settings %}
+                                                <span class="perm-badge">Settings</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="contact-info">
+                                            <div class="contact-item">
+                                                <i class="fas fa-envelope"></i>
+                                                <span>{{ admin.email }}</span>
+                                            </div>
+                                            {% if admin.contact_number %}
+                                            <div class="contact-item">
+                                                <i class="fas fa-phone"></i>
+                                                <span>{{ admin.contact_number }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="status-indicators">
+                                            <span class="status-badge status-{% if admin.is_active %}active{% else %}inactive{% endif %}">
+                                                <i class="fas fa-circle"></i>
+                                                {{ admin.is_active|yesno:"Active,Inactive" }}
+                                            </span>
+                                            {% if admin.is_super_admin %}
+                                            <span class="super-admin-badge">
+                                                <i class="fas fa-shield-alt"></i>
+                                                Super Admin
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if admin.last_login %}
+                                        <div class="timestamp">
+                                            <div class="date">{{ admin.last_login|date:"M d, Y" }}</div>
+                                            <div class="time">{{ admin.last_login|date:"h:i A" }}</div>
+                                        </div>
+                                        {% else %}
+                                        <span class="never-logged">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="timestamp">
+                                            <div class="date">{{ admin.date_joined|date:"M d, Y" }}</div>
+                                            <div class="time">{{ admin.date_joined|date:"h:i A" }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="action-btn view-btn" data-admin-id="{{ admin.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if can_add_admin or admin_user.id == admin.id %}
+                                            <button class="action-btn edit-btn" data-admin-id="{{ admin.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% endif %}
+                                            {% if can_add_admin and admin_user.id != admin.id %}
+                                            <button class="action-btn {% if admin.is_active %}deactivate-btn{% else %}activate-btn{% endif %}" data-admin-id="{{ admin.id }}">
+                                                <i class="fas fa-{% if admin.is_active %}times{% else %}check{% endif %}"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <div class="pagination-info">
+                            Showing {{ all_admins|length }} administrator accounts
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="pagination-page">Page 1</span>
+                            <button class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admins-actions-panel">
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Add Administrator</h4>
+                        <p>Create new administrator accounts with specific roles and permissions</p>
+                        {% if can_add_admin %}
+                        <button class="add-btn" id="quickAddAdmin">
+                            <i class="fas fa-plus-circle"></i>
+                            Quick Add Admin
+                        </button>
+                        {% else %}
+                        <button class="add-btn disabled" disabled>
+                            <i class="fas fa-lock"></i>
+                            Restricted Access
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+          
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addAdminModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Administrator</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addAdminForm" class="admin-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="username">Username *</label>
+                            <input type="text" id="username" name="username" required>
+                            <small>Unique username for the admin account</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required>
+                            <small>Official email address</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="first_name">First Name *</label>
+                            <input type="text" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="last_name">Last Name *</label>
+                            <input type="text" id="last_name" name="last_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Admin Role *</label>
+                            <select id="role" name="role" required>
+                                <option value="">Select Role</option>
+                                <option value="super_admin">Super Administrator</option>
+                                <option value="sk_chairman">SK Chairman</option>
+                                <option value="sk_secretary">SK Secretary</option>
+                                <option value="sk_treasurer">SK Treasurer</option>
+                                <option value="sk_councilor">SK Councilor</option>
+                                <option value="staff">Staff Member</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="department">Department</label>
+                            <input type="text" id="department" name="department">
+                            <small>Optional department or unit</small>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="contact_number">Contact Number</label>
+                            <input type="tel" id="contact_number" name="contact_number">
+                            <small>Primary contact number (optional)</small>
+                        </div>
+                    </div>
+                </form>
+                <div class="form-note">
+                    <i class="fas fa-info-circle"></i>
+                    <p>New administrators will receive a default password that they can change upon first login.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="cancelAddAdmin">Cancel</button>
+                <button class="modal-btn primary" id="submitAddAdmin">
+                    <i class="fas fa-user-plus"></i>
+                    Create Administrator
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="unauthorizedModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Access Denied</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="unauthorized-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Insufficient Permissions</h4>
+                    <p>You are not authorized to add new administrators. Only Super Administrators and SK Chairman have this privilege.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" id="closeUnauthorizedModal">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Success</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="success-content">
+                    <i class="fas fa-check-circle"></i>
+                    <p id="successMessage">Administrator created successfully!</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" id="closeSuccessModal">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/server/serveradmins.js' %}"></script>
+</body>
+</html>
