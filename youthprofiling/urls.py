@@ -119,12 +119,13 @@ urlpatterns = [
     path('server/auth/login/', views.server_login_api, name='server_login_api'),
     path('server/logout/', views.server_logout, name='server_logout'),
     path('server/dashboard/', views.server_dashboard, name='server_dashboard'),
+
     path('server/user-management/', views.server_user_management, name='server_user_management'),
     path('server/auth/verify-encryption-key/', views.verify_encryption_key, name='verify_encryption_key'),
-
     path('server/user-management/user/<int:user_id>/verify/', views.verify_user, name='verify_user'),
     path('server/user-management/user/<int:user_id>/toggle-status/', views.toggle_user_status, name='toggle_user_status'),
     path('server/user-management/user/<int:user_id>/details/', views.get_user_details, name='get_user_details'),
+    path('server/user-management/user/<int:user_id>/reject/', views.reject_user, name='reject_user'),
 
     path('server/announcement-management/', views.server_announcement_management, name='server_announcement_management'),
     path('server/announcements/create/', views.create_announcement, name='create_announcement'),

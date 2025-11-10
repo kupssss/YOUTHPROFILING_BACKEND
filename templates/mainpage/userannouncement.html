@@ -355,7 +355,7 @@
                                 {% endif %}
                             {% empty %}
                                 {% if event.is_eligible %}
-                                <a href="{% url 'event_register' event.id %}" class="event-action">Register</a>
+                                <a href="{% url 'usereventdetails' event.id %}" class="event-action">Register</a>
                                 {% else %}
                                 <button class="event-action not-eligible" disabled>Not Eligible</button>
                                 {% endif %}

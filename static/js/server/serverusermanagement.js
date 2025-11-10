@@ -244,6 +244,87 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    const rejectButtons = document.querySelectorAll('.btn-reject');
+    const rejectUserModal = document.getElementById('rejectUserModal');
+    const closeRejectModal = document.getElementById('closeRejectModal');
+    const cancelReject = document.getElementById('cancelReject');
+    const rejectUserForm = document.getElementById('rejectUserForm');
+    
+    rejectButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            document.getElementById('rejectUserId').value = userId;
+            rejectUserModal.classList.add('active');
+        });
+    });
+    
+    if (closeRejectModal && rejectUserModal) {
+        closeRejectModal.addEventListener('click', function() {
+            rejectUserModal.classList.remove('active');
+            rejectUserForm.reset();
+        });
+    }
+    
+    if (cancelReject && rejectUserModal) {
+        cancelReject.addEventListener('click', function() {
+            rejectUserModal.classList.remove('active');
+            rejectUserForm.reset();
+        });
+    }
+    
+    async function rejectUser(userId, rejectReason) {
+        const button = document.querySelector(`.btn-reject[data-user-id="${userId}"]`);
+        const originalHTML = button.innerHTML;
+        
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rejecting...';
+        button.disabled = true;
+        
+        try {
+            const response = await fetch(`/server/user-management/user/${userId}/reject/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    reject_reason: rejectReason
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showMessage(data.message, 'success');
+                rejectUserModal.classList.remove('active');
+                rejectUserForm.reset();
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.message, 'error');
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            showMessage('Network error. Please try again.', 'error');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
+    }
+    
+    if (rejectUserForm) {
+        rejectUserForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('rejectUserId').value;
+            const rejectReason = document.getElementById('rejectReason').value;
+            
+            await rejectUser(userId, rejectReason);
+        });
+    }
+    
     const toggleButtons = document.querySelectorAll('.btn-toggle');
     
     toggleButtons.forEach(btn => {
@@ -544,6 +625,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(`/server/user-management/user/${userId}/verify/`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 }
             });
@@ -580,6 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(`/server/user-management/user/${userId}/toggle-status/`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 }
             });

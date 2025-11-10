@@ -425,27 +425,7 @@ class OTPVerification(models.Model):
     def is_expired(self):
         return timezone.now() > self.expires_at
 
-class AuditLog(models.Model):
-    """Model for tracking access to encrypted data"""
-    admin_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    youth_user = models.ForeignKey(YouthUser, on_delete=models.CASCADE)
-    action = models.CharField(max_length=50, choices=[
-        ('VIEW', 'View Encrypted Data'),
-        ('UPDATE', 'Update Encrypted Data'),
-        ('DECRYPT', 'Decrypt Data'),
-    ], default='VIEW')
-    timestamp = models.DateTimeField(auto_now_add=True)
-    ip_address = models.GenericIPAddressField(blank=True, null=True)
-    user_agent = models.TextField(blank=True, null=True)
-    
-    class Meta:
-        verbose_name = "Audit Log"
-        verbose_name_plural = "Audit Logs"
-        ordering = ['-timestamp']
-    
-    def __str__(self):
-        username = self.admin_user.username if self.admin_user else 'System'
-        return f"{self.action} on {self.youth_user} by {username} at {self.timestamp}"
+
 
 class UserLog(models.Model):
     """Model to track user login activities"""
@@ -623,7 +603,54 @@ class EncryptionKeyAttempt(models.Model):
         return f"{self.admin_user} - {status} - {self.timestamp}"
     
     
+class AuditLog(models.Model):
+    """Tracks access to encrypted data by either admin or youth user."""
+    youth_user = models.ForeignKey(
+        'YouthUser',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='audit_logs'
+    )
+    youth_admin = models.ForeignKey(
+        'YouthAdmin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs'
+    )
+    admin_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs'
+    )
 
+    action = models.CharField(max_length=50, choices=[
+        ('VIEW', 'View Encrypted Data'),
+        ('UPDATE', 'Update Encrypted Data'),
+        ('DECRYPT', 'Decrypt Data'),
+    ], default='VIEW')
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        if self.youth_admin:
+            user = f"Admin: {self.youth_admin.username}"
+        elif self.youth_user:
+            user = f"Youth: {self.youth_user.username}"
+        else:
+            user = "System"
+
+        return f"{self.action} by {user} at {self.timestamp}"
 
 
 
@@ -708,6 +735,13 @@ class Event(models.Model):
         ('community', 'Community'),
         ('cultural', 'Cultural'),
         ('environment', 'Environment'),
+        ('economic-empowerment', 'Economic Empowerment'),
+        ('social-inclusion-and-equity', 'Social Inclusion and Equity'),
+        ('peacebuilding-and-security', 'Peacebuilding and Security'),
+        ('governance', 'Governance'),
+        ('active-citizenship', 'Active Citizenship'),
+        ('global-mobility', 'Global Mobility'),
+        ('general', 'General'),
     ]
     
     ACCESS_ALL = 'all'
@@ -722,7 +756,7 @@ class Event(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     excerpt = models.CharField(max_length=300, blank=True)
-    category = models.CharField(max_length=20, choices=EVENT_CATEGORIES)
+    category = models.CharField(max_length=50, choices=EVENT_CATEGORIES)
     image = models.ImageField(upload_to='events/', blank=True, null=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
@@ -771,64 +805,57 @@ class Event(models.Model):
         return None
     
     def is_eligible(self, user):
-        """
-        Check if a user is eligible to register for this event
-        based on the target audience specifications
-        """
         if not self._check_eligibility_for_field(
             self.gender_access, 
             self.target_genders.all(), 
-            user.gender if hasattr(user, 'gender') else None
+            user.gender
         ):
             return False
         
         if not self._check_eligibility_for_field(
             self.civil_status_access, 
             self.target_civil_statuses.all(), 
-            user.civil_status if hasattr(user, 'civil_status') else None
+            user.civil_status
         ):
             return False
         
         if not self._check_eligibility_for_field(
             self.age_group_access, 
             self.target_age_groups.all(), 
-            user.age_group if hasattr(user, 'age_group') else None
+            user.age_group
         ):
             return False
         
         if not self._check_eligibility_for_field(
             self.education_access, 
             self.target_education_levels.all(), 
-            user.education if hasattr(user, 'education') else None
+            user.education
         ):
             return False
         
         if not self._check_eligibility_for_field(
             self.youth_classification_access, 
             self.target_youth_classifications.all(), 
-            user.youth_classification if hasattr(user, 'youth_classification') else None
+            user.youth_classification
         ):
             return False
         
         if not self._check_eligibility_for_field(
             self.work_status_access, 
             self.target_work_statuses.all(), 
-            user.work_status if hasattr(user, 'work_status') else None
+            user.work_status
         ):
             return False
         
-        if self.age_min and hasattr(user, 'age') and user.age < self.age_min:
+        if self.age_min and user.age < self.age_min:
             return False
         
-        if self.age_max and hasattr(user, 'age') and user.age > self.age_max:
+        if self.age_max and user.age > self.age_max:
             return False
         
         return True
     
     def _check_eligibility_for_field(self, access_type, target_items, user_value):
-        """
-        Helper method to check eligibility for a specific field
-        """
         if access_type == self.ACCESS_ALL:
             return True
         elif access_type == self.ACCESS_NONE:
@@ -836,6 +863,8 @@ class Event(models.Model):
         elif access_type == self.ACCESS_SPECIFIC:
             if not user_value:
                 return False
+            if not target_items.exists():
+                return True
             return any(target_item.name.lower() == user_value.lower() for target_item in target_items)
         return True
     

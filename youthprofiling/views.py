@@ -1296,7 +1296,13 @@ def userannouncement(request):
             )[:3]
         
         for event in events:
-            event.is_eligible = event.is_eligible(user) if hasattr(event, 'is_eligible') else True
+            event.is_eligible = event.is_eligible(user)
+        
+        for event in upcoming_events:
+            event.is_eligible = event.is_eligible(user)
+        
+        for event in recommended_events:
+            event.is_eligible = event.is_eligible(user)
         
         context = {
             'user': user,
@@ -1326,7 +1332,7 @@ def userannouncement(request):
         return redirect('login')
 
 
-    from django.utils import timezone
+from django.utils import timezone
 from .models import Complaint, Suggestion, SupportTicket, FAQ, CallbackRequest
 
 def usercontact(request):
@@ -3921,13 +3927,12 @@ def server_dashboard(request):
     
     return render(request, 'server/serverdashboard.html', context)
 
-
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Q
 import json
-from .models import YouthUser, AuditLog, YouthAdmin, EncryptionKeyAttempt
+from .models import YouthUser, AuditLog, YouthAdmin, EncryptionKeyAttempt, UserArchive
 from django.conf import settings
 import base64
 from cryptography.fernet import Fernet, InvalidToken
@@ -3939,7 +3944,6 @@ from django.views.decorators.csrf import csrf_exempt
 fernet = Fernet(settings.ENCRYPTION_KEY.encode())
 
 def server_user_management(request):
-    """User management page with encryption key verification"""
     if not request.session.get('is_server_authenticated'):
         return redirect('server_login_page')
     
@@ -3973,7 +3977,6 @@ def server_user_management(request):
 
 @csrf_exempt
 def verify_encryption_key(request):
-    """Verify encryption key and store attempt in database"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4024,7 +4027,6 @@ def verify_encryption_key(request):
     return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 def send_verification_email(user):
-    """Send verification email to user"""
     subject = "Your Account Has Been Verified - SK Mambugan Youth Management System"
     
     html_content = render_to_string('emails/account_verified.html', {
@@ -4044,8 +4046,28 @@ def send_verification_email(user):
     
     email.send()
 
+def send_rejection_email(user, reject_reason):
+    subject = "Account Verification Update - SK Mambugan Youth Management System"
+    
+    html_content = render_to_string('emails/account_rejected.html', {
+        'user': user,
+        'reject_reason': reject_reason,
+        'rejection_date': timezone.now().strftime("%B %d, %Y"),
+    })
+    
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject,
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    
+    email.send()
+
 def send_account_status_email(user, is_active):
-    """Send account status email to user"""
     status = "activated" if is_active else "deactivated"
     subject = f"Your Account Has Been {status.capitalize()} - SK Mambugan Youth Management System"
     
@@ -4069,7 +4091,6 @@ def send_account_status_email(user, is_active):
 
 @csrf_exempt
 def verify_user(request, user_id):
-    """Verify a user by admin"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4082,8 +4103,11 @@ def verify_user(request, user_id):
         
         send_verification_email(user)
         
+        admin_id = request.session.get('admin_id')
+        youth_admin = YouthAdmin.objects.get(id=admin_id)
+        
         AuditLog.objects.create(
-            admin_user=request.user if hasattr(request, 'user') else None,
+            youth_admin=youth_admin,
             youth_user=user,
             action='UPDATE',
             ip_address=request.META.get('REMOTE_ADDR'),
@@ -4099,8 +4123,89 @@ def verify_user(request, user_id):
         return JsonResponse({'success': False, 'message': 'User not found'})
 
 @csrf_exempt
+def reject_user(request, user_id):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'message': 'Not authenticated'})
+    
+    if not request.session.get('encryption_verified'):
+        return JsonResponse({'success': False, 'message': 'Encryption not verified'})
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            reject_reason = data.get('reject_reason', '')
+            
+            user = YouthUser.objects.get(id=user_id)
+            
+            user_data = {
+                'username': user.username,
+                'email': user.email,
+                'registration_no': user.registration_no,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'middle_name': user.middle_name,
+                'suffix': user.suffix,
+                'address': user.address,
+                'purok_zone': user.purok_zone,
+                'gender': user.gender,
+                'birthdate': user.birthdate,
+                'age': user.age,
+                'contact_number': user.contact_number,
+                'civil_status': user.civil_status,
+                'age_group': user.age_group,
+                'education': user.education,
+                'youth_classification': user.youth_classification,
+                'work_status': user.work_status,
+                'sk_voter': user.sk_voter,
+                'id_type': user.id_type,
+                'is_email_verified': user.is_email_verified,
+                'is_admin_verified': user.is_admin_verified,
+                'is_active': user.is_active,
+                'created_at': user.created_at.isoformat(),
+                'updated_at': user.updated_at.isoformat(),
+            }
+            
+            archive = UserArchive.objects.create(
+                original_user_id=user.id,
+                archived_by=request.session.get('admin_username', 'System'),
+                user_data=user_data,
+                profile_picture_path=str(user.profile_picture) if user.profile_picture else '',
+                id_picture_path=str(user.id_picture) if user.id_picture else '',
+                birth_certificate_path=str(user.birth_certificate) if user.birth_certificate else '',
+                parent_consent_letter_path=str(user.parent_consent_letter) if user.parent_consent_letter else '',
+                parent_id_picture_path=str(user.parent_id_picture) if user.parent_id_picture else '',
+                deletion_reason=reject_reason
+            )
+            
+            send_rejection_email(user, reject_reason)
+            
+            admin_id = request.session.get('admin_id')
+            youth_admin = YouthAdmin.objects.get(id=admin_id)
+            
+            AuditLog.objects.create(
+                youth_admin=youth_admin,
+                youth_user=user,
+                action='DELETE',
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            user.delete()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'User {user.registration_no} rejected successfully and notification email sent'
+            })
+            
+        except YouthUser.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'User not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
 def toggle_user_status(request, user_id):
-    """Toggle user active status"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4115,8 +4220,11 @@ def toggle_user_status(request, user_id):
         
         send_account_status_email(user, new_status)
         
+        admin_id = request.session.get('admin_id')
+        youth_admin = YouthAdmin.objects.get(id=admin_id)
+        
         AuditLog.objects.create(
-            admin_user=request.user if hasattr(request, 'user') else None,
+            youth_admin=youth_admin,
             youth_user=user,
             action='UPDATE',
             ip_address=request.META.get('REMOTE_ADDR'),
@@ -4134,7 +4242,6 @@ def toggle_user_status(request, user_id):
 
 @csrf_exempt
 def get_user_details(request, user_id):
-    """Get decrypted user details"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4194,8 +4301,11 @@ def get_user_details(request, user_id):
             'birth_certificate': user.birth_certificate.url if user.birth_certificate else None,
         }
         
+        admin_id = request.session.get('admin_id')
+        youth_admin = YouthAdmin.objects.get(id=admin_id)
+        
         AuditLog.objects.create(
-            admin_user=request.user if hasattr(request, 'user') else None,
+            youth_admin=youth_admin,
             youth_user=user,
             action='VIEW',
             ip_address=request.META.get('REMOTE_ADDR'),
@@ -4211,8 +4321,6 @@ def get_user_details(request, user_id):
         return JsonResponse({'success': False, 'message': 'User not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
-    
-
 
 from django.http import JsonResponse
 from django.core import serializers
@@ -4765,8 +4873,6 @@ def delete_event(request, event_id):
     
 
 
-
-
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.core import serializers
@@ -4780,7 +4886,6 @@ from datetime import datetime
 from .models import Event, EventRegistration, YouthAdmin
 
 def server_events_participants(request):
-    """Events participants management page"""
     if not request.session.get('is_server_authenticated'):
         return redirect('server_login_page')
     
@@ -4864,7 +4969,6 @@ def server_events_participants(request):
 
 @csrf_exempt
 def get_event_registrations(request, event_id):
-    """Get all registrations for an event"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4901,7 +5005,6 @@ def get_event_registrations(request, event_id):
 
 @csrf_exempt
 def get_event_attendance(request, event_id):
-    """Get attendance data for an event"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4939,7 +5042,6 @@ def get_event_attendance(request, event_id):
 
 @csrf_exempt
 def get_event_attendees(request, event_id):
-    """Get attendees for completed events"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4978,7 +5080,6 @@ def get_event_attendees(request, event_id):
 
 @csrf_exempt
 def update_registration_status(request, registration_id):
-    """Update registration status and send email notification"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -5000,6 +5101,8 @@ def update_registration_status(request, registration_id):
                     send_registration_approval_email(registration)
                 elif old_status == 'confirmed':
                     registration.event.current_participants = max(0, registration.event.current_participants - 1)
+                elif new_status == 'cancelled':
+                    send_registration_rejection_email(registration, reason)
                 registration.event.save()
             
             return JsonResponse({
@@ -5015,7 +5118,6 @@ def update_registration_status(request, registration_id):
     return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 def send_registration_approval_email(registration):
-    """Send email notification for approved event registration"""
     from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
     from django.utils.html import strip_tags
@@ -5053,9 +5155,45 @@ def send_registration_approval_email(registration):
         print(f"Failed to send email: {e}")
         return False
 
+def send_registration_rejection_email(registration, reason):
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    
+    user = registration.user
+    event = registration.event
+    
+    subject = f"❌ Update on Your Registration for {event.title}"
+    
+    context = {
+        'user': user,
+        'event': event,
+        'reason': reason,
+        'registration_id': registration.id,
+    }
+    
+    html_content = render_to_string('emails/event_registration_rejected.html', context)
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email="SK Mambugan Events <events@skmambugan.ph>",
+        to=[user.email],
+        reply_to=["events@skmambugan.ph"]
+    )
+    
+    email.attach_alternative(html_content, "text/html")
+    
+    try:
+        email.send()
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+
 @csrf_exempt
 def update_attendance(request, registration_id):
-    """Update attendance status"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -5090,7 +5228,6 @@ def update_attendance(request, registration_id):
 
 @csrf_exempt
 def get_user_documents(request, registration_id):
-    """Get user documents and all user data for review before approval"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     

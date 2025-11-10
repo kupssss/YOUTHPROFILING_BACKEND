@@ -920,7 +920,7 @@ body {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #A0AEC0;
+    color: #0077ff;
     font-size: 0.95rem;
 }
 
@@ -929,18 +929,18 @@ body {
 .form-group textarea {
     width: 100%;
     padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgb(255, 255, 255);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     font-family: 'Poppins', sans-serif;
     font-size: 1rem;
     transition: all 0.3s ease;
-    color: #ffffff;
+    color: #000000;
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-    color: #A0AEC0;
+    color: #000000;
     opacity: 0.7;
 }
 
@@ -985,6 +985,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     position: relative;
+    margin-right: 100px;
     transition: all 0.3s ease;
 }
 

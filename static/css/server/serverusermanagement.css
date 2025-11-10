@@ -1318,3 +1318,166 @@ body {
         display: none;
     }
 }
+
+.btn-reject {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+}
+
+.btn-reject:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+.modal-content textarea {
+    width: 100%;
+    padding: 15px 15px 15px 45px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: #E8EAF6;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.modal-content textarea::placeholder {
+    color: #A0AEC0;
+    opacity: 0.7;
+}
+
+.modal-content textarea:focus {
+    outline: none;
+    border-color: #EF4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #A0AEC0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #E8EAF6;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.input-group textarea {
+    width: 100%;
+    padding: 15px 15px 15px 45px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: #E8EAF6;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.input-group textarea::placeholder {
+    color: #A0AEC0;
+    opacity: 0.7;
+}
+
+.input-group textarea:focus {
+    outline: none;
+    border-color: #EF4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .btn-view, .btn-verify, .btn-reject, .btn-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-secondary, .btn-danger {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 10px;
+        width: calc(100% - 20px);
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .input-group textarea {
+        padding: 12px 12px 12px 40px;
+        font-size: 0.9rem;
+    }
+}

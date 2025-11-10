@@ -341,16 +341,29 @@ class OTPVerificationAdmin(admin.ModelAdmin):
     is_expired.short_description = 'Expired'
 
 class AuditLogAdmin(admin.ModelAdmin):
-    list_display = ('admin_user', 'youth_user', 'action', 'timestamp', 'ip_address')
+    list_display = ('action', 'youth_user', 'youth_admin', 'admin_user', 'timestamp', 'ip_address')
     list_filter = ('action', 'timestamp')
-    search_fields = ('admin_user__username', 'youth_user__registration_no')
-    readonly_fields = ('admin_user', 'youth_user', 'action', 'timestamp', 'ip_address', 'user_agent')
-    
+    search_fields = (
+        'youth_user__username',
+        'youth_admin__username',
+        'admin_user__username',
+    )
+    readonly_fields = (
+        'youth_user',
+        'youth_admin',
+        'admin_user',
+        'action',
+        'timestamp',
+        'ip_address',
+        'user_agent',
+    )
+
     def has_add_permission(self, request):
         return False
-    
+
     def has_change_permission(self, request, obj=None):
         return False
+
     
 
 

@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (rejectBtn) {
         rejectBtn.addEventListener('click', function() {
             const regId = this.getAttribute('data-reg-id');
-            updateRegistrationStatus(regId, 'cancelled', 'Documents did not meet requirements');
+            openRejectionModal(regId);
         });
     }
     
@@ -154,11 +154,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Initialize rejection modal event listeners
+    const closeRejectionModal = document.getElementById('closeRejectionModal');
+    const cancelRejection = document.getElementById('cancelRejection');
+    const submitRejection = document.getElementById('submitRejection');
+    const rejectionModal = document.getElementById('rejectionModal');
+    
+    if (closeRejectionModal) {
+        closeRejectionModal.addEventListener('click', function() {
+            rejectionModal.classList.remove('active');
+        });
+    }
+    
+    if (cancelRejection) {
+        cancelRejection.addEventListener('click', function() {
+            rejectionModal.classList.remove('active');
+        });
+    }
+    
+    if (submitRejection) {
+        submitRejection.addEventListener('click', function() {
+            const regId = this.getAttribute('data-reg-id');
+            const reason = document.getElementById('rejectionReason').value.trim();
+            
+            if (!reason) {
+                showMessage('Please provide a rejection reason', 'error');
+                return;
+            }
+            
+            updateRegistrationStatus(regId, 'cancelled', reason);
+            rejectionModal.classList.remove('active');
+        });
+    }
+    
     document.addEventListener('click', function(e) {
         if (e.target === regModal) regModal.classList.remove('active');
         if (e.target === reviewModal) reviewModal.classList.remove('active');
         if (e.target === attendanceModal) attendanceModal.classList.remove('active');
         if (e.target === attendeesModal) attendeesModal.classList.remove('active');
+        if (e.target === rejectionModal) rejectionModal.classList.remove('active');
     });
     
     document.addEventListener('keydown', function(e) {
@@ -167,6 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
             reviewModal.classList.remove('active');
             attendanceModal.classList.remove('active');
             attendeesModal.classList.remove('active');
+            rejectionModal.classList.remove('active');
         }
     });
     
@@ -397,6 +432,14 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Failed to load user documents', 'error');
             modal.classList.remove('active');
         });
+    }
+    
+    function openRejectionModal(registrationId) {
+        const rejectionModal = document.getElementById('rejectionModal');
+        rejectionModal.classList.add('active');
+        
+        document.getElementById('submitRejection').setAttribute('data-reg-id', registrationId);
+        document.getElementById('rejectionReason').value = '';
     }
     
     function updateRegistrationStatus(registrationId, status, reason) {
