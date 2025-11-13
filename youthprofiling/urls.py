@@ -178,6 +178,8 @@ urlpatterns = [
 
     path('server/admins/', views.server_admins_management, name='server_admins_management'),
     path('server/admins/create/', views.create_admin, name='create_admin'),
+    path('server/admins/<str:action>/<int:admin_id>/', views.toggle_admin_status, name='toggle_admin_status'),
+    path('server/admins/update/<int:admin_id>/', views.update_admin, name='update_admin'),
 
 
 

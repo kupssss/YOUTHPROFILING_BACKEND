@@ -961,3 +961,13 @@ body {
         width: 100%;
     }
 }
+
+.server-sidebar {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.server-sidebar::-webkit-scrollbar {
+    display: none;
+}

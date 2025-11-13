@@ -1155,3 +1155,13 @@ body {
 .form-fields {
     display: block;
 }
+
+.server-sidebar {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.server-sidebar::-webkit-scrollbar {
+    display: none;
+}

@@ -15,7 +15,7 @@
 </head>
 <body>
     <div class="server-admins-container">
-          <div class="server-sidebar">
+        <div class="server-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
@@ -47,9 +47,9 @@
 
             <nav class="sidebar-nav">
                 <ul>
-                    <li class="nav-item active">
+                    <li class="nav-item">
                         <a href="{% url 'server_dashboard' %}">
-                            <i class="fas fa-tachometer-alt "></i>
+                            <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
                         </a>
                     </li>
@@ -118,8 +118,7 @@
                                 </a>
                             </li>
                             <li>
-                                <a href="{% url 'server_admins_management' %}" class="system-settings-link active" 
-                                   data-has-access="{% if admin_user.role in 'super_admin,sk_chairman,sk_secretary' %}true{% else %}false{% endif %}">
+                                <a href="{% url 'server_admins_management' %}" class="system-settings-link active">
                                     <i class="fas fa-user-shield"></i>
                                     <span>Admins</span>
                                 </a>
@@ -231,10 +230,21 @@
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="adminsSearch" placeholder="Search admins...">
                             </div>
-                            <button class="filter-btn" id="adminsFilter">
-                                <i class="fas fa-filter"></i>
-                                Filter
-                            </button>
+                            <div class="filter-dropdown">
+                                <button class="filter-btn" id="adminsFilter">
+                                    <i class="fas fa-filter"></i>
+                                    Filter by Role
+                                </button>
+                                <div class="filter-menu" id="filterMenu">
+                                    <div class="filter-option" data-role="all">All Roles</div>
+                                    <div class="filter-option" data-role="super_admin">Super Admin</div>
+                                    <div class="filter-option" data-role="sk_chairman">SK Chairman</div>
+                                    <div class="filter-option" data-role="sk_secretary">SK Secretary</div>
+                                    <div class="filter-option" data-role="sk_treasurer">SK Treasurer</div>
+                                    <div class="filter-option" data-role="sk_councilor">SK Councilor</div>
+                                    <div class="filter-option" data-role="staff">Staff</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="table-wrapper">
@@ -252,7 +262,7 @@
                             </thead>
                             <tbody>
                                 {% for admin in all_admins %}
-                                <tr class="admin-row {% if not admin.is_active %}inactive{% endif %}">
+                                <tr class="admin-row {% if not admin.is_active %}inactive{% endif %}" data-role="{{ admin.role }}">
                                     <td>
                                         <div class="admin-profile">
                                             <div class="admin-avatar">
@@ -405,19 +415,18 @@
                         {% endif %}
                     </div>
                 </div>
-          
             </div>
         </div>
     </div>
 
     <div class="modal" id="addAdminModal">
-        <div class="modal-content">
+        <div class="modal-content large-modal">
             <div class="modal-header">
                 <h3>Add New Administrator</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="addAdminForm" class="admin-form">
+                <form id="addAdminForm" class="admin-form" enctype="multipart/form-data">
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="username">Username *</label>
@@ -438,8 +447,13 @@
                             <input type="text" id="last_name" name="last_name" required>
                         </div>
                         <div class="form-group">
+                            <label for="middle_name">Middle Name</label>
+                            <input type="text" id="middle_name" name="middle_name">
+                            <small>Optional middle name</small>
+                        </div>
+                        <div class="form-group">
                             <label for="role">Admin Role *</label>
-                            <select id="role" name="role" required>
+                            <select id="role" name="role" required class="styled-select">
                                 <option value="">Select Role</option>
                                 <option value="super_admin">Super Administrator</option>
                                 <option value="sk_chairman">SK Chairman</option>
@@ -459,11 +473,65 @@
                             <input type="tel" id="contact_number" name="contact_number">
                             <small>Primary contact number (optional)</small>
                         </div>
+                        <div class="form-group full-width">
+                            <label for="profile_picture">Profile Picture</label>
+                            <input type="file" id="profile_picture" name="profile_picture" accept="image/*">
+                            <small>Optional profile picture (JPG, PNG, GIF)</small>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Password Option *</label>
+                            <div class="password-options">
+                                <label class="radio-label">
+                                    <input type="radio" name="password_option" value="default" checked>
+                                    <span class="radio-custom"></span>
+                                    Use Default Password: <strong>sk_mambugan_2025</strong>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="password_option" value="custom">
+                                    <span class="radio-custom"></span>
+                                    Set Custom Password
+                                </label>
+                            </div>
+                            <div class="custom-password-field" style="display: none;">
+                                <input type="password" id="custom_password" name="custom_password" placeholder="Enter custom password">
+                                <small>Minimum 8 characters with letters and numbers</small>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Permissions</label>
+                            <div class="permissions-grid">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="can_manage_users" value="true">
+                                    <span class="checkmark"></span>
+                                    Manage Users
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="can_manage_announcements" value="true">
+                                    <span class="checkmark"></span>
+                                    Manage Announcements
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="can_manage_events" value="true">
+                                    <span class="checkmark"></span>
+                                    Manage Events
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="can_view_reports" value="true">
+                                    <span class="checkmark"></span>
+                                    View Reports
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="can_manage_settings" value="true">
+                                    <span class="checkmark"></span>
+                                    Manage Settings
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </form>
                 <div class="form-note">
                     <i class="fas fa-info-circle"></i>
-                    <p>New administrators will receive a default password that they can change upon first login.</p>
+                    <p>Only Super Administrators and SK Chairman can create admin accounts. New admins will be required to change their password on first login.</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -471,6 +539,42 @@
                 <button class="modal-btn primary" id="submitAddAdmin">
                     <i class="fas fa-user-plus"></i>
                     Create Administrator
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="viewAdminModal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3>Admin Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="adminDetailsContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" id="closeViewModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editAdminModal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3>Edit Administrator</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editAdminForm" class="admin-form" enctype="multipart/form-data">
+                    <div id="editAdminContent"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="cancelEditAdmin">Cancel</button>
+                <button class="modal-btn primary" id="submitEditAdmin">
+                    <i class="fas fa-save"></i>
+                    Save Changes
                 </button>
             </div>
         </div>

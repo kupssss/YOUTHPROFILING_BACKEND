@@ -24,7 +24,6 @@
                 <a href="{% url 'userannouncement' %}" class="nav-link">Announcements & Events</a>
                 <a href="{% url 'usercommunity' %}" class="nav-link">The Community</a>
                 <a href="{% url 'usercontact' %}" class="nav-link">Contact</a>
-                
                 <div class="dropdown user-dropdown">
                     <a href="#" class="nav-link user-welcome">
                         <i class="fas fa-user-circle"></i>
@@ -65,7 +64,6 @@
                         <span class="stat-label">Events Attended</span>
                     </div>
                 </div>
-                
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-trophy"></i>
@@ -75,7 +73,6 @@
                         <span class="stat-label">Achievements</span>
                     </div>
                 </div>
-                
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-hourglass-half"></i>
@@ -85,7 +82,6 @@
                         <span class="stat-label">Upcoming Events</span>
                     </div>
                 </div>
-                
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-users"></i>
@@ -102,7 +98,6 @@
                     <i class="fas fa-search"></i>
                     <input type="text" placeholder="Search events..." id="eventsSearch">
                 </div>
-                
                 <div class="filter-buttons">
                     <button class="filter-btn active" data-filter="all">All Events</button>
                     <button class="filter-btn" data-filter="upcoming">Upcoming</button>
@@ -119,7 +114,6 @@
                             <h3><i class="fas fa-clock"></i> Upcoming Events</h3>
                             <span class="events-count">{{ upcoming_events|length }} events</span>
                         </div>
-                        
                         <div class="events-grid">
                             {% for registration in upcoming_events %}
                             <div class="event-card upcoming" data-status="{{ registration.status }}" data-registration-id="{{ registration.id }}">
@@ -155,7 +149,6 @@
                             <h3><i class="fas fa-history"></i> Past Events</h3>
                             <span class="events-count">{{ past_events|length }} events</span>
                         </div>
-                        
                         <div class="events-grid">
                             {% for registration in past_events %}
                             <div class="event-card past" data-status="{{ registration.status }}" data-registration-id="{{ registration.id }}">
@@ -194,7 +187,6 @@
                             </div>
                             {% endfor %}
                         </div>
-                        
                         {% if past_events|length > 6 %}
                         <div class="view-more-container">
                             <button class="view-more-btn">View More Past Events</button>
@@ -208,7 +200,6 @@
             {% if achievements %}
             <div class="achievements-section">
                 <h2 class="achievements-title"><i class="fas fa-trophy"></i> Your Achievements</h2>
-                
                 <div class="achievements-grid">
                     {% for achievement in achievements %}
                     <div class="achievement-card">
@@ -233,7 +224,6 @@
         </div>
     </main>
 
-    <!-- Modals remain the same -->
     <div class="modal" id="eventModal">
         <div class="modal-content event-modal">
             <span class="close">&times;</span>
@@ -275,100 +265,84 @@
                         <p><strong>Emergency Contact:</strong> <span id="modalEmergencyContact">Not provided</span></p>
                     </div>
                 </div>
-                <div class="modal-actions" id="modalActions">
-                    <!-- Buttons will be dynamically added based on status -->
-                </div>
+                <div class="modal-actions" id="modalActions"></div>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Evaluation Modal -->
-<div class="modal" id="evaluationModal">
-    <div class="modal-content evaluation-modal">
-        <span class="close">&times;</span>
-        <div class="modal-header">
-            <h2>Share Your Experience</h2>
-            <p id="evaluationEventTitle">Event Title</p>
+    <div class="modal" id="evaluationModal">
+        <div class="modal-content evaluation-modal">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2>Share Your Experience</h2>
+                <p id="evaluationEventTitle">Event Title</p>
+            </div>
+            <form id="evaluationForm">
+                <div class="form-group">
+                    <label>How would you rate this event?</label>
+                    <div class="star-rating">
+                        <input type="radio" id="star5" name="rating" value="5" data-rating="Excellent">
+                        <label for="star5" data-rating="Excellent"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star4" name="rating" value="4" data-rating="Very Good">
+                        <label for="star4" data-rating="Very Good"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star3" name="rating" value="3" data-rating="Good">
+                        <label for="star3" data-rating="Good"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star2" name="rating" value="2" data-rating="Fair">
+                        <label for="star2" data-rating="Fair"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star1" name="rating" value="1" data-rating="Poor">
+                        <label for="star1" data-rating="Poor"><i class="fas fa-star"></i></label>
+                    </div>
+                    <div class="rating-labels">
+                        <span>Poor</span>
+                        <span>Fair</span>
+                        <span>Good</span>
+                        <span>Very Good</span>
+                        <span>Excellent</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="comments">
+                        What did you enjoy most about this event?
+                        <span class="char-counter" id="commentsCounter">0/500</span>
+                    </label>
+                    <textarea id="comments" name="comments" placeholder="Share what you liked, what stood out, or any memorable moments..." maxlength="500"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="suggestions">
+                        Suggestions for improvement
+                        <span class="char-counter" id="suggestionsCounter">0/300</span>
+                    </label>
+                    <textarea id="suggestions" name="suggestions" placeholder="Any ideas to make future events even better?" maxlength="300"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label extra-large">
+                        <input type="checkbox" id="would_attend_again" name="would_attend_again" checked>
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label-text">I would love to attend similar events in the future</span>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn secondary" id="cancelEvaluation">Cancel</button>
+                    <button type="submit" class="modal-btn primary">
+                        <i class="fas fa-paper-plane"></i> Submit Evaluation
+                    </button>
+                </div>
+            </form>
         </div>
-        <form id="evaluationForm">
-            <div class="form-group">
-                <label>How would you rate this event?</label>
-                <div class="star-rating">
-                    <input type="radio" id="star5" name="rating" value="5" data-rating="Excellent">
-                    <label for="star5" data-rating="Excellent"><i class="fas fa-star"></i></label>
-                    
-                    <input type="radio" id="star4" name="rating" value="4" data-rating="Very Good">
-                    <label for="star4" data-rating="Very Good"><i class="fas fa-star"></i></label>
-                    
-                    <input type="radio" id="star3" name="rating" value="3" data-rating="Good">
-                    <label for="star3" data-rating="Good"><i class="fas fa-star"></i></label>
-                    
-                    <input type="radio" id="star2" name="rating" value="2" data-rating="Fair">
-                    <label for="star2" data-rating="Fair"><i class="fas fa-star"></i></label>
-                    
-                    <input type="radio" id="star1" name="rating" value="1" data-rating="Poor">
-                    <label for="star1" data-rating="Poor"><i class="fas fa-star"></i></label>
-                </div>
-                <div class="rating-labels">
-                    <span>Poor</span>
-                    <span>Fair</span>
-                    <span>Good</span>
-                    <span>Very Good</span>
-                    <span>Excellent</span>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="comments">
-                    What did you enjoy most about this event?
-                    <span class="char-counter" id="commentsCounter">0/500</span>
-                </label>
-                <textarea id="comments" name="comments" 
-                          placeholder="Share what you liked, what stood out, or any memorable moments..."
-                          maxlength="500"></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="suggestions">
-                    Suggestions for improvement
-                    <span class="char-counter" id="suggestionsCounter">0/300</span>
-                </label>
-                <textarea id="suggestions" name="suggestions" 
-                          placeholder="Any ideas to make future events even better?"
-                          maxlength="300"></textarea>
-            </div>
-            
-            <div class="form-group">
-    <label class="checkbox-label extra-large">
-        <input type="checkbox" id="would_attend_again" name="would_attend_again" checked>
-        <span class="checkmark"></span>
-        <span class="checkbox-label-text">I would love to attend similar events in the future</span>
-    </label>
-</div>
-            
-            <div class="modal-actions">
-                <button type="button" class="modal-btn secondary" id="cancelEvaluation">Cancel</button>
-                <button type="submit" class="modal-btn primary">
-                    <i class="fas fa-paper-plane"></i> Submit Evaluation
-                </button>
-            </div>
-        </form>
     </div>
-</div>
 
-<!-- Success Modal -->
-<div class="modal" id="successModal">
-    <div class="modal-content evaluation-modal">
-        <div class="evaluation-success">
-            <div class="success-icon">
-                <i class="fas fa-check"></i>
+    <div class="modal" id="successModal">
+        <div class="modal-content evaluation-modal">
+            <div class="evaluation-success">
+                <div class="success-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3>Thank You!</h3>
+                <p>Your evaluation has been submitted successfully.</p>
+                <button class="modal-btn primary" id="closeSuccessModal">Close</button>
             </div>
-            <h3>Thank You!</h3>
-            <p>Your evaluation has been submitted successfully.</p>
-            <button class="modal-btn primary" id="closeSuccessModal">Close</button>
         </div>
     </div>
-</div>
 
     <footer class="footer">
         <div class="footer-container">

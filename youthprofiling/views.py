@@ -5855,7 +5855,7 @@ def create_admin(request):
                 is_active=True
             )
             
-            default_password = "sk_mambugan_2024"
+            default_password = "sk_mambugan_2025"
             admin.set_password(default_password)
             admin.save()
             
@@ -5867,9 +5867,80 @@ def create_admin(request):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
+def toggle_admin_status(request, action, admin_id):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    
+    current_admin_id = request.session.get('admin_id')
+    try:
+        current_admin = YouthAdmin.objects.get(id=current_admin_id)
+        target_admin = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Admin not found'})
+    
+    if current_admin.role not in ['super_admin', 'sk_chairman']:
+        return JsonResponse({'success': False, 'error': 'Unauthorized'})
+    
+    if current_admin.id == target_admin.id:
+        return JsonResponse({'success': False, 'error': 'Cannot modify your own status'})
+    
+    if action == 'deactivate':
+        target_admin.is_active = False
+    elif action == 'activate':
+        target_admin.is_active = True
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid action'})
+    
+    target_admin.save()
+    return JsonResponse({'success': True, 'message': f'Admin {action}d successfully'})
 
-
-
+def update_admin(request, admin_id):
+    if not request.session.get('is_server_authenticated'):
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    
+    current_admin_id = request.session.get('admin_id')
+    try:
+        current_admin = YouthAdmin.objects.get(id=current_admin_id)
+        target_admin = YouthAdmin.objects.get(id=admin_id)
+    except YouthAdmin.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Admin not found'})
+    
+    if current_admin.role not in ['super_admin', 'sk_chairman'] and current_admin.id != target_admin.id:
+        return JsonResponse({'success': False, 'error': 'Unauthorized'})
+    
+    if request.method == 'POST':
+        try:
+            target_admin.email = request.POST.get('email')
+            target_admin.first_name = request.POST.get('first_name')
+            target_admin.last_name = request.POST.get('last_name')
+            target_admin.middle_name = request.POST.get('middle_name')
+            target_admin.role = request.POST.get('role')
+            target_admin.department = request.POST.get('department')
+            target_admin.contact_number = request.POST.get('contact_number')
+            
+            target_admin.can_manage_users = request.POST.get('can_manage_users') == 'true'
+            target_admin.can_manage_announcements = request.POST.get('can_manage_announcements') == 'true'
+            target_admin.can_manage_events = request.POST.get('can_manage_events') == 'true'
+            target_admin.can_view_reports = request.POST.get('can_view_reports') == 'true'
+            target_admin.can_manage_settings = request.POST.get('can_manage_settings') == 'true'
+            
+            if 'profile_picture' in request.FILES:
+                target_admin.profile_picture = request.FILES['profile_picture']
+            
+            new_password = request.POST.get('password')
+            if new_password:
+                if len(new_password) >= 8:
+                    target_admin.set_password(new_password)
+                else:
+                    return JsonResponse({'success': False, 'error': 'Password must be at least 8 characters'})
+            
+            target_admin.save()
+            return JsonResponse({'success': True, 'message': 'Admin updated successfully'})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 
