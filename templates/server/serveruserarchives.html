@@ -15,7 +15,7 @@
 </head>
 <body>
     <div class="server-archives-container">
-          <div class="server-sidebar">
+        <div class="server-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
@@ -137,7 +137,6 @@
             </div>
         </div>
 
-
         <div class="server-main-content">
             <header class="archives-header">
                 <div class="header-left">
@@ -221,7 +220,6 @@
                 <div class="archives-table-container">
                     <div class="table-header">
                         <h3>Archived User Records</h3>
-                       
                     </div>
                     <div class="table-wrapper">
                         <table class="archives-table">
@@ -318,12 +316,6 @@
                                             <button class="action-btn view-btn" data-archive-id="{{ archive.id }}">
                                                 <i class="fas fa-expand"></i>
                                             </button>
-                                            <button class="action-btn restore-btn">
-                                                <i class="fas fa-undo"></i>
-                                            </button>
-                                            <button class="action-btn delete-btn">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -347,13 +339,11 @@
                     </div>
                 </div>
             </div>
-
-      
         </div>
     </div>
 
     <div class="modal" id="archiveDetailModal">
-        <div class="modal-content large">
+        <div class="modal-content xlarge">
             <div class="modal-header">
                 <h3>Archive Details - User #<span id="archiveUserId"></span></h3>
                 <button class="modal-close">&times;</button>
@@ -395,10 +385,7 @@
             </div>
             <div class="modal-footer">
                 <button class="modal-btn secondary" id="closeDetailModal">Close</button>
-                <button class="modal-btn primary" id="exportArchive">
-                    <i class="fas fa-download"></i>
-                    Export This Archive
-                </button>
+            
             </div>
         </div>
     </div>

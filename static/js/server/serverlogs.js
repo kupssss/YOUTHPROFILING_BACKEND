@@ -116,6 +116,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    const revealIpBtns = document.querySelectorAll('.reveal-ip-btn');
+    revealIpBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const container = this.closest('.ip-address-container');
+            const ipElement = container.querySelector('.ip-address');
+            const isRevealed = ipElement.classList.contains('revealed');
+            
+            if (isRevealed) {
+                ipElement.classList.remove('revealed');
+                ipElement.classList.add('blurred');
+                ipElement.textContent = ipElement.getAttribute('data-ip').slice(0, 7) + '•••••';
+                this.innerHTML = '<i class="fas fa-eye"></i>';
+                this.classList.remove('revealed');
+            } else {
+                ipElement.classList.remove('blurred');
+                ipElement.classList.add('revealed');
+                ipElement.textContent = ipElement.getAttribute('data-ip');
+                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                this.classList.add('revealed');
+            }
+        });
+    });
+    
     const refreshBtn = document.getElementById('refreshLogs');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
@@ -186,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
     autoRefreshLogs();
     
     const enableAlerts = document.getElementById('enableAlerts');
-    const cleanupLogs = document.getElementById('cleanupLogs');
     
     if (enableAlerts) {
         enableAlerts.addEventListener('click', function() {
@@ -197,18 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.style.color = '#4ADE80';
                 this.style.borderColor = 'rgba(74, 222, 128, 0.3)';
             }, 1500);
-        });
-    }
-    
-    if (cleanupLogs) {
-        cleanupLogs.addEventListener('click', function() {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cleaning...';
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-check"></i> Cleanup Complete';
-                this.style.background = 'rgba(74, 222, 128, 0.2)';
-                this.style.color = '#4ADE80';
-                this.style.borderColor = 'rgba(74, 222, 128, 0.3)';
-            }, 2000);
         });
     }
     

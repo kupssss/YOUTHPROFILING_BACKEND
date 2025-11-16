@@ -237,7 +237,6 @@
                                     <i class="fas fa-search"></i>
                                     <input type="text" id="userLogsSearch" placeholder="Search users, IP, or details...">
                                 </div>
-                             
                             </div>
                         </div>
                         <div class="table-wrapper">
@@ -281,7 +280,14 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <code class="ip-address">{{ log.ip_address|default:"N/A" }}</code>
+                                            <div class="ip-address-container">
+                                                <code class="ip-address blurred" data-ip="{{ log.ip_address|default:'N/A' }}">
+                                                    {{ log.ip_address|default:"N/A"|slice:":7" }}•••••
+                                                </code>
+                                                <button class="reveal-ip-btn" title="Click to reveal IP">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                         <td>
                                             <span class="status-badge status-{% if log.success %}success{% else %}failed{% endif %}">
@@ -343,7 +349,8 @@
                                 <thead>
                                     <tr>
                                         <th>Admin User</th>
-                                        <th>Activty Type</th>
+                                        <th>Admin Role</th>
+                                        <th>Activity Type</th>
                                         <th>Target User</th>
                                         <th>IP Address</th>
                                         <th>Timestamp</th>
@@ -358,17 +365,46 @@
                                                 <div class="user-avatar admin">
                                                     {% if log.admin_user and log.admin_user.profile_picture %}
                                                         <img src="{{ log.admin_user.profile_picture.url }}" alt="{{ log.admin_user.username }}">
+                                                    {% elif log.youth_admin and log.youth_admin.profile_picture %}
+                                                        <img src="{{ log.youth_admin.profile_picture.url }}" alt="{{ log.youth_admin.username }}">
                                                     {% else %}
                                                         <div class="avatar-initials">
-                                                            {% if log.admin_user %}{{ log.admin_user.username|first|upper }}{% else %}S{% endif %}
+                                                            {% if log.admin_user %}{{ log.admin_user.username|first|upper }}{% elif log.youth_admin %}{{ log.youth_admin.username|first|upper }}{% else %}S{% endif %}
                                                         </div>
                                                     {% endif %}
                                                 </div>
                                                 <div class="user-details">
-                                                    <strong>{% if log.admin_user %}{{ log.admin_user.username }}{% else %}System{% endif %}</strong>
-                                                    <span>{% if log.admin_user %}{{ log.admin_user.get_full_name }}{% else %}Automated System{% endif %}</span>
+                                                    <strong>
+                                                        {% if log.admin_user %}
+                                                            {{ log.admin_user.username }}
+                                                        {% elif log.youth_admin %}
+                                                            {{ log.youth_admin.username }}
+                                                        {% else %}
+                                                            System
+                                                        {% endif %}
+                                                    </strong>
+                                                    <span>
+                                                        {% if log.admin_user %}
+                                                            {{ log.admin_user.get_full_name }}
+                                                        {% elif log.youth_admin %}
+                                                            {{ log.youth_admin.get_full_name }}
+                                                        {% else %}
+                                                            Automated System
+                                                        {% endif %}
+                                                    </span>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td>
+                                            <span class="role-badge">
+                                                {% if log.admin_user %}
+                                                    {{ log.admin_user.get_role_display }}
+                                                {% elif log.youth_admin %}
+                                                    {{ log.youth_admin.get_role_display }}
+                                                {% else %}
+                                                    System
+                                                {% endif %}
+                                            </span>
                                         </td>
                                         <td>
                                             <span class="action-badge action-{{ log.action|lower }}">
@@ -379,22 +415,43 @@
                                         <td>
                                             <div class="user-info">
                                                 <div class="user-avatar">
-                                                    {% if log.youth_user.profile_picture %}
+                                                    {% if log.youth_user and log.youth_user.profile_picture %}
                                                         <img src="{{ log.youth_user.profile_picture.url }}" alt="{{ log.youth_user.username }}">
-                                                    {% else %}
+                                                    {% elif log.youth_user %}
                                                         <div class="avatar-initials">
                                                             {{ log.youth_user.username|first|upper }}
                                                         </div>
+                                                    {% else %}
+                                                        <div class="avatar-initials">N/A</div>
                                                     {% endif %}
                                                 </div>
                                                 <div class="user-details">
-                                                    <strong>{{ log.youth_user.username }}</strong>
-                                                    <span>{{ log.youth_user.get_full_name }}</span>
+                                                    <strong>
+                                                        {% if log.youth_user %}
+                                                            {{ log.youth_user.username }}
+                                                        {% else %}
+                                                            N/A
+                                                        {% endif %}
+                                                    </strong>
+                                                    <span>
+                                                        {% if log.youth_user %}
+                                                            {{ log.youth_user.get_full_name }}
+                                                        {% else %}
+                                                            No target user
+                                                        {% endif %}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            <code class="ip-address">{{ log.ip_address|default:"N/A" }}</code>
+                                            <div class="ip-address-container">
+                                                <code class="ip-address blurred" data-ip="{{ log.ip_address|default:'N/A' }}">
+                                                    {{ log.ip_address|default:"N/A"|slice:":7" }}•••••
+                                                </code>
+                                                <button class="reveal-ip-btn" title="Click to reveal IP">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="timestamp">
@@ -458,8 +515,7 @@
                         </button>
                     </div>
                 </div>
-             
-            </div>
+            </div>       
         </div>
     </div>
 
