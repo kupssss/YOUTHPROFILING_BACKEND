@@ -254,6 +254,8 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
             document.getElementById('rejectUserId').value = userId;
+            document.getElementById('rejectionReason').value = '';
+            document.getElementById('additionalMessage').value = '';
             rejectUserModal.classList.add('active');
         });
     });
@@ -272,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    async function rejectUser(userId, rejectReason) {
+    async function rejectUser(userId, rejectionReason, additionalMessage) {
         const button = document.querySelector(`.btn-reject[data-user-id="${userId}"]`);
         const originalHTML = button.innerHTML;
         
@@ -287,7 +289,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({
-                    reject_reason: rejectReason
+                    rejection_reason: rejectionReason,
+                    additional_message: additionalMessage
                 })
             });
             
@@ -319,9 +322,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const userId = document.getElementById('rejectUserId').value;
-            const rejectReason = document.getElementById('rejectReason').value;
+            const rejectionReason = document.getElementById('rejectionReason').value;
+            const additionalMessage = document.getElementById('additionalMessage').value;
             
-            await rejectUser(userId, rejectReason);
+            if (!rejectionReason) {
+                showMessage('Please select a rejection reason', 'error');
+                return;
+            }
+            
+            await rejectUser(userId, rejectionReason, additionalMessage);
         });
     }
     

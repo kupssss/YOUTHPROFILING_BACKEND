@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modalTitle.textContent = 'Create Event';
             submitText.textContent = 'Create Event';
             form.reset();
+            document.getElementById('category').value = 'general';
             document.getElementById('imagePreview').style.display = 'none';
             document.getElementById('excerptCount').textContent = '0';
             document.getElementById('registrationFields').style.display = 'none';
@@ -216,86 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatDateForInput(dateString) {
         const date = new Date(dateString);
         return date.toISOString().slice(0, 16);
-    }
-    
-    const searchInput = document.getElementById('eventSearch');
-    const categoryFilter = document.getElementById('categoryFilter');
-    const statusFilter = document.getElementById('statusFilter');
-    const registrationFilter = document.getElementById('registrationFilter');
-    const applyFiltersBtn = document.getElementById('applyFilters');
-    const clearFiltersBtn = document.getElementById('clearFilters');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', filterEvents);
-    }
-    
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', filterEvents);
-    }
-    
-    if (statusFilter) {
-        statusFilter.addEventListener('change', filterEvents);
-    }
-    
-    if (registrationFilter) {
-        registrationFilter.addEventListener('change', filterEvents);
-    }
-    
-    if (applyFiltersBtn) {
-        applyFiltersBtn.addEventListener('click', filterEvents);
-    }
-    
-    if (clearFiltersBtn) {
-        clearFiltersBtn.addEventListener('click', clearFilters);
-    }
-    
-    function filterEvents() {
-        const searchTerm = document.getElementById('eventSearch').value.toLowerCase();
-        const category = document.getElementById('categoryFilter').value;
-        const status = document.getElementById('statusFilter').value;
-        const registration = document.getElementById('registrationFilter').value;
-        
-        const eventCards = document.querySelectorAll('.event-card');
-        
-        eventCards.forEach(card => {
-            const title = card.querySelector('.event-title').textContent.toLowerCase();
-            const excerpt = card.querySelector('.event-excerpt').textContent.toLowerCase();
-            const cardCategory = card.getAttribute('data-category');
-            const cardStatus = card.getAttribute('data-status');
-            const cardUpcoming = card.getAttribute('data-upcoming');
-            const cardRegistration = card.getAttribute('data-registration');
-            
-            const matchesSearch = title.includes(searchTerm) || excerpt.includes(searchTerm);
-            const matchesCategory = !category || cardCategory === category;
-            const matchesStatus = !status || (status === 'active' && cardStatus === 'active') || 
-                                 (status === 'inactive' && cardStatus === 'inactive') ||
-                                 (status === 'upcoming' && cardUpcoming === 'upcoming') ||
-                                 (status === 'past' && cardUpcoming === 'past');
-            const matchesRegistration = !registration || cardRegistration === registration;
-            
-            if (matchesSearch && matchesCategory && matchesStatus && matchesRegistration) {
-                card.style.display = 'block';
-                setTimeout(() => {
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, 50);
-            } else {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    card.style.display = 'none';
-                }, 300);
-            }
-        });
-    }
-    
-    function clearFilters() {
-        document.getElementById('eventSearch').value = '';
-        document.getElementById('categoryFilter').value = '';
-        document.getElementById('statusFilter').value = '';
-        document.getElementById('registrationFilter').value = '';
-        
-        filterEvents();
     }
     
     const form = document.getElementById('eventForm');
@@ -390,51 +311,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.action-btn.edit').forEach(btn => {
         btn.addEventListener('click', function() {
             const eventId = this.getAttribute('data-id');
-            openEventModal(eventId);
-        });
-    });
-    
-    document.querySelectorAll('.action-btn.activate, .action-btn.deactivate').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const eventId = this.getAttribute('data-id');
-            const isActivate = this.classList.contains('activate');
-            toggleEventStatus(eventId, isActivate);
+            const card = this.closest('.event-card');
+            if (!card.classList.contains('disabled')) {
+                openEventModal(eventId);
+            }
         });
     });
     
     document.querySelectorAll('.action-btn.delete').forEach(btn => {
         btn.addEventListener('click', function() {
             const eventId = this.getAttribute('data-id');
-            const deleteModal = document.getElementById('deleteModal');
-            deleteModal.setAttribute('data-id', eventId);
-            deleteModal.classList.add('active');
+            const card = this.closest('.event-card');
+            if (!card.classList.contains('disabled')) {
+                const deleteModal = document.getElementById('deleteModal');
+                deleteModal.setAttribute('data-id', eventId);
+                deleteModal.classList.add('active');
+            }
         });
     });
-    
-    function toggleEventStatus(eventId, activate) {
-        fetch(`/server/events/${eventId}/toggle-status/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showMessage(data.message, 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                showMessage(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('Network error. Please try again.', 'error');
-        });
-    }
     
     function deleteEvent(eventId) {
         fetch(`/server/events/${eventId}/delete/`, {

@@ -338,9 +338,23 @@ def check_auth(request):
     return JsonResponse({'success': False, 'authenticated': False})
 
 
-
 def signup_view(request):
-    return render(request, 'auth/signup.html')
+    genders = Gender.objects.all()
+    civil_statuses = CivilStatus.objects.all()
+    age_groups = AgeGroup.objects.all()
+    education_levels = EducationLevel.objects.all()
+    youth_classifications = YouthClassification.objects.all()
+    work_statuses = WorkStatus.objects.all()
+    
+    context = {
+        'genders': genders,
+        'civil_statuses': civil_statuses,
+        'age_groups': age_groups,
+        'education_levels': education_levels,
+        'youth_classifications': youth_classifications,
+        'work_statuses': work_statuses,
+    }
+    return render(request, 'auth/signup.html', context)
 
 
 
@@ -444,19 +458,9 @@ def check_email(request):
 
 
 
-
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.hashers import make_password, check_password
-from django.core.files.storage import FileSystemStorage
-import json
-import random
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.conf import settings
+from datetime import datetime
 
 @csrf_exempt
 def register_user_with_files(request):
@@ -500,10 +504,22 @@ def register_user_with_files(request):
             if 'idPicture' not in request.FILES:
                 return JsonResponse({'success': False, 'message': 'ID picture is required.'})
             
-            if 'birthCertificate' not in request.FILES:
-                return JsonResponse({'success': False, 'message': 'Birth certificate is required.'})
+            if not age_group:
+                if 15 <= age <= 17:
+                    age_group = 'Child Youth (15-17 years)'
+                elif 18 <= age <= 24:
+                    age_group = 'Core Youth (18-24 years)'
+                elif 25 <= age <= 30:
+                    age_group = 'Young Adult (25-30 years)'
+                else:
+                    age_group = ''
             
-            # Parent consent validation for ages 15-17
+            if not age_group:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Age group could not be determined. Please check your birthdate.'
+                })
+            
             if 15 <= age <= 17:
                 if 'parentConsentLetter' not in request.FILES:
                     return JsonResponse({'success': False, 'message': 'Parent consent letter is required for youth aged 15-17.'})
@@ -511,7 +527,6 @@ def register_user_with_files(request):
                 if 'parentIdPicture' not in request.FILES:
                     return JsonResponse({'success': False, 'message': 'Parent ID picture is required for youth aged 15-17.'})
                 
-                # Validate parent information fields
                 parent_fields = ['parentName', 'parentRelationship', 'parentContactNumber', 'consentDate']
                 for field in parent_fields:
                     if field not in request.POST or not request.POST[field]:
@@ -520,7 +535,7 @@ def register_user_with_files(request):
             required_fields = [
                 'username', 'email', 'password', 'firstName', 'lastName', 
                 'address', 'purokZone', 'gender', 'birthdate', 'contactNumber',
-                'civilStatus', 'ageGroup', 'education', 'youthClassification',
+                'civilStatus', 'education', 'youthClassification',
                 'workStatus', 'skVoter', 'idType'
             ]
             
@@ -3715,10 +3730,10 @@ def server_logout(request):
 
 from django.shortcuts import render, redirect
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 import json
-from django.db.models import Count, Q
-from .models import YouthUser, Event, Announcement, EventRegistration, YouthAdmin, UserRegistrationAnalytics, EventParticipationAnalytics, APKDownload, DownloadAnalytics
+from django.db.models import Count
+from .models import YouthUser, Event, Announcement, EventRegistration, YouthAdmin, UserRegistrationAnalytics, EventParticipationAnalytics, APKDownload
 
 def server_dashboard(request):
     if not request.session.get('is_server_authenticated'):
@@ -3744,27 +3759,29 @@ def server_dashboard(request):
         start_date__gte=timezone.now()
     ).order_by('start_date')[:5]
     
-    today = timezone.now().date()
-    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    now = timezone.now()
+    current_year = now.year
     
-    registration_data = []
-    for date in last_7_days:
-        try:
-            analytics = UserRegistrationAnalytics.objects.get(date=date)
-            registration_data.append(analytics.registrations_count)
-        except UserRegistrationAnalytics.DoesNotExist:
-            count = YouthUser.objects.filter(
-                created_at__date=date
-            ).count()
-            UserRegistrationAnalytics.objects.create(
-                date=date,
-                registrations_count=count
-            )
-            registration_data.append(count)
+    months_data = []
+    month_names = ['January', 'February', 'March', 'April', 'May', 'June', 
+                   'July', 'August', 'September', 'October', 'November', 'December']
+    
+    for month in range(1, 13):
+        month_start = datetime(current_year, month, 1).date()
+        if month == 12:
+            month_end = datetime(current_year + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            month_end = datetime(current_year, month + 1, 1).date() - timedelta(days=1)
+        
+        count = YouthUser.objects.filter(
+            created_at__date__gte=month_start,
+            created_at__date__lte=month_end
+        ).count()
+        months_data.append(count)
     
     user_registration_data = {
-        'labels': [date.strftime("%b %d") for date in last_7_days],
-        'data': registration_data
+        'labels': month_names,
+        'data': months_data
     }
     
     event_categories = dict(Event.EVENT_CATEGORIES)
@@ -4046,12 +4063,16 @@ def send_verification_email(user):
     
     email.send()
 
-def send_rejection_email(user, reject_reason):
+def send_rejection_email(user, rejection_reason, additional_message):
+    full_reason = rejection_reason
+    if additional_message:
+        full_reason = f"{rejection_reason}\n\nAdditional details: {additional_message}"
+    
     subject = "Account Verification Update - SK Mambugan Youth Management System"
     
     html_content = render_to_string('emails/account_rejected.html', {
         'user': user,
-        'reject_reason': reject_reason,
+        'rejection_reason': full_reason,
         'rejection_date': timezone.now().strftime("%B %d, %Y"),
     })
     
@@ -4133,9 +4154,17 @@ def reject_user(request, user_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            reject_reason = data.get('reject_reason', '')
+            rejection_reason = data.get('rejection_reason', '')
+            additional_message = data.get('additional_message', '')
+            
+            if not rejection_reason:
+                return JsonResponse({'success': False, 'message': 'Rejection reason is required'})
             
             user = YouthUser.objects.get(id=user_id)
+            
+            full_reason = rejection_reason
+            if additional_message:
+                full_reason = f"{rejection_reason}\n\nAdditional details: {additional_message}"
             
             user_data = {
                 'username': user.username,
@@ -4174,10 +4203,10 @@ def reject_user(request, user_id):
                 birth_certificate_path=str(user.birth_certificate) if user.birth_certificate else '',
                 parent_consent_letter_path=str(user.parent_consent_letter) if user.parent_consent_letter else '',
                 parent_id_picture_path=str(user.parent_id_picture) if user.parent_id_picture else '',
-                deletion_reason=reject_reason
+                deletion_reason=full_reason
             )
             
-            send_rejection_email(user, reject_reason)
+            send_rejection_email(user, rejection_reason, additional_message)
             
             admin_id = request.session.get('admin_id')
             youth_admin = YouthAdmin.objects.get(id=admin_id)
@@ -4322,15 +4351,22 @@ def get_user_details(request, user_id):
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
+
+
+        
+
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.core import serializers
-import json
-from .models import Announcement, YouthAdmin
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count
+import json
+from datetime import datetime
+from .models import Announcement, YouthAdmin
 
 def server_announcement_management(request):
-    """Announcement management page"""
     if not request.session.get('is_server_authenticated'):
         return redirect('server_login_page')
     
@@ -4341,11 +4377,23 @@ def server_announcement_management(request):
         request.session.flush()
         return redirect('server_login_page')
     
-    announcements_list = Announcement.objects.all().order_by('-publish_date')
+    now = timezone.now()
     
-    paginator = Paginator(announcements_list, 12)
-    page_number = request.GET.get('page')
-    announcements = paginator.get_page(page_number)
+    all_announcements = Announcement.objects.all().order_by('-publish_date')
+    
+    upcoming_announcements = []
+    ongoing_announcements = []
+    completed_announcements = []
+    
+    for announcement in all_announcements:
+        if announcement.is_upcoming():
+            upcoming_announcements.append(announcement)
+        elif announcement.is_ongoing():
+            ongoing_announcements.append(announcement)
+        elif announcement.is_completed():
+            completed_announcements.append(announcement)
+        else:
+            upcoming_announcements.append(announcement)
     
     total_announcements = Announcement.objects.count()
     important_announcements = Announcement.objects.filter(is_important=True).count()
@@ -4353,7 +4401,7 @@ def server_announcement_management(request):
     categories_count = Announcement.objects.values('category').annotate(count=Count('category')).count()
     
     announcements_data = []
-    for announcement in announcements:
+    for announcement in all_announcements:
         announcements_data.append({
             'id': announcement.id,
             'title': announcement.title,
@@ -4370,7 +4418,9 @@ def server_announcement_management(request):
     
     context = {
         'admin_user': admin_user,
-        'announcements': announcements,
+        'upcoming_announcements': upcoming_announcements,
+        'ongoing_announcements': ongoing_announcements,
+        'completed_announcements': completed_announcements,
         'total_announcements': total_announcements,
         'important_announcements': important_announcements,
         'active_announcements': active_announcements,
@@ -4380,20 +4430,8 @@ def server_announcement_management(request):
     
     return render(request, 'server/serverannouncementmanagement.html', context)
 
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from django.core import serializers
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
-from django.core.paginator import Paginator
-from django.db.models import Count
-import json
-from datetime import datetime
-from .models import Announcement, YouthAdmin
-
 @csrf_exempt
 def create_announcement(request):
-    """Create a new announcement"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4406,7 +4444,7 @@ def create_announcement(request):
                 title=request.POST.get('title'),
                 content=request.POST.get('content'),
                 excerpt=request.POST.get('excerpt', ''),
-                category=request.POST.get('category'),
+                category=request.POST.get('category', 'general'),
                 location=request.POST.get('location', ''),
                 is_important=request.POST.get('is_important') == 'on',
                 is_active=request.POST.get('is_active') == 'on',
@@ -4452,7 +4490,6 @@ def create_announcement(request):
 
 @csrf_exempt
 def update_announcement(request, announcement_id):
-    """Update an existing announcement"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4463,7 +4500,7 @@ def update_announcement(request, announcement_id):
             announcement.title = request.POST.get('title')
             announcement.content = request.POST.get('content')
             announcement.excerpt = request.POST.get('excerpt', '')
-            announcement.category = request.POST.get('category')
+            announcement.category = request.POST.get('category', 'general')
             announcement.location = request.POST.get('location', '')
             announcement.is_important = request.POST.get('is_important') == 'on'
             announcement.is_active = request.POST.get('is_active') == 'on'
@@ -4501,6 +4538,7 @@ def update_announcement(request, announcement_id):
     
     return JsonResponse({'success': False, 'message': 'Invalid request'})
 
+
 @csrf_exempt
 def toggle_announcement_status(request, announcement_id):
     """Toggle announcement active status"""
@@ -4524,18 +4562,12 @@ def toggle_announcement_status(request, announcement_id):
 
 @csrf_exempt
 def delete_announcement(request, announcement_id):
-    """Delete an announcement"""
-    print(f"Delete announcement called with ID: {announcement_id}")  
-    
     if not request.session.get('is_server_authenticated'):
-        print("Not authenticated")  
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
     try:
         announcement = Announcement.objects.get(id=announcement_id)
-        print(f"Found announcement: {announcement.title}")  
         announcement.delete()
-        print("Announcement deleted successfully")  
         
         return JsonResponse({
             'success': True, 
@@ -4543,13 +4575,10 @@ def delete_announcement(request, announcement_id):
         })
         
     except Announcement.DoesNotExist:
-        print("Announcement not found")  
         return JsonResponse({'success': False, 'message': 'Announcement not found'})
     except Exception as e:
-        print(f"Error: {str(e)}")  
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
     
-
 
 
 
@@ -4563,9 +4592,9 @@ from django.db.models import Count, Q
 import json
 from datetime import datetime
 from .models import Event, YouthAdmin, Gender, CivilStatus, AgeGroup, EducationLevel, YouthClassification, WorkStatus
+from .models import EventRegistration
 
 def server_events_management(request):
-    """Events management page"""
     if not request.session.get('is_server_authenticated'):
         return redirect('server_login_page')
     
@@ -4576,20 +4605,21 @@ def server_events_management(request):
         request.session.flush()
         return redirect('server_login_page')
     
-    events_list = Event.objects.all().order_by('-start_date')
+    now = timezone.now()
     
-    paginator = Paginator(events_list, 12)
-    page_number = request.GET.get('page')
-    events = paginator.get_page(page_number)
+    upcoming_events = Event.objects.filter(start_date__gt=now).order_by('start_date')
+    ongoing_events = Event.objects.filter(start_date__lte=now, end_date__gte=now).order_by('start_date')
+    completed_events = Event.objects.filter(end_date__lt=now).order_by('-end_date')
     
     total_events = Event.objects.count()
-    upcoming_events = Event.objects.filter(start_date__gt=timezone.now()).count()
+    upcoming_count = upcoming_events.count()
     active_events = Event.objects.filter(is_active=True).count()
+    
     total_registrations = EventRegistration.objects.count()
     
-    events_data = []
-    for event in events:
-        events_data.append({
+    upcoming_data = []
+    for event in upcoming_events:
+        upcoming_data.append({
             'id': event.id,
             'title': event.title,
             'description': event.description,
@@ -4598,7 +4628,49 @@ def server_events_management(request):
             'location': event.location,
             'requires_registration': event.requires_registration,
             'is_active': event.is_active,
-            'is_upcoming': event.is_upcoming,
+            'is_upcoming': True,
+            'start_date': event.start_date.isoformat(),
+            'end_date': event.end_date.isoformat(),
+            'registration_deadline': event.registration_deadline.isoformat() if event.registration_deadline else None,
+            'maximum_participants': event.maximum_participants,
+            'current_participants': event.current_participants,
+            'points_reward': event.points_reward,
+            'image': event.image.url if event.image else None,
+        })
+    
+    ongoing_data = []
+    for event in ongoing_events:
+        ongoing_data.append({
+            'id': event.id,
+            'title': event.title,
+            'description': event.description,
+            'excerpt': event.excerpt,
+            'category': event.category,
+            'location': event.location,
+            'requires_registration': event.requires_registration,
+            'is_active': event.is_active,
+            'is_upcoming': False,
+            'start_date': event.start_date.isoformat(),
+            'end_date': event.end_date.isoformat(),
+            'registration_deadline': event.registration_deadline.isoformat() if event.registration_deadline else None,
+            'maximum_participants': event.maximum_participants,
+            'current_participants': event.current_participants,
+            'points_reward': event.points_reward,
+            'image': event.image.url if event.image else None,
+        })
+    
+    completed_data = []
+    for event in completed_events:
+        completed_data.append({
+            'id': event.id,
+            'title': event.title,
+            'description': event.description,
+            'excerpt': event.excerpt,
+            'category': event.category,
+            'location': event.location,
+            'requires_registration': event.requires_registration,
+            'is_active': False,
+            'is_upcoming': False,
             'start_date': event.start_date.isoformat(),
             'end_date': event.end_date.isoformat(),
             'registration_deadline': event.registration_deadline.isoformat() if event.registration_deadline else None,
@@ -4610,13 +4682,16 @@ def server_events_management(request):
     
     context = {
         'admin_user': admin_user,
-        'events': events,
-        'total_events': total_events,
         'upcoming_events': upcoming_events,
+        'ongoing_events': ongoing_events,
+        'completed_events': completed_events,
+        'total_events': total_events,
+        'upcoming_events_count': upcoming_count,
         'active_events': active_events,
         'total_registrations': total_registrations,
-        'events_json': json.dumps(events_data),
-        
+        'upcoming_json': json.dumps(upcoming_data),
+        'ongoing_json': json.dumps(ongoing_data),
+        'completed_json': json.dumps(completed_data),
         'genders': Gender.objects.all(),
         'civil_statuses': CivilStatus.objects.all(),
         'age_groups': AgeGroup.objects.all(),
@@ -4780,24 +4855,6 @@ def update_event(request, event_id):
             if 'image' in request.FILES:
                 event.image = request.FILES['image']
             
-            start_date = request.POST.get('start_date')
-            if start_date:
-                try:
-                    event.start_date = timezone.make_aware(
-                        datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
-                    )
-                except ValueError:
-                    pass
-            
-            end_date = request.POST.get('end_date')
-            if end_date:
-                try:
-                    event.end_date = timezone.make_aware(
-                        datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
-                    )
-                except ValueError:
-                    pass
-            
             if event.requires_registration:
                 maximum_participants = request.POST.get('maximum_participants')
                 if maximum_participants:
@@ -4853,9 +4910,10 @@ def toggle_event_status(request, event_id):
     except Event.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Event not found'})
 
+
+
 @csrf_exempt
 def delete_event(request, event_id):
-    """Delete an event"""
     if not request.session.get('is_server_authenticated'):
         return JsonResponse({'success': False, 'message': 'Not authenticated'})
     
@@ -4905,6 +4963,12 @@ def server_events_participants(request):
         pending_count=Count('eventregistration', filter=Q(eventregistration__status='pending'))
     ).order_by('start_date')
     
+    for event in upcoming_events_list:
+        event.current_participants = EventRegistration.objects.filter(
+            event=event,
+            status__in=['pending', 'confirmed', 'waitlisted']
+        ).count()
+    
     ongoing_events_list = Event.objects.filter(
         start_date__lte=now,
         end_date__gte=now,
@@ -4912,6 +4976,12 @@ def server_events_participants(request):
     ).annotate(
         confirmed_count=Count('eventregistration', filter=Q(eventregistration__status='confirmed'))
     ).order_by('end_date')
+    
+    for event in ongoing_events_list:
+        event.current_participants = EventRegistration.objects.filter(
+            event=event,
+            status__in=['confirmed', 'waitlisted']
+        ).count()
     
     completed_events_list = Event.objects.filter(
         end_date__lt=now,
@@ -4921,7 +4991,11 @@ def server_events_participants(request):
     ).order_by('-end_date')[:10]
     
     for event in completed_events_list:
-        event.attended_count = EventRegistration.objects.filter(event=event, status='attended').count()
+        event.attended_count = EventRegistration.objects.filter(
+            event=event, 
+            status='attended'
+        ).count()
+        event.current_participants = event.attended_count
     
     pending_registrations = EventRegistration.objects.filter(status='pending').count()
     upcoming_events_count = upcoming_events_list.count()
@@ -5095,15 +5169,12 @@ def update_registration_status(request, registration_id):
             registration.status = new_status
             registration.save()
             
+            event = registration.event
             if old_status != new_status:
                 if new_status == 'confirmed':
-                    registration.event.current_participants += 1
                     send_registration_approval_email(registration)
-                elif old_status == 'confirmed':
-                    registration.event.current_participants = max(0, registration.event.current_participants - 1)
                 elif new_status == 'cancelled':
                     send_registration_rejection_email(registration, reason)
-                registration.event.save()
             
             return JsonResponse({
                 'success': True, 

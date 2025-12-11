@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSegment = 1;
     const totalSegments = 5;
     const progressFill = document.getElementById('progressFill');
-    const form = document.getElementById('registrationForm');
     
     function updateProgress() {
         const progressPercentage = ((currentSegment - 1) / (totalSegments - 1)) * 100;
@@ -18,17 +17,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function goToSegment(segmentNumber) {
-        // Hide all segments first
         document.querySelectorAll('.form-segment').forEach(segment => {
             segment.classList.remove('active');
             segment.style.display = 'none';
         });
         
-        // Show the target segment
         const targetSegment = document.querySelector(`[data-segment="${segmentNumber}"]`);
         if (targetSegment) {
             targetSegment.style.display = 'block';
-            targetSegment.classList.add('active');
+            setTimeout(() => {
+                targetSegment.classList.add('active');
+            }, 10);
             currentSegment = segmentNumber;
         }
         
@@ -39,12 +38,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function determineNextSegment(currentSegment, age) {
         if (currentSegment === 1) {
             if (age >= 15 && age <= 17) {
-                return 1.5; // Go to parent consent
+                return 1.5;
             } else {
-                return 2; // Skip to demographics
+                return 2;
             }
         } else if (currentSegment === 1.5) {
-            return 2; // Parent consent to demographics
+            return 2;
         } else {
             return currentSegment + 1;
         }
@@ -105,13 +104,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // UPPERCASE ALL LETTERS in name fields
         document.querySelectorAll('#firstName, #lastName, #middleName, #suffix, #parentName').forEach(input => {
             input.addEventListener('input', function() {
                 this.value = this.value.toUpperCase();
             });
             
-            // Also convert to uppercase on blur (when user leaves the field)
             input.addEventListener('blur', function() {
                 this.value = this.value.toUpperCase();
             });
@@ -165,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('Error generating OTP:', error);
             return { success: false, message: 'Network error' };
         }
     }
@@ -184,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('Error verifying OTP:', error);
             return { success: false, message: 'Network error' };
         }
     }
@@ -210,7 +205,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return data;
         } catch (error) {
-            console.error('Error registering user:', error);
             return { success: false, message: 'Network error' };
         }
     }
@@ -248,12 +242,12 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('age', document.getElementById('age').value);
         formData.append('contactNumber', document.getElementById('contactNumber').value);
         formData.append('civilStatus', document.getElementById('civilStatus').value);
-        formData.append('ageGroup', document.getElementById('ageGroup').value);
         formData.append('education', document.getElementById('education').value);
         formData.append('youthClassification', document.getElementById('youthClassification').value);
         formData.append('workStatus', document.getElementById('workStatus').value);
         formData.append('skVoter', document.querySelector('input[name="skVoter"]:checked')?.value);
         formData.append('idType', document.getElementById('idType').value);
+        formData.append('ageGroup', document.getElementById('ageGroup').value);
         
         const age = parseInt(document.getElementById('age').value) || 0;
         if (age >= 15 && age <= 17) {
@@ -293,7 +287,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return await response.json();
         } catch (error) {
-            console.error('Error checking username:', error);
             return { available: false, message: 'Network error' };
         }
     }
@@ -311,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return await response.json();
         } catch (error) {
-            console.error('Error checking email:', error);
             return { available: false, message: 'Network error' };
         }
     }
@@ -339,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const age = parseInt(document.getElementById('age').value) || 0;
             let prevSegment = currentSegment - 1;
             
-            // Handle going back from segment 2
             if (currentSegment === 2) {
                 if (age >= 15 && age <= 17) {
                     prevSegment = 1.5;
@@ -348,7 +339,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Handle going back from segment 1.5
             if (currentSegment === 1.5) {
                 prevSegment = 1;
             }
@@ -432,7 +422,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let isValid = true;
         let errorMessages = [];
         
-        // Validate required fields
         const inputs = document.querySelectorAll(`[data-segment="${segment}"] input[required], [data-segment="${segment}"] select[required]`);
         inputs.forEach(input => {
             if (!input.value) {
@@ -445,7 +434,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Validate file inputs
         const fileInputs = document.querySelectorAll(`[data-segment="${segment}"] input[type="file"][required]`);
         fileInputs.forEach(input => {
             if (!input.files || input.files.length === 0) {
@@ -461,7 +449,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMessages.push(ageValidation.message);
                 isValid = false;
                 
-                // Clear birthdate if age is invalid
                 if (age < 15 || age > 30) {
                     document.getElementById('birthdate').value = '';
                     document.getElementById('age').value = '';
@@ -531,8 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMessages.push('Contact number must be 11 digits starting with 09');
             }
             
-            // Check required files
-            const requiredFiles = document.querySelectorAll('#profilePicture, #idPicture, #birthCertificate');
+            const requiredFiles = document.querySelectorAll('#profilePicture[required], #idPicture[required]');
             requiredFiles.forEach(fileInput => {
                 if (!fileInput.files || fileInput.files.length === 0) {
                     isValid = false;
@@ -541,7 +527,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Show specific error messages
         if (!isValid) {
             if (errorMessages.length > 0) {
                 errorMessages.forEach(msg => showMessage(msg, 'error'));
@@ -576,11 +561,15 @@ document.addEventListener('DOMContentLoaded', function() {
             
             ageInput.value = age;
             
-            if (age >= 15 && age <= 17) ageGroupInput.value = '15-17 years';
-            else if (age >= 18 && age <= 21) ageGroupInput.value = '18-21 years';
-            else if (age >= 22 && age <= 25) ageGroupInput.value = '22-25 years';
-            else if (age >= 26 && age <= 30) ageGroupInput.value = '26-30 years';
-            else ageGroupInput.value = '';
+            if (age >= 15 && age <= 17) {
+                ageGroupInput.value = 'Child Youth (15-17 years)';
+            } else if (age >= 18 && age <= 24) {
+                ageGroupInput.value = 'Core Youth (18-24 years)';
+            } else if (age >= 25 && age <= 30) {
+                ageGroupInput.value = 'Young Adult (25-30 years)';
+            } else {
+                ageGroupInput.value = '';
+            }
         });
     }
     
@@ -754,21 +743,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.appendChild(messageEl);
         
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+        if (!document.querySelector('#message-animations')) {
+            const style = document.createElement('style');
+            style.id = 'message-animations';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
     
-    // Initialize the form - show only segment 1
     document.querySelectorAll('.form-segment').forEach(segment => {
         segment.style.display = 'none';
     });

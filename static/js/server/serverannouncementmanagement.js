@@ -70,19 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const createBtn = document.getElementById('createAnnouncementBtn');
-    const createFirstBtn = document.getElementById('createFirstAnnouncement');
     const modal = document.getElementById('announcementModal');
     const closeModalBtn = document.getElementById('closeModal');
     const cancelForm = document.getElementById('cancelForm');
     
     if (createBtn) {
         createBtn.addEventListener('click', function() {
-            openAnnouncementModal();
-        });
-    }
-    
-    if (createFirstBtn) {
-        createFirstBtn.addEventListener('click', function() {
             openAnnouncementModal();
         });
     }
@@ -149,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modalTitle.textContent = 'Create Announcement';
             submitText.textContent = 'Create Announcement';
             form.reset();
+            document.getElementById('category').value = 'general';
             document.getElementById('imagePreview').style.display = 'none';
             document.getElementById('excerptCount').textContent = '0';
         }
@@ -196,82 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatDateForInput(dateString) {
         const date = new Date(dateString);
         return date.toISOString().slice(0, 16);
-    }
-    
-    const searchInput = document.getElementById('announcementSearch');
-    const categoryFilter = document.getElementById('categoryFilter');
-    const statusFilter = document.getElementById('statusFilter');
-    const importanceFilter = document.getElementById('importanceFilter');
-    const applyFiltersBtn = document.getElementById('applyFilters');
-    const clearFiltersBtn = document.getElementById('clearFilters');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', filterAnnouncements);
-    }
-    
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', filterAnnouncements);
-    }
-    
-    if (statusFilter) {
-        statusFilter.addEventListener('change', filterAnnouncements);
-    }
-    
-    if (importanceFilter) {
-        importanceFilter.addEventListener('change', filterAnnouncements);
-    }
-    
-    if (applyFiltersBtn) {
-        applyFiltersBtn.addEventListener('click', filterAnnouncements);
-    }
-    
-    if (clearFiltersBtn) {
-        clearFiltersBtn.addEventListener('click', clearFilters);
-    }
-    
-    function filterAnnouncements() {
-        const searchTerm = document.getElementById('announcementSearch').value.toLowerCase();
-        const category = document.getElementById('categoryFilter').value;
-        const status = document.getElementById('statusFilter').value;
-        const importance = document.getElementById('importanceFilter').value;
-        
-        const announcementCards = document.querySelectorAll('.announcement-card');
-        
-        announcementCards.forEach(card => {
-            const title = card.querySelector('.announcement-title').textContent.toLowerCase();
-            const excerpt = card.querySelector('.announcement-excerpt').textContent.toLowerCase();
-            const cardCategory = card.getAttribute('data-category');
-            const cardStatus = card.getAttribute('data-status');
-            const cardImportant = card.getAttribute('data-important');
-            
-            const matchesSearch = title.includes(searchTerm) || excerpt.includes(searchTerm);
-            const matchesCategory = !category || cardCategory === category;
-            const matchesStatus = !status || cardStatus === status;
-            const matchesImportance = !importance || cardImportant === importance;
-            
-            if (matchesSearch && matchesCategory && matchesStatus && matchesImportance) {
-                card.style.display = 'block';
-                setTimeout(() => {
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, 50);
-            } else {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    card.style.display = 'none';
-                }, 300);
-            }
-        });
-    }
-    
-    function clearFilters() {
-        document.getElementById('announcementSearch').value = '';
-        document.getElementById('categoryFilter').value = '';
-        document.getElementById('statusFilter').value = '';
-        document.getElementById('importanceFilter').value = '';
-        
-        filterAnnouncements();
     }
     
     const form = document.getElementById('announcementForm');
@@ -370,14 +288,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    document.querySelectorAll('.action-btn.activate, .action-btn.deactivate').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const announcementId = this.getAttribute('data-id');
-            const isActivate = this.classList.contains('activate');
-            toggleAnnouncementStatus(announcementId, isActivate);
-        });
-    });
-    
     document.querySelectorAll('.action-btn.delete').forEach(btn => {
         btn.addEventListener('click', function() {
             const announcementId = this.getAttribute('data-id');
@@ -387,10 +297,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    function toggleAnnouncementStatus(announcementId, activate) {
-        const action = activate ? 'activate' : 'deactivate';
-        
-        fetch(`/server/announcements/${announcementId}/toggle-status/`, {
+    function deleteAnnouncement(announcementId) {
+        fetch(`/server/announcements/${announcementId}/delete/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,
@@ -413,40 +321,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('Network error. Please try again.', 'error');
         });
     }
-
-    function deleteAnnouncement(announcementId) {
-        console.log(`Attempting to delete announcement with ID: ${announcementId}`);
-        
-        fetch(`/server/announcements/${announcementId}/delete/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Response data:', data);
-            if (data.success) {
-                showMessage(data.message, 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                showMessage(data.message || 'Unknown error occurred', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error details:', error);
-            showMessage('Network error. Please try again.', 'error');
-        });
-    } 
     
     function showMessage(message, type) {
         const existingMessage = document.querySelector('.announcement-message');

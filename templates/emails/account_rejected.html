@@ -143,7 +143,39 @@
             font-size: 18px;
         }
         
-        .rejection-reason p {
+        .reason-details {
+            margin-bottom: 15px;
+        }
+        
+        .reason-category {
+            background: rgba(244, 67, 54, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #f44336;
+        }
+        
+        .reason-category h4 {
+            color: #d32f2f;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .additional-details {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .additional-details h4 {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .additional-details p {
             color: #666;
             line-height: 1.6;
             font-style: italic;
@@ -302,7 +334,19 @@
             
             <div class="rejection-reason">
                 <h3>Reason for Rejection</h3>
-                <p>{{ reject_reason }}</p>
+                <div class="reason-details">
+                    <div class="reason-category">
+                        <h4>Primary Reason:</h4>
+                        <p>{{ rejection_reason }}</p>
+                    </div>
+                    
+                    {% if additional_message %}
+                    <div class="additional-details">
+                        <h4>Additional Details:</h4>
+                        <p>{{ additional_message }}</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             
             <div class="next-steps">

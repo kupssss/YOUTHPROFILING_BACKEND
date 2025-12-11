@@ -1368,3 +1368,121 @@ body {
         display: none;
     }
 }
+
+
+.events-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+.events-section {
+    background: #151C2C;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.events-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: rgba(58, 123, 250, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.events-section .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #E8EAF6;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.events-section .section-header .badge {
+    background: linear-gradient(135deg, #3A7BFA 0%, #7C5CFF 100%);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.events-section .events-grid {
+    padding: 25px;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    display: grid;
+}
+
+.event-card.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.event-card.disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background: #151C2C;
+}
+
+.event-card.disabled .action-btn {
+    display: none;
+}
+
+.status-badge.completed {
+    background: rgba(156, 39, 176, 0.2);
+    color: #9c27b0;
+}
+
+.event-category.economic-empowerment {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+}
+
+.event-category.social-inclusion-and-equity {
+    background: rgba(103, 58, 183, 0.2);
+    color: #673ab7;
+}
+
+.event-category.peacebuilding-and-security {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+}
+
+.event-category.governance {
+    background: rgba(33, 150, 243, 0.2);
+    color: #2196f3;
+}
+
+.event-category.active-citizenship {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+}
+
+.event-category.global-mobility {
+    background: rgba(0, 188, 212, 0.2);
+    color: #00bcd4;
+}
+
+.event-category.general {
+    background: rgba(96, 125, 139, 0.2);
+    color: #607d8b;
+}
+
+@media (max-width: 768px) {
+    .events-section .events-grid {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+    
+    .events-section .section-header {
+        padding: 15px 20px;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+}

@@ -698,20 +698,28 @@ class WorkStatus(models.Model):
     def __str__(self):
         return self.name
 
+from django.db import models
+from django.utils import timezone
+
 class Announcement(models.Model):
     ANNOUNCEMENT_CATEGORIES = [
-        ('important', 'Important'),
-        ('sports', 'Sports'),
-        ('education', 'Education'),
-        ('environment', 'Environment'),
         ('health', 'Health'),
+        ('education', 'Education'),
+        ('economic-empowerment', 'Economic Empowerment'),
+        ('social-inclusion-and-equity', 'Social Inclusion and Equity'),
+        ('peacebuilding-and-security', 'Peacebuilding and Security'),
+        ('governance', 'Governance'),
+        ('active-citizenship', 'Active Citizenship'),
+        ('environment', 'Environment'),
+        ('global-mobility', 'Global Mobility'),
+        ('sports', 'Sports'),
         ('general', 'General'),
     ]
     
     title = models.CharField(max_length=200)
     content = models.TextField()
     excerpt = models.CharField(max_length=300, blank=True)
-    category = models.CharField(max_length=20, choices=ANNOUNCEMENT_CATEGORIES, default='general')
+    category = models.CharField(max_length=30, choices=ANNOUNCEMENT_CATEGORIES, default='general')
     image = models.ImageField(upload_to='announcements/', blank=True, null=True)
     publish_date = models.DateTimeField(auto_now_add=True)
     effective_date = models.DateTimeField(blank=True, null=True)
@@ -724,8 +732,29 @@ class Announcement(models.Model):
     def __str__(self):
         return self.title
     
+    def is_upcoming(self):
+        now = timezone.now()
+        if self.effective_date and self.effective_date > now:
+            return True
+        return False
+    
+    def is_ongoing(self):
+        now = timezone.now()
+        if self.effective_date and self.effective_date <= now:
+            if self.deadline and self.deadline > now:
+                return True
+        return False
+    
+    def is_completed(self):
+        now = timezone.now()
+        if self.deadline and self.deadline <= now:
+            return True
+        return False
+    
     class Meta:
         ordering = ['-publish_date']
+
+        
 
 class Event(models.Model):
     EVENT_CATEGORIES = [

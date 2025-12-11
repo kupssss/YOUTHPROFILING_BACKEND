@@ -15,7 +15,7 @@
 </head>
 <body>
     <div class="server-events-container">
-          <div class="server-sidebar">
+        <div class="server-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <img src="{% static 'assets/logo/logo.png' %}" alt="SK Baranggay Logo">
@@ -32,11 +32,11 @@
             <div class="sidebar-profile">
                 <div class="profile-image">
                     {% if admin_user.profile_picture %}
-                        <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
+                    <img src="{{ admin_user.profile_picture.url }}" alt="{{ admin_user.get_full_name }}">
                     {% else %}
-                        <div class="profile-initials">
-                            {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
-                        </div>
+                    <div class="profile-initials">
+                        {{ admin_user.first_name|first }}{{ admin_user.last_name|first }}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="profile-info">
@@ -137,7 +137,6 @@
             </div>
         </div>
 
-
         <div class="server-main-content">
             <header class="management-header">
                 <div class="header-left">
@@ -178,7 +177,7 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>{{ upcoming_events|intcomma }}</h3>
+                        <h3>{{ upcoming_events_count|intcomma }}</h3>
                         <p>Upcoming Events</p>
                     </div>
                 </div>
@@ -202,313 +201,501 @@
                 </div>
             </div>
 
-            <div class="filters-container">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="eventSearch" placeholder="Search events...">
-                </div>
-                <div class="filter-group">
-                    <select id="categoryFilter">
-                        <option value="">All Categories</option>
-                        <option value="sports">Sports</option>
-                        <option value="education">Education</option>
-                        <option value="health">Health</option>
-                        <option value="community">Community</option>
-                        <option value="cultural">Cultural</option>
-                        <option value="environment">Environment</option>
-                    </select>
-                    <select id="statusFilter">
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="upcoming">Upcoming</option>
-                        <option value="past">Past Events</option>
-                    </select>
-                    <select id="registrationFilter">
-                        <option value="">All Registration</option>
-                        <option value="required">Registration Required</option>
-                        <option value="not_required">No Registration</option>
-                    </select>
-                    <button class="filter-btn" id="applyFilters">
-                        <i class="fas fa-filter"></i>
-                        Apply Filters
-                    </button>
-                    <button class="filter-btn secondary" id="clearFilters">
-                        <i class="fas fa-times"></i>
-                        Clear
-                    </button>
-                </div>
-            </div>
-
-            <div class="events-grid" id="eventsGrid">
-                {% for event in events %}
-                <div class="event-card" data-id="{{ event.id }}" data-category="{{ event.category }}" data-status="{{ event.is_active|yesno:'active,inactive' }}" data-upcoming="{{ event.is_upcoming|yesno:'upcoming,past' }}" data-registration="{{ event.requires_registration|yesno:'required,not_required' }}">
-                    <div class="event-header">
-                        <div class="event-category {{ event.category }}">
-                            <i class="fas fa-{% if event.category == 'sports' %}running{% elif event.category == 'education' %}graduation-cap{% elif event.category == 'health' %}heartbeat{% elif event.category == 'community' %}users{% elif event.category == 'cultural' %}music{% else %}leaf{% endif %}"></i>
-                            {{ event.get_category_display }}
-                        </div>
-                        <div class="event-actions">
-                            <button class="action-btn edit" data-id="{{ event.id }}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="action-btn {% if event.is_active %}deactivate{% else %}activate{% endif %}" data-id="{{ event.id }}">
-                                <i class="fas fa-power-off"></i>
-                            </button>
-                            <button class="action-btn delete" data-id="{{ event.id }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+            <div class="events-sections">
+                <div class="events-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-clock"></i> Upcoming Events</h2>
+                        <span class="badge">{{ upcoming_events_count }}</span>
                     </div>
-                    
-                    {% if event.image %}
-                    <div class="event-image">
-                        <img src="{{ event.image.url }}" alt="{{ event.title }}">
-                        <div class="event-date-badge">
-                            <span class="event-month">{{ event.start_date|date:"M" }}</span>
-                            <span class="event-day">{{ event.start_date|date:"d" }}</span>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="event-image no-image">
-                        <div class="event-date-badge">
-                            <span class="event-month">{{ event.start_date|date:"M" }}</span>
-                            <span class="event-day">{{ event.start_date|date:"d" }}</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="event-content">
-                        <h3 class="event-title">{{ event.title }}</h3>
-                        <p class="event-excerpt">{{ event.excerpt|default:event.description|truncatewords:30 }}</p>
-                        
-                        <div class="event-meta">
-                            <div class="meta-item">
-                                <i class="fas fa-clock"></i>
-                                {{ event.start_date|date:"M d, Y • h:i A" }}
+                    <div class="events-grid" id="upcomingEvents">
+                        {% for event in upcoming_events %}
+                        <div class="event-card" data-id="{{ event.id }}" data-category="{{ event.category }}" data-status="{{ event.is_active|yesno:'active,inactive' }}" data-upcoming="true">
+                            <div class="event-header">
+                                <div class="event-category {{ event.category }}">
+                                    {% if event.category == 'sports' %}
+                                    <i class="fas fa-running"></i>
+                                    {% elif event.category == 'education' %}
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {% elif event.category == 'health' %}
+                                    <i class="fas fa-heartbeat"></i>
+                                    {% elif event.category == 'community' %}
+                                    <i class="fas fa-users"></i>
+                                    {% elif event.category == 'cultural' %}
+                                    <i class="fas fa-music"></i>
+                                    {% elif event.category == 'environment' %}
+                                    <i class="fas fa-leaf"></i>
+                                    {% elif event.category == 'economic-empowerment' %}
+                                    <i class="fas fa-chart-line"></i>
+                                    {% elif event.category == 'social-inclusion-and-equity' %}
+                                    <i class="fas fa-hands-helping"></i>
+                                    {% elif event.category == 'peacebuilding-and-security' %}
+                                    <i class="fas fa-peace"></i>
+                                    {% elif event.category == 'governance' %}
+                                    <i class="fas fa-landmark"></i>
+                                    {% elif event.category == 'active-citizenship' %}
+                                    <i class="fas fa-vote-yea"></i>
+                                    {% elif event.category == 'global-mobility' %}
+                                    <i class="fas fa-globe"></i>
+                                    {% else %}
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {% endif %}
+                                    {{ event.get_category_display }}
+                                </div>
+                                <div class="event-actions">
+                                    <button class="action-btn edit" data-id="{{ event.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn delete" data-id="{{ event.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="meta-item">
-                                <i class="fas fa-map-marker-alt"></i>
-                                {{ event.location }}
+                            
+                            {% if event.image %}
+                            <div class="event-image">
+                                <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                                <div class="event-date-badge">
+                                    <span class="event-month">{{ event.start_date|date:"M" }}</span>
+                                    <span class="event-day">{{ event.start_date|date:"d" }}</span>
+                                </div>
                             </div>
-                            {% if event.maximum_participants %}
-                            <div class="meta-item">
-                                <i class="fas fa-users"></i>
-                                {{ event.current_participants }}/{{ event.maximum_participants }} participants
+                            {% else %}
+                            <div class="event-image no-image">
+                                <div class="event-date-badge">
+                                    <span class="event-month">{{ event.start_date|date:"M" }}</span>
+                                    <span class="event-day">{{ event.start_date|date:"d" }}</span>
+                                </div>
                             </div>
                             {% endif %}
-                            {% if event.registration_deadline %}
-                            <div class="meta-item">
-                                <i class="fas fa-hourglass-end"></i>
-                                Reg until: {{ event.registration_deadline|date:"M d, Y" }}
+                            
+                            <div class="event-content">
+                                <h3 class="event-title">{{ event.title }}</h3>
+                                <p class="event-excerpt">{{ event.excerpt|default:event.description|truncatewords:30 }}</p>
+                                
+                                <div class="event-meta">
+                                    <div class="meta-item">
+                                        <i class="fas fa-clock"></i>
+                                        {{ event.start_date|date:"M d, Y • h:i A" }}
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </div>
+                                    {% if event.maximum_participants %}
+                                    <div class="meta-item">
+                                        <i class="fas fa-users"></i>
+                                        {{ event.current_participants }}/{{ event.maximum_participants }} participants
+                                    </div>
+                                    {% endif %}
+                                    {% if event.registration_deadline %}
+                                    <div class="meta-item">
+                                        <i class="fas fa-hourglass-end"></i>
+                                        Reg until: {{ event.registration_deadline|date:"M d, Y" }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="event-footer">
+                                <div class="event-status">
+                                    <span class="status-badge {{ event.is_active|yesno:'active,inactive' }}">
+                                        {{ event.is_active|yesno:'Active,Inactive' }}
+                                    </span>
+                                    <span class="time-badge upcoming">
+                                        Upcoming
+                                    </span>
+                                    {% if event.requires_registration %}
+                                    <span class="registration-badge">
+                                        <i class="fas fa-ticket-alt"></i>
+                                        Registration
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="event-participants">
+                                    <span>{{ event.current_participants }} registered</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="no-events">
+                            <i class="fas fa-clock"></i>
+                            <h3>No Upcoming Events</h3>
+                            <p>Create your first event to get started</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="events-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-running"></i> Ongoing Events</h2>
+                        <span class="badge">{{ ongoing_events|length }}</span>
+                    </div>
+                    <div class="events-grid" id="ongoingEvents">
+                        {% for event in ongoing_events %}
+                        <div class="event-card disabled" data-id="{{ event.id }}" data-category="{{ event.category }}" data-status="{{ event.is_active|yesno:'active,inactive' }}">
+                            <div class="event-header">
+                                <div class="event-category {{ event.category }}">
+                                    {% if event.category == 'sports' %}
+                                    <i class="fas fa-running"></i>
+                                    {% elif event.category == 'education' %}
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {% elif event.category == 'health' %}
+                                    <i class="fas fa-heartbeat"></i>
+                                    {% elif event.category == 'community' %}
+                                    <i class="fas fa-users"></i>
+                                    {% elif event.category == 'cultural' %}
+                                    <i class="fas fa-music"></i>
+                                    {% elif event.category == 'environment' %}
+                                    <i class="fas fa-leaf"></i>
+                                    {% elif event.category == 'economic-empowerment' %}
+                                    <i class="fas fa-chart-line"></i>
+                                    {% elif event.category == 'social-inclusion-and-equity' %}
+                                    <i class="fas fa-hands-helping"></i>
+                                    {% elif event.category == 'peacebuilding-and-security' %}
+                                    <i class="fas fa-peace"></i>
+                                    {% elif event.category == 'governance' %}
+                                    <i class="fas fa-landmark"></i>
+                                    {% elif event.category == 'active-citizenship' %}
+                                    <i class="fas fa-vote-yea"></i>
+                                    {% elif event.category == 'global-mobility' %}
+                                    <i class="fas fa-globe"></i>
+                                    {% else %}
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {% endif %}
+                                    {{ event.get_category_display }}
+                                </div>
+                            </div>
+                            
+                            {% if event.image %}
+                            <div class="event-image">
+                                <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                                <div class="event-date-badge">
+                                    <span class="event-month">{{ event.start_date|date:"M" }}</span>
+                                    <span class="event-day">{{ event.start_date|date:"d" }}</span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="event-image no-image">
+                                <div class="event-date-badge">
+                                    <span class="event-month">{{ event.start_date|date:"M" }}</span>
+                                    <span class="event-day">{{ event.start_date|date:"d" }}</span>
+                                </div>
                             </div>
                             {% endif %}
+                            
+                            <div class="event-content">
+                                <h3 class="event-title">{{ event.title }}</h3>
+                                <p class="event-excerpt">{{ event.excerpt|default:event.description|truncatewords:30 }}</p>
+                                
+                                <div class="event-meta">
+                                    <div class="meta-item">
+                                        <i class="fas fa-clock"></i>
+                                        {{ event.start_date|date:"M d, Y • h:i A" }}
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </div>
+                                    {% if event.maximum_participants %}
+                                    <div class="meta-item">
+                                        <i class="fas fa-users"></i>
+                                        {{ event.current_participants }}/{{ event.maximum_participants }} participants
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="event-footer">
+                                <div class="event-status">
+                                    <span class="status-badge active">
+                                        Ongoing
+                                    </span>
+                                    {% if event.requires_registration %}
+                                    <span class="registration-badge">
+                                        <i class="fas fa-ticket-alt"></i>
+                                        Registration
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="event-participants">
+                                    <span>{{ event.current_participants }} registered</span>
+                                </div>
+                            </div>
                         </div>
+                        {% empty %}
+                        <div class="no-events">
+                            <i class="fas fa-running"></i>
+                            <h3>No Ongoing Events</h3>
+                            <p>No events are currently ongoing</p>
+                        </div>
+                        {% endfor %}
                     </div>
-                    
-                    <div class="event-footer">
-                        <div class="event-status">
-                            <span class="status-badge {{ event.is_active|yesno:'active,inactive' }}">
-                                {{ event.is_active|yesno:'Active,Inactive' }}
-                            </span>
-                            <span class="time-badge {{ event.is_upcoming|yesno:'upcoming,past' }}">
-                                {{ event.is_upcoming|yesno:'Upcoming,Past' }}
-                            </span>
-                            {% if event.requires_registration %}
-                            <span class="registration-badge">
-                                <i class="fas fa-ticket-alt"></i>
-                                Registration
-                            </span>
+                </div>
+
+                <div class="events-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-check-circle"></i> Completed Events</h2>
+                        <span class="badge">{{ completed_events|length }}</span>
+                    </div>
+                    <div class="events-grid" id="completedEvents">
+                        {% for event in completed_events %}
+                        <div class="event-card disabled" data-id="{{ event.id }}" data-category="{{ event.category }}">
+                            <div class="event-header">
+                                <div class="event-category {{ event.category }}">
+                                    {% if event.category == 'sports' %}
+                                    <i class="fas fa-running"></i>
+                                    {% elif event.category == 'education' %}
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {% elif event.category == 'health' %}
+                                    <i class="fas fa-heartbeat"></i>
+                                    {% elif event.category == 'community' %}
+                                    <i class="fas fa-users"></i>
+                                    {% elif event.category == 'cultural' %}
+                                    <i class="fas fa-music"></i>
+                                    {% elif event.category == 'environment' %}
+                                    <i class="fas fa-leaf"></i>
+                                    {% elif event.category == 'economic-empowerment' %}
+                                    <i class="fas fa-chart-line"></i>
+                                    {% elif event.category == 'social-inclusion-and-equity' %}
+                                    <i class="fas fa-hands-helping"></i>
+                                    {% elif event.category == 'peacebuilding-and-security' %}
+                                    <i class="fas fa-peace"></i>
+                                    {% elif event.category == 'governance' %}
+                                    <i class="fas fa-landmark"></i>
+                                    {% elif event.category == 'active-citizenship' %}
+                                    <i class="fas fa-vote-yea"></i>
+                                    {% elif event.category == 'global-mobility' %}
+                                    <i class="fas fa-globe"></i>
+                                    {% else %}
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {% endif %}
+                                    {{ event.get_category_display }}
+                                </div>
+                            </div>
+                            
+                            {% if event.image %}
+                            <div class="event-image">
+                                <img src="{{ event.image.url }}" alt="{{ event.title }}">
+                                <div class="event-date-badge">
+                                    <span class="event-month">{{ event.start_date|date:"M" }}</span>
+                                    <span class="event-day">{{ event.start_date|date:"d" }}</span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="event-image no-image">
+                                <div class="event-date-badge">
+                                    <span class="event-month">{{ event.start_date|date:"M" }}</span>
+                                    <span class="event-day">{{ event.start_date|date:"d" }}</span>
+                                </div>
+                            </div>
                             {% endif %}
+                            
+                            <div class="event-content">
+                                <h3 class="event-title">{{ event.title }}</h3>
+                                <p class="event-excerpt">{{ event.excerpt|default:event.description|truncatewords:30 }}</p>
+                                
+                                <div class="event-meta">
+                                    <div class="meta-item">
+                                        <i class="fas fa-clock"></i>
+                                        {{ event.start_date|date:"M d, Y • h:i A" }}
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-users"></i>
+                                        {{ event.current_participants }} participants
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="event-footer">
+                                <div class="event-status">
+                                    <span class="status-badge completed">
+                                        Completed
+                                    </span>
+                                    {% if event.requires_registration %}
+                                    <span class="registration-badge">
+                                        <i class="fas fa-ticket-alt"></i>
+                                        Registration
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="event-participants">
+                                    <span>{{ event.current_participants }} participated</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="event-participants">
-                            <span>{{ event.current_participants }} registered</span>
+                        {% empty %}
+                        <div class="no-events">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>No Completed Events</h3>
+                            <p>No events have been completed yet</p>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% empty %}
-                <div class="no-events">
-                    <i class="fas fa-calendar-alt"></i>
-                    <h3>No Events Yet</h3>
-                    <p>Create your first event to get started</p>
-                    <button class="create-first-btn" id="createFirstEvent">
-                        <i class="fas fa-plus"></i>
-                        Create Event
-                    </button>
-                </div>
-                {% endfor %}
             </div>
 
-            {% if events.has_other_pages %}
-            <div class="pagination">
-                {% if events.has_previous %}
-                <a href="?page={{ events.previous_page_number }}" class="page-link">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-                {% endif %}
-
-                {% for num in events.paginator.page_range %}
-                {% if events.number == num %}
-                <span class="page-link active">{{ num }}</span>
-                {% else %}
-                <a href="?page={{ num }}" class="page-link">{{ num }}</a>
-                {% endif %}
-                {% endfor %}
-
-                {% if events.has_next %}
-                <a href="?page={{ events.next_page_number }}" class="page-link">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div id="eventModal" class="modal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h2><i class="fas fa-calendar-plus"></i> <span id="modalTitle">Create Event</span></h2>
-                <button class="modal-close" id="closeModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="eventForm" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="hidden" id="eventId" name="id">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="title">Title *</label>
-                            <input type="text" id="title" name="title" required placeholder="Enter event title">
-                        </div>
-                        <div class="form-group">
-                            <label for="category">Category *</label>
-                            <select id="category" name="category" required>
-                                <option value="">Select Category</option>
-                                <option value="sports">Sports</option>
-                                <option value="education">Education</option>
-                                <option value="health">Health</option>
-                                <option value="community">Community</option>
-                                <option value="cultural">Cultural</option>
-                                <option value="environment">Environment</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="excerpt">Excerpt (Optional)</label>
-                        <textarea id="excerpt" name="excerpt" rows="2" placeholder="Brief summary of the event (max 300 characters)"></textarea>
-                        <div class="char-count"><span id="excerptCount">0</span>/300</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description *</label>
-                        <textarea id="description" name="description" rows="6" required placeholder="Describe your event in detail..."></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="start_date">Start Date & Time *</label>
-                            <input type="datetime-local" id="start_date" name="start_date" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="end_date">End Date & Time *</label>
-                            <input type="datetime-local" id="end_date" name="end_date" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="location">Location *</label>
-                        <input type="text" id="location" name="location" required placeholder="Enter event location">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="requires_registration" name="requires_registration">
-                                <span class="checkmark"></span>
-                                Requires Registration
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="is_active" name="is_active" checked>
-                                <span class="checkmark"></span>
-                                Active
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-row registration-fields" id="registrationFields" style="display: none;">
-                        <div class="form-group">
-                            <label for="maximum_participants">Maximum Participants</label>
-                            <input type="number" id="maximum_participants" name="maximum_participants" min="1" placeholder="Enter maximum participants">
-                        </div>
-                        <div class="form-group">
-                            <label for="registration_deadline">Registration Deadline</label>
-                            <input type="datetime-local" id="registration_deadline" name="registration_deadline">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="points_reward">Points Reward</label>
-                        <input type="number" id="points_reward" name="points_reward" min="0" value="0" placeholder="Points awarded for participation">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="image">Event Image (Optional)</label>
-                        <div class="file-upload">
-                            <input type="file" id="image" name="image" accept="image/*">
-                            <label for="image" class="file-upload-label">
-                                <i class="fas fa-upload"></i>
-                                <span>Choose Image</span>
-                            </label>
-                            <div id="imagePreview" class="image-preview"></div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" id="cancelForm">Cancel</button>
-                        <button type="submit" class="btn-primary">
-                            <i class="fas fa-save"></i>
-                            <span id="submitText">Create Event</span>
+            <div id="eventModal" class="modal">
+                <div class="modal-content large">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-calendar-plus"></i> <span id="modalTitle">Create Event</span></h2>
+                        <button class="modal-close" id="closeModal">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
-                </form>
-            </div>
-        </div>
-    </div>
+                    <div class="modal-body">
+                        <form id="eventForm" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" id="eventId" name="id">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="title">Title *</label>
+                                    <input type="text" id="title" name="title" required placeholder="Enter event title">
+                                </div>
+                                <div class="form-group">
+                                    <label for="category">Category *</label>
+                                    <select id="category" name="category" required>
+                                        <option value="">Select Category</option>
+                                        <option value="sports">Sports</option>
+                                        <option value="education">Education</option>
+                                        <option value="health">Health</option>
+                                        <option value="community">Community</option>
+                                        <option value="cultural">Cultural</option>
+                                        <option value="environment">Environment</option>
+                                        <option value="economic-empowerment">Economic Empowerment</option>
+                                        <option value="social-inclusion-and-equity">Social Inclusion and Equity</option>
+                                        <option value="peacebuilding-and-security">Peacebuilding and Security</option>
+                                        <option value="governance">Governance</option>
+                                        <option value="active-citizenship">Active Citizenship</option>
+                                        <option value="global-mobility">Global Mobility</option>
+                                        <option value="general" selected>General</option>
+                                    </select>
+                                </div>
+                            </div>
 
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h2>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this event? This action cannot be undone.</p>
-                <div class="modal-actions">
-                    <button class="btn-secondary" id="cancelDelete">Cancel</button>
-                    <button class="btn-danger" id="confirmDelete">Delete Event</button>
+                            <div class="form-group">
+                                <label for="excerpt">Excerpt (Optional)</label>
+                                <textarea id="excerpt" name="excerpt" rows="2" placeholder="Brief summary of the event (max 300 characters)"></textarea>
+                                <div class="char-count"><span id="excerptCount">0</span>/300</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="description">Description *</label>
+                                <textarea id="description" name="description" rows="6" required placeholder="Describe your event in detail..."></textarea>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="start_date">Start Date & Time *</label>
+                                    <input type="datetime-local" id="start_date" name="start_date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="end_date">End Date & Time *</label>
+                                    <input type="datetime-local" id="end_date" name="end_date" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="location">Location *</label>
+                                <input type="text" id="location" name="location" required placeholder="Enter event location">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" id="requires_registration" name="requires_registration">
+                                        <span class="checkmark"></span>
+                                        Requires Registration
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" id="is_active" name="is_active" checked>
+                                        <span class="checkmark"></span>
+                                        Active
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-row registration-fields" id="registrationFields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="maximum_participants">Maximum Participants</label>
+                                    <input type="number" id="maximum_participants" name="maximum_participants" min="1" placeholder="Enter maximum participants">
+                                </div>
+                                <div class="form-group">
+                                    <label for="registration_deadline">Registration Deadline</label>
+                                    <input type="datetime-local" id="registration_deadline" name="registration_deadline">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="points_reward">Points Reward</label>
+                                <input type="number" id="points_reward" name="points_reward" min="0" value="0" placeholder="Points awarded for participation">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="image">Event Image (Optional)</label>
+                                <div class="file-upload">
+                                    <input type="file" id="image" name="image" accept="image/*">
+                                    <label for="image" class="file-upload-label">
+                                        <i class="fas fa-upload"></i>
+                                        <span>Choose Image</span>
+                                    </label>
+                                    <div id="imagePreview" class="image-preview"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" id="cancelForm">Cancel</button>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    <span id="submitText">Create Event</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
+
+            <div id="deleteModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h2>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this event? This action cannot be undone.</p>
+                        <div class="modal-actions">
+                            <button class="btn-secondary" id="cancelDelete">Cancel</button>
+                            <button class="btn-danger" id="confirmDelete">Delete Event</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="unauthorized-modal" id="unauthorizedModal">
+                <div class="unauthorized-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Access Denied</h3>
+                    <p>You don't have authorization to access this section. Please contact your administrator.</p>
+                    <button class="close-modal">OK</button>
+                </div>
+            </div>
+
+            <script src="{% static 'js/server/servereventstmanagement.js' %}"></script>
+            <script>
+                const csrfToken = "{{ csrf_token|escapejs }}";
+                const upcomingData = JSON.parse('{{ upcoming_json|escapejs }}');
+                const ongoingData = JSON.parse('{{ ongoing_json|escapejs }}');
+                const completedData = JSON.parse('{{ completed_json|escapejs }}');
+                
+                const eventsData = [...upcomingData, ...ongoingData, ...completedData];
+            </script>
         </div>
     </div>
-
-    <div class="unauthorized-modal" id="unauthorizedModal">
-        <div class="unauthorized-content">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h3>Access Denied</h3>
-            <p>You don't have authorization to access this section. Please contact your administrator.</p>
-            <button class="close-modal">OK</button>
-        </div>
-    </div>
-
-    <script src="{% static 'js/server/servereventstmanagement.js' %}"></script>
-    <script>
-        const csrfToken = "{{ csrf_token|escapejs }}";
-        const eventsData = JSON.parse('{{ events_json|escapejs }}');
-    </script>
 </body>
 </html>

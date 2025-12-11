@@ -69,12 +69,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    let userChart = null;
+    let eventChart = null;
+    
+    function getWeekDates() {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(now.setDate(diff));
+        
+        const weekDates = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            weekDates.push(date);
+        }
+        return weekDates;
+    }
+    
+    function getMonthNames() {
+        return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    }
+    
+    function getYears() {
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let i = 0; i < 10; i++) {
+            years.push(currentYear - i);
+        }
+        return years.reverse();
+    }
+    
     function initializeCharts() {
         const userCtx = document.getElementById('userRegistrationChart').getContext('2d');
-        const userChart = new Chart(userCtx, {
+        userChart = new Chart(userCtx, {
             type: 'line',
             data: {
-                labels: dashboardData.userRegistration.labels,
+                labels: getMonthNames(),
                 datasets: [{
                     label: 'User Registrations',
                     data: dashboardData.userRegistration.data,
@@ -120,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         const eventCtx = document.getElementById('eventParticipationChart').getContext('2d');
-        const eventChart = new Chart(eventCtx, {
+        eventChart = new Chart(eventCtx, {
             type: 'bar',
             data: {
                 labels: dashboardData.eventParticipation.labels,
@@ -365,13 +396,39 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (userChartFilter) {
             userChartFilter.addEventListener('change', function() {
-                console.log('User chart filter changed to:', this.value);
+                const value = this.value;
+                if (value === 'week') {
+                    const weekDates = getWeekDates();
+                    const labels = weekDates.map(date => {
+                        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        return dayNames[date.getDay()];
+                    });
+                    userChart.data.labels = labels;
+                } else if (value === 'year') {
+                    userChart.data.labels = getMonthNames();
+                } else if (value === 'annual') {
+                    userChart.data.labels = getYears();
+                }
+                userChart.update();
             });
         }
         
         if (eventChartFilter) {
             eventChartFilter.addEventListener('change', function() {
-                console.log('Event chart filter changed to:', this.value);
+                const value = this.value;
+                if (value === 'week') {
+                    const weekDates = getWeekDates();
+                    const labels = weekDates.map(date => {
+                        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        return dayNames[date.getDay()];
+                    });
+                    eventChart.data.labels = labels;
+                } else if (value === 'year') {
+                    eventChart.data.labels = getMonthNames();
+                } else if (value === 'annual') {
+                    eventChart.data.labels = getYears();
+                }
+                eventChart.update();
             });
         }
     }

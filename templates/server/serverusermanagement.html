@@ -531,10 +531,24 @@
                         <form id="rejectUserForm">
                             <input type="hidden" id="rejectUserId" name="user_id">
                             <div class="form-group">
-                                <label for="rejectReason">Reason for Rejection</label>
+                                <label for="rejectionReason">Select Rejection Reason</label>
+                                <div class="input-group">
+                                    <i class="fas fa-list"></i>
+                                    <select id="rejectionReason" name="rejection_reason" required>
+                                        <option value="">Choose a reason...</option>
+                                        <option value="Age not within Youth Age range (not 15-30 years old)">Age not within Youth Age range (not 15-30 years old)</option>
+                                        <option value="Not a resident or lacks proof of residency in the barangay">Not a resident or lacks proof of residency in the barangay</option>
+                                        <option value="Incorrect or falsified information">Incorrect or falsified information</option>
+                                        <option value="Duplicate profile">Duplicate profile</option>
+                                        <option value="Unsupported or unverified documents">Unsupported or unverified documents</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="additionalMessage">Additional Message (Optional)</label>
                                 <div class="input-group">
                                     <i class="fas fa-comment-alt"></i>
-                                    <textarea id="rejectReason" name="reject_reason" placeholder="Please provide a reason for rejecting this user's verification..." rows="4" required></textarea>
+                                    <textarea id="additionalMessage" name="additional_message" placeholder="Add any additional details or clarifications..." rows="4"></textarea>
                                 </div>
                                 <div class="form-help">
                                     <i class="fas fa-info-circle"></i>

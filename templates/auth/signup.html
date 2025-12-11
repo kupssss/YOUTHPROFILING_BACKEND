@@ -75,9 +75,9 @@
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="purokZone">Sitio/Purok <span class="required">*</span></label>
+                                <label for="purokZone">Purok/Sitio <span class="required">*</span></label>
                                 <select id="purokZone" name="purokZone" required>
-                                    <option value="">Select Zone</option>
+                                    <option value="">Select Purok/Sitio</option>
                                     <option value="AgnesVille">AgnesVille</option>
                                     <option value="Bagong Bayan">Bagong Bayan</option>
                                     <option value="Balon/Labajan">Balon/Labajan</option>
@@ -131,9 +131,9 @@
                                 <label for="gender">Gender <span class="required">*</span></label>
                                 <select id="gender" name="gender" required>
                                     <option value="">Select Gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
+                                    {% for gender in genders %}
+                                    <option value="{{ gender.id }}">{{ gender.name }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -236,10 +236,9 @@
                             <label for="civilStatus">Civil Status <span class="required">*</span></label>
                             <select id="civilStatus" name="civilStatus" required>
                                 <option value="">Select Civil Status</option>
-                                <option value="Single">Single</option>
-                                <option value="Married">Married</option>
-                                <option value="Widowed">Widowed</option>
-                                <option value="Separated">Separated</option>
+                                {% for status in civil_statuses %}
+                                <option value="{{ status.id }}">{{ status.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
@@ -252,11 +251,9 @@
                             <label for="education">Educational Background <span class="required">*</span></label>
                             <select id="education" name="education" required>
                                 <option value="">Select Education</option>
-                                <option value="Elementary">Elementary</option>
-                                <option value="High School">High School</option>
-                                <option value="College">College</option>
-                                <option value="Vocational">Vocational/Tech</option>
-                                <option value="Postgraduate">Postgraduate</option>
+                                {% for level in education_levels %}
+                                <option value="{{ level.id }}">{{ level.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
@@ -264,10 +261,9 @@
                             <label for="youthClassification">Youth Classification <span class="required">*</span></label>
                             <select id="youthClassification" name="youthClassification" required>
                                 <option value="">Select Classification</option>
-                                <option value="Student">Student</option>
-                                <option value="Working">Working</option>
-                                <option value="Out-of-School">Out-of-School Youth</option>
-                                <option value="NEET">Not in Education, Employment or Training</option>
+                                {% for classification in youth_classifications %}
+                                <option value="{{ classification.id }}">{{ classification.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
@@ -275,10 +271,9 @@
                             <label for="workStatus">Work Status <span class="required">*</span></label>
                             <select id="workStatus" name="workStatus" required>
                                 <option value="">Select Work Status</option>
-                                <option value="Employed">Employed</option>
-                                <option value="Unemployed">Unemployed</option>
-                                <option value="Self-Employed">Self-Employed</option>
-                                <option value="Student">Student</option>
+                                {% for status in work_statuses %}
+                                <option value="{{ status.id }}">{{ status.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         
@@ -352,17 +347,16 @@
                         </div>
                         
                         <div class="form-group">
-    <label for="profilePicture">Profile Picture <span class="required">*</span></label>
-    <div class="file-upload">
-        <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required>
-        <label for="profilePicture" class="file-upload-label">
-            <i class="fas fa-upload"></i> Choose File
-        </label>
-        <span class="file-name">No file chosen</span>
-    </div>
-</div>
+                            <label for="profilePicture">Profile Picture <span class="required">*</span></label>
+                            <div class="file-upload">
+                                <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required>
+                                <label for="profilePicture" class="file-upload-label">
+                                    <i class="fas fa-upload"></i> Choose File
+                                </label>
+                                <span class="file-name">No file chosen</span>
+                            </div>
+                        </div>
 
-                        
                         <div class="form-group">
                             <label for="idType">ID Type <span class="required">*</span></label>
                             <select id="idType" name="idType" required>
@@ -393,15 +387,15 @@
                         </div>
                         
                         <div class="form-group">
-    <label for="birthCertificate">Birth Certificate <span class="required">*</span></label>
-    <div class="file-upload">
-        <input type="file" id="birthCertificate" name="birthCertificate" accept="image/*,.pdf" required>
-        <label for="birthCertificate" class="file-upload-label">
-            <i class="fas fa-upload"></i> Choose File
-        </label>
-        <span class="file-name">No file chosen</span>
-    </div>
-</div>
+                            <label for="birthCertificate">Birth Certificate <span class="optional">(Optional)</span></label>
+                            <div class="file-upload">
+                                <input type="file" id="birthCertificate" name="birthCertificate" accept="image/*,.pdf">
+                                <label for="birthCertificate" class="file-upload-label">
+                                    <i class="fas fa-upload"></i> Choose File
+                                </label>
+                                <span class="file-name">No file chosen</span>
+                            </div>
+                        </div>
                         
                         <div class="segment-navigation">
                             <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
