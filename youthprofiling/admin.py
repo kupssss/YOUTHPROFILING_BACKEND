@@ -12,7 +12,7 @@ from django.utils import timezone
 from django import forms
 from cryptography.fernet import Fernet, InvalidToken
 import base64
-from .models import YouthUser, UserLog, UserArchive, AuditLog, CommunityPoints, PointsHistory
+from .models import YouthUser, UserLog, UserArchive, AuditLog, CommunityPoints, PointsHistory, UserNotification,AttendanceViolation
 
 fernet = Fernet(settings.ENCRYPTION_KEY)
 
@@ -24,12 +24,26 @@ class DecryptionForm(forms.Form):
     )
 
 class YouthUserAdmin(admin.ModelAdmin):
-    list_display = ('registration_no', 'get_full_name', 'email', 'age_group', 'waitlist_status', 'is_email_verified', 'is_admin_verified', 'is_active', 'get_community_points', 'no_show_count', 'last_no_show_date', 'admin_verification_actions')
-    list_filter = ('waitlist_status', 'is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender', 'purok_zone', 'no_show_count')
+    # Fixed list_display: All methods are defined in the admin class
+    list_display = ('registration_no', 'get_full_name', 'email', 'get_age_group', 
+                    'get_waitlist_status', 'get_email_verified', 'get_admin_verified', 
+                    'get_is_active', 'get_community_points', 'get_no_show_count', 
+                    'get_last_no_show_date', 'admin_verification_actions')
+    
+    # Fixed list_filter: Using proper Django admin lookup strings
+    list_filter = ('waitlist_status', 'is_email_verified', 'is_admin_verified', 
+                   'is_active', 'age_group', 'civil_status', 'work_status', 
+                   'gender', 'purok_zone', 'no_show_count')
+    
     search_fields = ('username', 'email', 'first_name', 'last_name', 'registration_no')
-    readonly_fields = ('registration_no', 'created_at', 'updated_at', 'last_login', 'get_encrypted_data_display',
-                      'is_email_verified', 'email_verification_date', 'admin_verification_date', 'get_community_points',
-                      'no_show_count', 'last_no_show_date', 'waitlist_date')
+    
+    # Fixed readonly_fields: Only include actual model fields or custom admin methods
+    readonly_fields = ('registration_no', 'created_at', 'updated_at', 'last_login',
+                      'email_verification_date', 'admin_verification_date',
+                      'no_show_count', 'last_no_show_date', 'waitlist_date',
+                      'get_encrypted_data_display', 'get_community_points_admin',
+                      'get_violation_count', 'get_violation_history',
+                      'get_is_email_verified', 'get_is_admin_verified')
     
     fieldsets = (
         ('Login Credentials', {
@@ -48,8 +62,8 @@ class YouthUserAdmin(admin.ModelAdmin):
         ('Waitlist Status', {
             'fields': ('waitlist_status', 'waitlist_reason', 'waitlist_date')
         }),
-        ('No-Show Tracking', {
-            'fields': ('no_show_count', 'last_no_show_date'),
+        ('Attendance Tracking', {
+            'fields': ('no_show_count', 'last_no_show_date', 'get_violation_count', 'get_violation_history'),
             'classes': ('collapse',)
         }),
         ('Parent Consent Information (Ages 15-17)', {
@@ -62,7 +76,7 @@ class YouthUserAdmin(admin.ModelAdmin):
                       'is_admin_verified', 'admin_verification_date', 'is_active')
         }),
         ('Community Points', {
-            'fields': ('get_community_points',)
+            'fields': ('get_community_points_admin',)
         }),
         ('Documents', {
             'fields': ('profile_picture', 'id_type', 'id_picture', 'birth_certificate')
@@ -77,15 +91,119 @@ class YouthUserAdmin(admin.ModelAdmin):
                'archive_and_delete_selected_users', 'add_points_to_users',
                'deduct_points_from_users', 'reset_no_show_counts',
                'add_to_waitlist', 'remove_from_waitlist', 'approve_waitlist',
-               'reject_waitlist', 'request_more_info_waitlist']
+               'reject_waitlist', 'request_more_info_waitlist',
+               'add_no_show_offense', 'clear_attendance_violations']
     
+    # Custom methods for list_display
     def get_full_name(self, obj):
         return obj.get_full_name()
     get_full_name.short_description = 'Full Name'
+    get_full_name.admin_order_field = 'first_name'
+    
+    def get_age_group(self, obj):
+        return obj.age_group
+    get_age_group.short_description = 'Age Group'
+    get_age_group.admin_order_field = 'age_group'
+    
+    def get_waitlist_status(self, obj):
+        if obj.waitlist_status:
+            status_display = dict(obj.WAITLIST_STATUS_CHOICES).get(obj.waitlist_status, obj.waitlist_status)
+            colors = {
+                'pending': 'orange',
+                'approved': 'green',
+                'rejected': 'red',
+                'needs_info': 'blue'
+            }
+            color = colors.get(obj.waitlist_status, 'black')
+            return format_html('<span style="color: {};">{}</span>', color, status_display)
+        return '-'
+    get_waitlist_status.short_description = 'Waitlist Status'
+    get_waitlist_status.admin_order_field = 'waitlist_status'
+    
+    def get_email_verified(self, obj):
+        color = 'green' if obj.is_email_verified else 'red'
+        text = 'Yes' if obj.is_email_verified else 'No'
+        return format_html('<span style="color: {};">{}</span>', color, text)
+    get_email_verified.short_description = 'Email Verified'
+    get_email_verified.admin_order_field = 'is_email_verified'
+    
+    def get_admin_verified(self, obj):
+        color = 'green' if obj.is_admin_verified else 'red'
+        text = 'Yes' if obj.is_admin_verified else 'No'
+        return format_html('<span style="color: {};">{}</span>', color, text)
+    get_admin_verified.short_description = 'Admin Verified'
+    get_admin_verified.admin_order_field = 'is_admin_verified'
+    
+    def get_is_active(self, obj):
+        color = 'green' if obj.is_active else 'red'
+        text = 'Active' if obj.is_active else 'Inactive'
+        return format_html('<span style="color: {};">{}</span>', color, text)
+    get_is_active.short_description = 'Status'
+    get_is_active.admin_order_field = 'is_active'
     
     def get_community_points(self, obj):
-        return obj.community_points
-    get_community_points.short_description = 'Community Points'
+        points = obj.community_points
+        color = 'green' if points >= 0 else 'red'
+        return format_html('<span style="color: {};">{}</span>', color, points)
+    get_community_points.short_description = 'Points'
+    
+    def get_no_show_count(self, obj):
+        color = 'red' if obj.no_show_count > 0 else 'green'
+        return format_html('<span style="color: {};">{}</span>', color, obj.no_show_count)
+    get_no_show_count.short_description = 'No-Show Count'
+    get_no_show_count.admin_order_field = 'no_show_count'
+    
+    def get_last_no_show_date(self, obj):
+        if obj.last_no_show_date:
+            return obj.last_no_show_date.strftime('%Y-%m-%d %H:%M')
+        return '-'
+    get_last_no_show_date.short_description = 'Last No-Show'
+    get_last_no_show_date.admin_order_field = 'last_no_show_date'
+    
+    # Custom methods for readonly_fields
+    def get_is_email_verified(self, obj):
+        return 'Yes' if obj.is_email_verified else 'No'
+    get_is_email_verified.short_description = 'Email Verified (Display)'
+    
+    def get_is_admin_verified(self, obj):
+        return 'Yes' if obj.is_admin_verified else 'No'
+    get_is_admin_verified.short_description = 'Admin Verified (Display)'
+    
+    def get_community_points_admin(self, obj):
+        points = obj.community_points
+        color = 'green' if points >= 0 else 'red'
+        return format_html('<span style="color: {}; font-weight: bold;">{}</span>', color, points)
+    get_community_points_admin.short_description = 'Community Points'
+    
+    def get_violation_count(self, obj):
+        count = AttendanceViolation.objects.filter(user=obj).count()
+        return format_html(
+            '<span style="color: {};">{}</span>',
+            'red' if count > 0 else 'green',
+            count
+        )
+    get_violation_count.short_description = 'Attendance Violations'
+    
+    def get_violation_history(self, obj):
+        violations = AttendanceViolation.objects.filter(user=obj).order_by('-created_at')
+        if not violations:
+            return "No attendance violations"
+        
+        html = '<div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">'
+        html += '<table style="width: 100%; font-size: 0.9em;">'
+        html += '<tr><th>Date</th><th>Type</th><th>Event</th></tr>'
+        
+        for violation in violations:
+            event_info = violation.event_registration.event.title if violation.event_registration and violation.event_registration.event else "N/A"
+            html += f'<tr>'
+            html += f'<td>{violation.created_at.strftime("%Y-%m-%d %H:%M")}</td>'
+            html += f'<td><span style="color: {"orange" if violation.violation_type == "first_offense" else "red" if violation.violation_type == "second_offense" else "darkred"}">{violation.get_violation_type_display()}</span></td>'
+            html += f'<td>{event_info}</td>'
+            html += f'</tr>'
+        
+        html += '</table></div>'
+        return format_html(html)
+    get_violation_history.short_description = 'Violation History'
     
     def admin_verification_actions(self, obj):
         return format_html(
@@ -115,7 +233,7 @@ class YouthUserAdmin(admin.ModelAdmin):
             try:
                 temp_fernet = Fernet(decryption_key.encode())
                 decrypted_data = {}
-                encrypted_fields = ['first_name', 'last_name', 'middle_name', 'suffix', 'address', 'birthdate', 'contact_number']
+                encrypted_fields = ['first_name', 'last_name', 'middle_name', 'suffix', 'address', 'birthdate', 'contact_number', 'parent_name', 'parent_contact_number']
                 
                 for field in encrypted_fields:
                     value = getattr(obj, field)
@@ -142,6 +260,8 @@ class YouthUserAdmin(admin.ModelAdmin):
                     'address': 'Address',
                     'birthdate': 'Birthdate',
                     'contact_number': 'Contact Number',
+                    'parent_name': 'Parent Name',
+                    'parent_contact_number': 'Parent Contact',
                 }
                 
                 for field, value in decrypted_data.items():
@@ -223,6 +343,25 @@ class YouthUserAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} users have been deactivated.")
     deactivate_selected_users.short_description = "Deactivate selected users"
     
+    def add_no_show_offense(self, request, queryset):
+        count = 0
+        for user in queryset:
+            user.add_no_show_offense()
+            count += 1
+        self.message_user(request, f"Added no-show offense to {count} users.")
+    add_no_show_offense.short_description = "Add no-show offense to selected users"
+    
+    def clear_attendance_violations(self, request, queryset):
+        count = 0
+        for user in queryset:
+            user.no_show_count = 0
+            user.last_no_show_date = None
+            user.save()
+            AttendanceViolation.objects.filter(user=user).delete()
+            count += 1
+        self.message_user(request, f"Cleared attendance violations for {count} users.")
+    clear_attendance_violations.short_description = "Clear attendance violations for selected users"
+    
     def add_to_waitlist(self, request, queryset):
         reason = request.POST.get('waitlist_reason', 'Added to waitlist by admin')
         count = 0
@@ -303,7 +442,8 @@ class YouthUserAdmin(admin.ModelAdmin):
     
     def reset_no_show_counts(self, request, queryset):
         updated = queryset.update(no_show_count=0, last_no_show_date=None)
-        self.message_user(request, f"Reset no-show counts for {updated} users.")
+        AttendanceViolation.objects.filter(user__in=queryset).delete()
+        self.message_user(request, f"Reset no-show counts and cleared violations for {updated} users.")
     reset_no_show_counts.short_description = "Reset no-show counts for selected users"
     
     def delete_model(self, request, obj):
@@ -346,6 +486,10 @@ class YouthUserAdmin(admin.ModelAdmin):
         )
         
         super().save_model(request, obj, form, change)
+
+# Register the admin class
+admin.site.register(YouthUser, YouthUserAdmin)
+    
 
 
 @admin.register(CommunityPoints)
@@ -460,8 +604,6 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
 
 
 
-
-admin.site.register(YouthUser, YouthUserAdmin)
 admin.site.register(OTPVerification, OTPVerificationAdmin)
 admin.site.register(AuditLog, AuditLogAdmin)
 
@@ -1145,3 +1287,81 @@ class DownloadAnalyticsAdmin(admin.ModelAdmin):
 admin.site.register(APKDownload, APKDownloadAdmin)
 admin.site.register(APKVersion, APKVersionAdmin)
 admin.site.register(DownloadAnalytics, DownloadAnalyticsAdmin)
+
+
+
+
+# Add this after all your existing admin registrations
+
+from django.contrib import admin
+from django.utils.html import format_html
+from django.utils import timezone
+
+@admin.register(UserNotification)
+class UserNotificationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'notification_type', 'short_title', 'is_read', 'created_at', 'view_related')
+    list_filter = ('notification_type', 'is_read', 'created_at')
+    search_fields = ('user__username', 'user__email', 'title', 'message')
+    readonly_fields = ('created_at',)
+    actions = ['mark_as_read', 'mark_as_unread']
+    date_hierarchy = 'created_at'
+    
+    def short_title(self, obj):
+        return obj.title[:50] + '...' if len(obj.title) > 50 else obj.title
+    short_title.short_description = 'Title'
+    
+    def view_related(self, obj):
+        if obj.related_event:
+            return format_html(
+                '<a href="/admin/app/event/{}/change/">View Event</a>',
+                obj.related_event.id
+            )
+        elif obj.related_announcement:
+            return format_html(
+                '<a href="/admin/app/announcement/{}/change/">View Announcement</a>',
+                obj.related_announcement.id
+            )
+        return '-'
+    view_related.short_description = 'Related Item'
+    
+    def mark_as_read(self, request, queryset):
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f"{updated} notifications marked as read.")
+    mark_as_read.short_description = "Mark selected notifications as read"
+    
+    def mark_as_unread(self, request, queryset):
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f"{updated} notifications marked as unread.")
+    mark_as_unread.short_description = "Mark selected notifications as unread"
+
+@admin.register(AttendanceViolation)
+
+
+class AttendanceViolationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'violation_type', 'event_info', 'violation_date', 'is_resolved', 'resolved_at')
+    list_filter = ('violation_type', 'is_resolved', 'violation_date')
+    search_fields = ('user__username', 'user__email', 'event_registration__event__title')
+    readonly_fields = ('violation_date', 'resolved_at')
+    actions = ['mark_as_resolved', 'mark_as_unresolved']
+    date_hierarchy = 'violation_date'
+    
+    def event_info(self, obj):
+        if obj.event_registration and obj.event_registration.event:
+            return format_html(
+                '{}<br><small style="color: #666;">{}</small>',
+                obj.event_registration.event.title,
+                obj.event_registration.event.start_date.strftime('%Y-%m-%d')
+            )
+        return '-'
+    event_info.short_description = 'Event'
+    event_info.admin_order_field = 'event_registration__event__title'
+    
+    def mark_as_resolved(self, request, queryset):
+        updated = queryset.update(is_resolved=True, resolved_at=timezone.now())
+        self.message_user(request, f"{updated} violations marked as resolved.")
+    mark_as_resolved.short_description = "Mark selected violations as resolved"
+    
+    def mark_as_unresolved(self, request, queryset):
+        updated = queryset.update(is_resolved=False, resolved_at=None)
+        self.message_user(request, f"{updated} violations marked as unresolved.")
+    mark_as_unresolved.short_description = "Mark selected violations as unresolved"

@@ -196,6 +196,13 @@ urlpatterns = [
 
 
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    
+    
+    path('api/notifications/', views.get_user_notifications, name='get_user_notifications'),
+    path('api/notifications/mark-read/', views.mark_notification_read, name='mark_notification_read'),
+    path('api/notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('api/notifications/delete/', views.delete_notification, name='delete_notification'),
+    path('api/notifications/unread-count/', views.get_unread_count, name='get_unread_count'),
 ]
 
 if settings.DEBUG:

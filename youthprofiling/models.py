@@ -177,14 +177,14 @@ class YouthUser(models.Model):
     id_type = models.CharField(max_length=50, choices=ID_TYPE_CHOICES, default='Student ID')
     id_picture = models.ImageField(upload_to='id_pictures/')
     birth_certificate = models.FileField(upload_to='birth_certificates/', blank=True, null=True)
-
+    
     parent_consent_letter = models.FileField(upload_to='parent_consents/', blank=True, null=True)
     parent_id_picture = models.ImageField(upload_to='parent_ids/', blank=True, null=True)
     parent_name = EncryptedField(max_length=255, blank=True, null=True)
     parent_contact_number = EncryptedField(max_length=15, blank=True, null=True)
     parent_relationship = models.CharField(max_length=50, blank=True, null=True)
     consent_date = models.DateField(blank=True, null=True)
-
+    
     is_email_verified = models.BooleanField(default=False)
     email_verification_date = models.DateTimeField(blank=True, null=True)
     
@@ -210,7 +210,7 @@ class YouthUser(models.Model):
     
     no_show_count = models.PositiveIntegerField(default=0)
     last_no_show_date = models.DateTimeField(blank=True, null=True)
-
+    
     shown_modals = models.JSONField(default=dict, blank=True)
     
     class Meta:
@@ -298,6 +298,8 @@ class YouthUser(models.Model):
     @property
     def community_points(self):
         try:
+            # Import here to avoid circular imports
+            from .models import CommunityPoints
             return self.points.points
         except CommunityPoints.DoesNotExist:
             points = CommunityPoints.objects.create(user=self, points=100)
@@ -306,7 +308,38 @@ class YouthUser(models.Model):
     def add_no_show_offense(self, event_registration=None):
         self.no_show_count += 1
         self.last_no_show_date = timezone.now()
-        self.save()
+        
+        if self.no_show_count == 1:
+            violation_type = 'first_offense'
+            notification_title = "Attendance Warning - First Offense"
+            notification_message = "You missed an event you registered for. Please be mindful of your commitments. A second no-show will result in points deduction."
+            
+        elif self.no_show_count == 2:
+            violation_type = 'second_offense'
+            notification_title = "Attendance Warning - Second Offense"
+            notification_message = "You have missed your second event. 100 points have been deducted from your account. One more no-show may result in account deactivation."
+            
+        else:
+            violation_type = 'deactivation_warning'
+            notification_title = "Account Deactivation Warning"
+            notification_message = "You have missed multiple events. Your account is at risk of deactivation. Please contact SK Mambugan administration."
+        
+        # Import here to avoid circular imports
+        from .models import AttendanceViolation, UserNotification, CommunityPoints, PointsHistory
+        
+        AttendanceViolation.objects.create(
+            user=self,
+            event_registration=event_registration,
+            violation_type=violation_type
+        )
+        
+        UserNotification.objects.create(
+            user=self,
+            notification_type='attendance_warning' if self.no_show_count < 3 else 'deactivation_warning',
+            title=notification_title,
+            message=notification_message,
+            related_event=event_registration.event if event_registration else None
+        )
         
         community_points, created = CommunityPoints.objects.get_or_create(
             user=self,
@@ -361,7 +394,8 @@ class YouthUser(models.Model):
                 )
             self.no_show_count = 0
             self.last_no_show_date = None
-            self.save()
+        
+        self.save()
     
     def reset_no_show_count(self):
         self.no_show_count = 0
@@ -395,8 +429,19 @@ class YouthUser(models.Model):
                 is_email_verified=True,
                 is_admin_verified=True
             )
+            # Import here to avoid circular imports
+            from .models import CommunityPoints
             CommunityPoints.objects.create(user=admin_user, points=1000)
         return admin_user
+    
+    # Add this method to fix the age_group property issue
+    @property
+    def age_group_display(self):
+        return dict(self.AGE_GROUP_CHOICES).get(self.age_group, self.age_group)
+    
+    # Add this method if you want to use it in admin
+    def get_community_points_display(self):
+        return self.community_points
     
 class CommunityPoints(models.Model):
     user = models.OneToOneField(YouthUser, on_delete=models.CASCADE, related_name='points')
@@ -1539,3 +1584,150 @@ def update_download_counts(sender, instance, **kwargs):
     analytics.direct_downloads = APKDownload.objects.filter(download_method='direct').count()
     analytics.button_downloads = APKDownload.objects.filter(download_method='button').count()
     analytics.save()
+
+
+
+
+
+class UserNotification(models.Model):
+    """Model for storing user notifications"""
+    NOTIFICATION_TYPES = [
+        ('announcement', 'New Announcement'),
+        ('event', 'New Event'),
+        ('points', 'Points Earned'),
+        ('registration', 'Registration Status'),
+        ('attendance_warning', 'Attendance Warning'),
+        ('deactivation_warning', 'Account Deactivation Warning'),
+        ('system', 'System Notification'),
+    ]
+    
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    related_event = models.ForeignKey('Event', on_delete=models.SET_NULL, null=True, blank=True)
+    related_announcement = models.ForeignKey('Announcement', on_delete=models.SET_NULL, null=True, blank=True)
+    points_change = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "User Notification"
+        verbose_name_plural = "User Notifications"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.notification_type} - {self.user.username}"
+
+
+class AttendanceViolation(models.Model):
+    """Track attendance violations for deactivation warnings"""
+    user = models.ForeignKey(YouthUser, on_delete=models.CASCADE, related_name='attendance_violations')
+    event_registration = models.ForeignKey('EventRegistration', on_delete=models.CASCADE)
+    violation_type = models.CharField(max_length=20, choices=[
+        ('first_offense', 'First No-Show'),
+        ('second_offense', 'Second No-Show'),
+        ('deactivation_warning', 'Deactivation Warning'),
+    ])
+    violation_date = models.DateTimeField(auto_now_add=True)
+    is_resolved = models.BooleanField(default=False)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Attendance Violation"
+        verbose_name_plural = "Attendance Violations"
+        ordering = ['-violation_date']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.violation_type}"
+
+
+
+def add_no_show_offense(self, event_registration=None):
+    self.no_show_count += 1
+    self.last_no_show_date = timezone.now()
+    
+    if self.no_show_count == 1:
+        violation_type = 'first_offense'
+        notification_title = "Attendance Warning - First Offense"
+        notification_message = "You missed an event you registered for. Please be mindful of your commitments. A second no-show will result in points deduction."
+        
+    elif self.no_show_count == 2:
+        violation_type = 'second_offense'
+        notification_title = "Attendance Warning - Second Offense"
+        notification_message = "You have missed your second event. 100 points have been deducted from your account. One more no-show may result in account deactivation."
+        
+    else:  
+        violation_type = 'deactivation_warning'
+        notification_title = "Account Deactivation Warning"
+        notification_message = "You have missed multiple events. Your account is at risk of deactivation. Please contact SK Mambugan administration."
+    
+    AttendanceViolation.objects.create(
+        user=self,
+        event_registration=event_registration,
+        violation_type=violation_type
+    )
+    
+    UserNotification.objects.create(
+        user=self,
+        notification_type='attendance_warning' if self.no_show_count < 3 else 'deactivation_warning',
+        title=notification_title,
+        message=notification_message,
+        related_event=event_registration.event if event_registration else None
+    )
+    
+    community_points, created = CommunityPoints.objects.get_or_create(
+        user=self,
+        defaults={'points': 100}
+    )
+    current_points = community_points.points
+    
+    if self.no_show_count == 1:
+        PointsHistory.objects.create(
+            user=self,
+            points_change=0,
+            new_balance=current_points,
+            reason="First no-show offense - Warning"
+        )
+    elif self.no_show_count == 2:
+        if current_points >= 100:
+            community_points.points -= 100
+            community_points.save()
+            PointsHistory.objects.create(
+                user=self,
+                points_change=-100,
+                new_balance=community_points.points,
+                reason="Second no-show offense - 100 points deducted"
+            )
+        else:
+            community_points.points = 0
+            community_points.save()
+            PointsHistory.objects.create(
+                user=self,
+                points_change=-current_points,
+                new_balance=0,
+                reason="Second no-show offense - All points deducted"
+            )
+    elif self.no_show_count >= 3:
+        if current_points > 0:
+            community_points.points = 0
+            community_points.save()
+            PointsHistory.objects.create(
+                user=self,
+                points_change=-current_points,
+                new_balance=0,
+                reason="Third no-show offense - All points removed"
+            )
+        else:
+            community_points.points = -50
+            community_points.save()
+            PointsHistory.objects.create(
+                user=self,
+                points_change=-50,
+                new_balance=-50,
+                reason="Third no-show offense - 50 points penalty"
+            )
+        self.no_show_count = 0
+        self.last_no_show_date = None
+    
+    self.save()

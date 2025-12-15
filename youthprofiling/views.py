@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from django.utils import timezone
-from .models import YouthUser, OTPVerification, UserLog, UserArchive
+from .models import YouthUser, OTPVerification, UserLog, UserArchive, UserNotification,AttendanceViolation
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
@@ -458,9 +458,7 @@ def check_email(request):
 
 
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime
+
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -6714,3 +6712,291 @@ def server_update_faq_guideline_order(request):
         return JsonResponse({'success': False, 'message': 'Item not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+
+
+
+
+
+
+
+
+
+
+
+
+
+from django.utils import timezone
+from datetime import timedelta
+import json
+
+@csrf_exempt
+def get_user_notifications(request):
+    """Get all notifications for a user"""
+    if request.method == 'GET':
+        user_id = request.GET.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': 'User ID required'}, status=400)
+        
+        try:
+            user = YouthUser.objects.get(id=user_id, is_active=True)
+        except YouthUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        
+        unread_count = UserNotification.objects.filter(
+            user=user, 
+            is_read=False
+        ).count()
+        
+        notifications = UserNotification.objects.filter(
+            user=user
+        ).order_by('-created_at')[:50]
+        
+        notifications_data = []
+        for notification in notifications:
+            notifications_data.append({
+                'id': notification.id,
+                'type': notification.notification_type,
+                'title': notification.title,
+                'message': notification.message,
+                'is_read': notification.is_read,
+                'created_at': notification.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'time_ago': get_time_ago(notification.created_at),
+                'related_event_id': notification.related_event_id,
+                'related_announcement_id': notification.related_announcement_id,
+                'points_change': notification.points_change,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'unread_count': unread_count,
+            'notifications': notifications_data,
+        })
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@csrf_exempt
+def mark_notification_read(request):
+    """Mark a notification as read"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        notification_id = data.get('notification_id')
+        user_id = data.get('user_id')
+        
+        if not notification_id or not user_id:
+            return JsonResponse({'error': 'Notification ID and User ID required'}, status=400)
+        
+        try:
+            notification = UserNotification.objects.get(
+                id=notification_id,
+                user_id=user_id
+            )
+            notification.is_read = True
+            notification.save()
+            
+            return JsonResponse({'success': True})
+        except UserNotification.DoesNotExist:
+            return JsonResponse({'error': 'Notification not found'}, status=404)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@csrf_exempt
+def mark_all_notifications_read(request):
+    """Mark all notifications as read for a user"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return JsonResponse({'error': 'User ID required'}, status=400)
+        
+        try:
+            user = YouthUser.objects.get(id=user_id, is_active=True)
+            UserNotification.objects.filter(user=user, is_read=False).update(is_read=True)
+            
+            return JsonResponse({'success': True})
+        except YouthUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@csrf_exempt
+def delete_notification(request):
+    """Delete a notification"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        notification_id = data.get('notification_id')
+        user_id = data.get('user_id')
+        
+        if not notification_id or not user_id:
+            return JsonResponse({'error': 'Notification ID and User ID required'}, status=400)
+        
+        try:
+            notification = UserNotification.objects.get(
+                id=notification_id,
+                user_id=user_id
+            )
+            notification.delete()
+            
+            return JsonResponse({'success': True})
+        except UserNotification.DoesNotExist:
+            return JsonResponse({'error': 'Notification not found'}, status=404)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@csrf_exempt
+def get_unread_count(request):
+    """Get unread notifications count"""
+    if request.method == 'GET':
+        user_id = request.GET.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': 'User ID required'}, status=400)
+        
+        try:
+            user = YouthUser.objects.get(id=user_id, is_active=True)
+            unread_count = UserNotification.objects.filter(user=user, is_read=False).count()
+            
+            return JsonResponse({
+                'success': True,
+                'unread_count': unread_count
+            })
+        except YouthUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+def get_time_ago(created_at):
+    """Helper function to get human-readable time ago"""
+    now = timezone.now()
+    diff = now - created_at
+    
+    if diff.days > 365:
+        years = diff.days // 365
+        return f"{years} year{'s' if years > 1 else ''} ago"
+    elif diff.days > 30:
+        months = diff.days // 30
+        return f"{months} month{'s' if months > 1 else ''} ago"
+    elif diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        return f"{hours} hour{'s' if hours > 1 else ''} ago"
+    elif diff.seconds > 60:
+        minutes = diff.seconds // 60
+        return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+    else:
+        return "Just now"
+
+
+
+def create_event_notification(user, event, notification_type='event'):
+    """Create notification for new event"""
+    UserNotification.objects.create(
+        user=user,
+        notification_type=notification_type,
+        title="New Event Available",
+        message=f"A new event '{event.title}' has been posted. Register now!",
+        related_event=event
+    )
+
+
+def create_announcement_notification(user, announcement):
+    """Create notification for new announcement"""
+    UserNotification.objects.create(
+        user=user,
+        notification_type='announcement',
+        title="New Announcement",
+        message=f"New announcement: {announcement.title}",
+        related_announcement=announcement
+    )
+
+
+def create_points_notification(user, points_change, reason=""):
+    """Create notification for points change"""
+    if points_change > 0:
+        title = "Points Earned!"
+        message = f"You earned {points_change} points. {reason}"
+    else:
+        title = "Points Deducted"
+        message = f"You lost {abs(points_change)} points. {reason}"
+    
+    UserNotification.objects.create(
+        user=user,
+        notification_type='points',
+        title=title,
+        message=message,
+        points_change=points_change
+    )
+
+
+def create_registration_notification(user, event, status):
+    """Create notification for registration status change"""
+    status_messages = {
+        'confirmed': "Your registration has been confirmed!",
+        'waitlisted': "You've been added to the waitlist.",
+        'cancelled': "Your registration has been cancelled.",
+        'attended': "Thank you for attending the event!",
+    }
+    
+    UserNotification.objects.create(
+        user=user,
+        notification_type='registration',
+        title=f"Event Registration Update - {event.title}",
+        message=status_messages.get(status, "Your registration status has changed."),
+        related_event=event
+    )
+
+
+def mark_attended_with_notification(self):
+    if self.status != 'attended':
+        self.status = 'attended'
+        self.check_in_time = timezone.now()
+        
+        if self.points_earned == 0 and self.event.points_reward > 0:
+            self.points_earned = self.event.points_reward
+            
+            community_points, created = CommunityPoints.objects.get_or_create(
+                user=self.user,
+                defaults={'points': 100}
+            )
+            
+            community_points.add_points(self.event.points_reward, f"Event attendance: {self.event.title}")
+            
+            create_points_notification(
+                self.user,
+                self.event.points_reward,
+                f"For attending: {self.event.title}"
+            )
+        
+        UserNotification.objects.create(
+            user=self.user,
+            notification_type='registration',
+            title="Event Attendance Confirmed",
+            message=f"You have successfully checked in for: {self.event.title}",
+            related_event=self.event
+        )
+        
+        self.save()
+        return True
+    return False
+
+def mark_no_show_with_notification(self):
+    if self.status != 'no_show':
+        old_status = self.status
+        self.status = 'no_show'
+        
+        if self.points_earned > 0:
+            try:
+                community_points = CommunityPoints.objects.get(user=self.user)
+                community_points.deduct_points(
+                    self.points_earned, 
+                    f"No-show penalty for: {self.event.title}"
+                )
+            except CommunityPoints.DoesNotExist:
+                pass
+            self.points_earned = 0
+        
+        self.user.add_no_show_offense(self)
+        
+        self.save()
+        return True
+    return False
