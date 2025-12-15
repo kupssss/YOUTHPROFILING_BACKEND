@@ -24,12 +24,12 @@ class DecryptionForm(forms.Form):
     )
 
 class YouthUserAdmin(admin.ModelAdmin):
-    list_display = ('registration_no', 'get_full_name', 'email', 'age_group', 'is_email_verified', 'is_admin_verified', 'is_active', 'get_community_points', 'no_show_count', 'last_no_show_date', 'admin_verification_actions')
-    list_filter = ('is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender', 'purok_zone', 'no_show_count')
+    list_display = ('registration_no', 'get_full_name', 'email', 'age_group', 'waitlist_status', 'is_email_verified', 'is_admin_verified', 'is_active', 'get_community_points', 'no_show_count', 'last_no_show_date', 'admin_verification_actions')
+    list_filter = ('waitlist_status', 'is_email_verified', 'is_admin_verified', 'is_active', 'age_group', 'civil_status', 'work_status', 'gender', 'purok_zone', 'no_show_count')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'registration_no')
     readonly_fields = ('registration_no', 'created_at', 'updated_at', 'last_login', 'get_encrypted_data_display',
                       'is_email_verified', 'email_verification_date', 'admin_verification_date', 'get_community_points',
-                      'no_show_count', 'last_no_show_date')
+                      'no_show_count', 'last_no_show_date', 'waitlist_date')
     
     fieldsets = (
         ('Login Credentials', {
@@ -44,6 +44,9 @@ class YouthUserAdmin(admin.ModelAdmin):
         }),
         ('Contact Information', {
             'fields': ('purok_zone', 'contact_number')
+        }),
+        ('Waitlist Status', {
+            'fields': ('waitlist_status', 'waitlist_reason', 'waitlist_date')
         }),
         ('No-Show Tracking', {
             'fields': ('no_show_count', 'last_no_show_date'),
@@ -72,7 +75,9 @@ class YouthUserAdmin(admin.ModelAdmin):
     actions = ['verify_selected_users', 'unverify_selected_users', 
                'activate_selected_users', 'deactivate_selected_users',
                'archive_and_delete_selected_users', 'add_points_to_users',
-               'deduct_points_from_users', 'reset_no_show_counts']
+               'deduct_points_from_users', 'reset_no_show_counts',
+               'add_to_waitlist', 'remove_from_waitlist', 'approve_waitlist',
+               'reject_waitlist', 'request_more_info_waitlist']
     
     def get_full_name(self, obj):
         return obj.get_full_name()
@@ -217,6 +222,52 @@ class YouthUserAdmin(admin.ModelAdmin):
         updated = queryset.update(is_active=False)
         self.message_user(request, f"{updated} users have been deactivated.")
     deactivate_selected_users.short_description = "Deactivate selected users"
+    
+    def add_to_waitlist(self, request, queryset):
+        reason = request.POST.get('waitlist_reason', 'Added to waitlist by admin')
+        count = 0
+        for user in queryset:
+            user.add_to_waitlist(reason=reason)
+            count += 1
+        self.message_user(request, f"{count} users have been added to waitlist.")
+    add_to_waitlist.short_description = "Add to waitlist"
+    
+    def remove_from_waitlist(self, request, queryset):
+        count = 0
+        for user in queryset:
+            user.remove_from_waitlist()
+            count += 1
+        self.message_user(request, f"{count} users have been removed from waitlist.")
+    remove_from_waitlist.short_description = "Remove from waitlist"
+    
+    def approve_waitlist(self, request, queryset):
+        count = 0
+        for user in queryset:
+            if user.is_on_waitlist:
+                user.approve_waitlist()
+                count += 1
+        self.message_user(request, f"{count} waitlisted users have been approved.")
+    approve_waitlist.short_description = "Approve waitlisted users"
+    
+    def reject_waitlist(self, request, queryset):
+        reason = request.POST.get('rejection_reason', 'Rejected by admin')
+        count = 0
+        for user in queryset:
+            if user.is_on_waitlist:
+                user.reject_waitlist(reason=reason)
+                count += 1
+        self.message_user(request, f"{count} waitlisted users have been rejected.")
+    reject_waitlist.short_description = "Reject waitlisted users"
+    
+    def request_more_info_waitlist(self, request, queryset):
+        reason = request.POST.get('info_request_reason', 'More information needed')
+        count = 0
+        for user in queryset:
+            if user.is_on_waitlist:
+                user.request_more_info_waitlist(reason=reason)
+                count += 1
+        self.message_user(request, f"{count} waitlisted users have been requested for more information.")
+    request_more_info_waitlist.short_description = "Request more info for waitlisted users"
     
     def add_points_to_users(self, request, queryset):
         points = request.POST.get('points', 100)

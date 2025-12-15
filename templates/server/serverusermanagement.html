@@ -137,7 +137,6 @@
             </div>
         </div>
 
-
         <div class="server-main-content">
             <header class="management-header">
                 <div class="header-left">
@@ -228,11 +227,11 @@
                     </div>
                     <div class="stat-item">
                         <div class="stat-icon">
-                            <i class="fas fa-chart-pie"></i>
+                            <i class="fas fa-hourglass-half"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>{{ all_users.count|intcomma }}</h3>
-                            <p>Total Accounts</p>
+                            <h3>{{ waitlist_users.count|intcomma }}</h3>
+                            <p>Waitlist</p>
                         </div>
                     </div>
                 </div>
@@ -243,6 +242,11 @@
                             <i class="fas fa-user-clock"></i>
                             Pending Verification
                             <span class="badge">{{ pending_verification.count }}</span>
+                        </button>
+                        <button class="tab-btn" data-tab="waitlist">
+                            <i class="fas fa-hourglass-half"></i>
+                            Waitlist
+                            <span class="badge">{{ waitlist_users.count }}</span>
                         </button>
                         <button class="tab-btn" data-tab="verified">
                             <i class="fas fa-user-check"></i>
@@ -330,9 +334,9 @@
                                                     <i class="fas fa-check-circle"></i>
                                                     Verify
                                                 </button>
-                                                <button class="btn-reject" data-user-id="{{ user.id }}">
-                                                    <i class="fas fa-times-circle"></i>
-                                                    Reject
+                                                <button class="btn-waitlist" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-hourglass-half"></i>
+                                                    Waitlist
                                                 </button>
                                             </div>
                                         </td>
@@ -342,6 +346,81 @@
                                         <td colspan="6" class="no-data">
                                             <i class="fas fa-users-slash"></i>
                                             No users pending verification
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="waitlist-tab">
+                        <div class="table-container">
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Registration No.</th>
+                                        <th>Email</th>
+                                        <th>Waitlisted Date</th>
+                                        <th>Status</th>
+                                        <th>Reason</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in waitlist_users %}
+                                    <tr data-user-id="{{ user.id }}">
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    {% if user.profile_picture %}
+                                                        <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                                    {% else %}
+                                                        <div class="avatar-initials">
+                                                            {{ user.first_name|first }}{{ user.last_name|first }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="user-details">
+                                                    <span class="user-name">{{ user.get_full_name }}</span>
+                                                    <span class="user-username">@{{ user.username }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ user.registration_no }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>{{ user.waitlist_date|date:"M d, Y"|default:"N/A" }}</td>
+                                        <td>
+                                            <span class="status-badge waitlist-{{ user.waitlist_status }}">
+                                                {{ user.get_waitlist_status_display }}
+                                            </span>
+                                        </td>
+                                        <td class="waitlist-reason">
+                                            {{ user.waitlist_reason|truncatewords:10|default:"No reason provided" }}
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-view" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-eye"></i>
+                                                    View
+                                                </button>
+                                                <button class="btn-approve-waitlist" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    Approve
+                                                </button>
+                                                <button class="btn-needs-info" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-question-circle"></i>
+                                                    Needs Info
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="no-data">
+                                            <i class="fas fa-hourglass-half"></i>
+                                            No users on waitlist
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -473,9 +552,9 @@
                                                     <i class="fas fa-check-circle"></i>
                                                     Verify
                                                 </button>
-                                                <button class="btn-reject" data-user-id="{{ user.id }}">
-                                                    <i class="fas fa-times-circle"></i>
-                                                    Reject
+                                                <button class="btn-waitlist" data-user-id="{{ user.id }}">
+                                                    <i class="fas fa-hourglass-half"></i>
+                                                    Waitlist
                                                 </button>
                                                 {% endif %}
                                                 <button class="btn-toggle" data-user-id="{{ user.id }}" data-active="{{ user.is_active|yesno:'true,false' }}">
@@ -519,36 +598,37 @@
                 </div>
             </div>
 
-            <div id="rejectUserModal" class="modal">
+            <div id="waitlistUserModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2><i class="fas fa-times-circle"></i> Reject User Verification</h2>
-                        <button class="modal-close" id="closeRejectModal">
+                        <h2><i class="fas fa-hourglass-half"></i> Move to Waitlist</h2>
+                        <button class="modal-close" id="closeWaitlistModal">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <form id="rejectUserForm">
-                            <input type="hidden" id="rejectUserId" name="user_id">
+                        <form id="waitlistUserForm">
+                            <input type="hidden" id="waitlistUserId" name="user_id">
                             <div class="form-group">
-                                <label for="rejectionReason">Select Rejection Reason</label>
+                                <label for="waitlistReason">Waitlist Reason</label>
                                 <div class="input-group">
                                     <i class="fas fa-list"></i>
-                                    <select id="rejectionReason" name="rejection_reason" required>
+                                    <select id="waitlistReason" name="waitlist_reason" required>
                                         <option value="">Choose a reason...</option>
                                         <option value="Age not within Youth Age range (not 15-30 years old)">Age not within Youth Age range (not 15-30 years old)</option>
                                         <option value="Not a resident or lacks proof of residency in the barangay">Not a resident or lacks proof of residency in the barangay</option>
                                         <option value="Incorrect or falsified information">Incorrect or falsified information</option>
                                         <option value="Duplicate profile">Duplicate profile</option>
                                         <option value="Unsupported or unverified documents">Unsupported or unverified documents</option>
+                                        <option value="Need additional verification">Need additional verification</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="additionalMessage">Additional Message (Optional)</label>
+                                <label for="waitlistMessage">Additional Message (Optional)</label>
                                 <div class="input-group">
                                     <i class="fas fa-comment-alt"></i>
-                                    <textarea id="additionalMessage" name="additional_message" placeholder="Add any additional details or clarifications..." rows="4"></textarea>
+                                    <textarea id="waitlistMessage" name="additional_message" placeholder="Add any additional details or clarifications..." rows="4"></textarea>
                                 </div>
                                 <div class="form-help">
                                     <i class="fas fa-info-circle"></i>
@@ -556,12 +636,12 @@
                                 </div>
                             </div>
                             <div class="form-actions">
-                                <button type="button" class="btn-secondary" id="cancelReject">
+                                <button type="button" class="btn-secondary" id="cancelWaitlist">
                                     Cancel
                                 </button>
-                                <button type="submit" class="btn-danger">
-                                    <i class="fas fa-times-circle"></i>
-                                    Reject User
+                                <button type="submit" class="btn-warning">
+                                    <i class="fas fa-hourglass-half"></i>
+                                    Move to Waitlist
                                 </button>
                             </div>
                         </form>

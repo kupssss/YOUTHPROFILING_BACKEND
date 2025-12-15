@@ -592,13 +592,20 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="start_date">Start Date & Time *</label>
-                                    <input type="datetime-local" id="start_date" name="start_date" required>
+                                    <div class="datetime-container">
+                                        <input type="datetime-local" id="start_date" name="start_date" required class="datetime-input" min="">
+                                    </div>
+                                    <small class="date-help">Select future date and time</small>
                                 </div>
                                 <div class="form-group">
                                     <label for="end_date">End Date & Time *</label>
-                                    <input type="datetime-local" id="end_date" name="end_date" required>
+                                    <div class="datetime-container">
+                                        <input type="datetime-local" id="end_date" name="end_date" required class="datetime-input" min="">
+                                    </div>
+                                    <small class="date-help">Must be after start date</small>
                                 </div>
                             </div>
+                            
 
                             <div class="form-group">
                                 <label for="location">Location *</label>
@@ -629,10 +636,13 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="registration_deadline">Registration Deadline</label>
-                                    <input type="datetime-local" id="registration_deadline" name="registration_deadline">
+                                    <div class="datetime-container">
+                                        <input type="datetime-local" id="registration_deadline" name="registration_deadline" class="datetime-input" min="">
+                                    </div>
+                                    <small class="date-help">Must be before start date</small>
                                 </div>
                             </div>
-
+                            
                             <div class="form-group">
                                 <label for="points_reward">Points Reward</label>
                                 <input type="number" id="points_reward" name="points_reward" min="0" value="0" placeholder="Points awarded for participation">

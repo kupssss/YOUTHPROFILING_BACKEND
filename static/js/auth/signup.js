@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSegment = 1;
     const totalSegments = 5;
     const progressFill = document.getElementById('progressFill');
+    let isWaitlistUser = false;
+    let waitlistUserId = null;
     
     function updateProgress() {
         const progressPercentage = ((currentSegment - 1) / (totalSegments - 1)) * 100;
@@ -112,6 +114,10 @@ document.addEventListener('DOMContentLoaded', function() {
             input.addEventListener('blur', function() {
                 this.value = this.value.toUpperCase();
             });
+            
+            if (input.value) {
+                input.value = input.value.toUpperCase();
+            }
         });
     }
     
@@ -186,6 +192,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function registerUserWithFiles(formData) {
         try {
+            if (isWaitlistUser && waitlistUserId) {
+                formData.append('is_waitlist_update', 'true');
+                formData.append('waitlist_user_id', waitlistUserId);
+            }
+            
             const response = await fetch('/api/register_user_with_files/', {
                 method: 'POST',
                 headers: {
@@ -227,6 +238,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function collectFormDataWithFiles() {
         const formData = new FormData();
+        
+        if (isWaitlistUser) {
+            formData.append('is_waitlist_update', 'true');
+        }
         
         formData.append('username', document.getElementById('username').value);
         formData.append('email', document.getElementById('email').value);
@@ -282,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: JSON.stringify({ username: username })
+                body: JSON.stringify({ username: username, is_waitlist_user: isWaitlistUser })
             });
             
             return await response.json();
@@ -299,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: JSON.stringify({ email: email })
+                body: JSON.stringify({ email: email, is_waitlist_user: isWaitlistUser })
             });
             
             return await response.json();
@@ -372,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (existingButton) existingButton.remove();
                 
                 const registerButton = document.createElement('button');
-                registerButton.textContent = 'Complete Registration';
+                registerButton.textContent = isWaitlistUser ? 'Complete Registration & Activate Account' : 'Complete Registration';
                 registerButton.className = 'btn-register';
                 registerButton.style.cssText = `
                     background: #4F46E5;
@@ -399,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         goToSegment(5);
                     } else {
                         showMessage(registrationResult.message, 'error');
-                        registerButton.textContent = 'Complete Registration';
+                        registerButton.textContent = isWaitlistUser ? 'Complete Registration & Activate Account' : 'Complete Registration';
                         registerButton.disabled = false;
                         
                         if (registrationResult.message.includes('Username already taken') || 
@@ -760,6 +775,274 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    function showWaitlistLoading() {
+        const loadingScreen = document.getElementById('waitlistLoading');
+        loadingScreen.classList.add('active');
+    }
+    
+    function hideWaitlistLoading() {
+        const loadingScreen = document.getElementById('waitlistLoading');
+        loadingScreen.classList.remove('active');
+    }
+    
+    function setupWaitlistModal() {
+        const waitlistBtn = document.getElementById('waitlistBtn');
+        const waitlistModal = document.getElementById('waitlistModal');
+        const waitlistClose = waitlistModal.querySelector('.modal-close');
+        const waitlistCancel = waitlistModal.querySelector('.btn-cancel');
+        const checkWaitlistBtn = document.getElementById('checkWaitlistBtn');
+        const waitlistEmailInput = document.getElementById('waitlistEmail');
+        const waitlistError = document.getElementById('waitlistError');
+        const waitlistSuccess = document.getElementById('waitlistSuccess');
+
+        waitlistBtn.addEventListener('click', function() {
+            waitlistModal.style.display = 'block';
+            waitlistEmailInput.focus();
+        });
+
+        waitlistClose.addEventListener('click', function() {
+            waitlistModal.style.display = 'none';
+            resetWaitlistForm();
+        });
+
+        waitlistCancel.addEventListener('click', function() {
+            waitlistModal.style.display = 'none';
+            resetWaitlistForm();
+        });
+
+        checkWaitlistBtn.addEventListener('click', async function() {
+            const email = waitlistEmailInput.value.trim();
+            
+            if (!email) {
+                showWaitlistError('Please enter your email address');
+                return;
+            }
+            
+            if (!(email.endsWith('@gmail.com') || email.endsWith('@yahoo.com'))) {
+                showWaitlistError('Only Gmail or Yahoo emails are allowed');
+                return;
+            }
+            
+            checkWaitlistBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            checkWaitlistBtn.disabled = true;
+            
+            try {
+                const result = await checkWaitlistStatus(email);
+                
+                if (result.success && result.on_waitlist) {
+                    showWaitlistSuccess();
+                    
+                    setTimeout(() => {
+                        waitlistModal.style.display = 'none';
+                        showWaitlistLoading();
+                        
+                        setTimeout(() => {
+                            prefillFormFromWaitlist(result.user_data);
+                            hideWaitlistLoading();
+                            resetWaitlistForm();
+                        }, 2000);
+                        
+                    }, 1500);
+                    
+                } else {
+                    showWaitlistError(result.message || 'You are not on our waitlist. Please register a new account.');
+                    checkWaitlistBtn.innerHTML = '<i class="fas fa-search"></i> Check Waitlist Status';
+                    checkWaitlistBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                showWaitlistError('Network error. Please try again.');
+                checkWaitlistBtn.innerHTML = '<i class="fas fa-search"></i> Check Waitlist Status';
+                checkWaitlistBtn.disabled = false;
+            }
+        });
+
+        waitlistEmailInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkWaitlistBtn.click();
+            }
+        });
+    }
+
+    async function checkWaitlistStatus(email) {
+        try {
+            const response = await fetch('/api/check-waitlist/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ email: email })
+            });
+            
+            return await response.json();
+        } catch (error) {
+            return { success: false, message: 'Network error' };
+        }
+    }
+
+    function showWaitlistError(message) {
+        const waitlistError = document.getElementById('waitlistError');
+        waitlistError.textContent = message;
+        waitlistError.style.display = 'block';
+        
+        const waitlistSuccess = document.getElementById('waitlistSuccess');
+        waitlistSuccess.style.display = 'none';
+        
+        setTimeout(() => {
+            waitlistError.style.display = 'none';
+        }, 5000);
+    }
+
+    function showWaitlistSuccess() {
+        const waitlistError = document.getElementById('waitlistError');
+        waitlistError.style.display = 'none';
+        
+        const waitlistSuccess = document.getElementById('waitlistSuccess');
+        waitlistSuccess.style.display = 'flex';
+    }
+
+    function resetWaitlistForm() {
+        document.getElementById('waitlistEmail').value = '';
+        document.getElementById('waitlistCode').value = '';
+        document.getElementById('waitlistError').style.display = 'none';
+        document.getElementById('waitlistSuccess').style.display = 'none';
+        
+        const checkWaitlistBtn = document.getElementById('checkWaitlistBtn');
+        checkWaitlistBtn.innerHTML = '<i class="fas fa-search"></i> Check Waitlist Status';
+        checkWaitlistBtn.disabled = false;
+    }
+
+    function prefillFormFromWaitlist(userData) {
+        isWaitlistUser = true;
+        waitlistUserId = userData.id;
+        
+        if (userData.first_name) document.getElementById('firstName').value = userData.first_name.toUpperCase();
+        if (userData.last_name) document.getElementById('lastName').value = userData.last_name.toUpperCase();
+        if (userData.middle_name) document.getElementById('middleName').value = userData.middle_name.toUpperCase();
+        if (userData.suffix) document.getElementById('suffix').value = userData.suffix.toUpperCase();
+        if (userData.address) document.getElementById('address').value = userData.address;
+        
+        if (userData.purok_zone) {
+            const purokSelect = document.getElementById('purokZone');
+            const options = Array.from(purokSelect.options);
+            const matchingOption = options.find(option => option.value === userData.purok_zone);
+            if (matchingOption) {
+                purokSelect.value = userData.purok_zone;
+            }
+        }
+        
+        if (userData.gender) {
+            const genderSelect = document.getElementById('gender');
+            const options = Array.from(genderSelect.options);
+            const matchingOption = options.find(option => option.textContent.trim() === userData.gender);
+            if (matchingOption) {
+                genderSelect.value = matchingOption.value;
+            }
+        }
+        
+        if (userData.birthdate) {
+            document.getElementById('birthdate').value = userData.birthdate;
+            document.getElementById('age').value = userData.age;
+            document.getElementById('ageGroup').value = userData.age_group;
+        }
+        
+        if (userData.contact_number) document.getElementById('contactNumber').value = userData.contact_number;
+        
+        if (userData.civil_status) {
+            const civilStatusSelect = document.getElementById('civilStatus');
+            const options = Array.from(civilStatusSelect.options);
+            const matchingOption = options.find(option => option.textContent.trim() === userData.civil_status);
+            if (matchingOption) {
+                civilStatusSelect.value = matchingOption.value;
+            }
+        }
+        
+        if (userData.education) {
+            const educationSelect = document.getElementById('education');
+            const options = Array.from(educationSelect.options);
+            const matchingOption = options.find(option => option.textContent.trim() === userData.education);
+            if (matchingOption) {
+                educationSelect.value = matchingOption.value;
+            }
+        }
+        
+        if (userData.youth_classification) {
+            const youthClassificationSelect = document.getElementById('youthClassification');
+            const options = Array.from(youthClassificationSelect.options);
+            const matchingOption = options.find(option => option.textContent.trim() === userData.youth_classification);
+            if (matchingOption) {
+                youthClassificationSelect.value = matchingOption.value;
+            }
+        }
+        
+        if (userData.work_status) {
+            const workStatusSelect = document.getElementById('workStatus');
+            const options = Array.from(workStatusSelect.options);
+            const matchingOption = options.find(option => option.textContent.trim() === userData.work_status);
+            if (matchingOption) {
+                workStatusSelect.value = matchingOption.value;
+            }
+        }
+        
+        if (userData.sk_voter !== undefined) {
+            const skVoterRadios = document.querySelectorAll('input[name="skVoter"]');
+            skVoterRadios.forEach(radio => {
+                radio.checked = radio.value === (userData.sk_voter ? 'Yes' : 'No');
+            });
+        }
+        
+        if (userData.email) {
+            document.getElementById('email').value = userData.email;
+            if (userData.username) document.getElementById('username').value = userData.username;
+        }
+        
+        if (userData.id_type) {
+            const idTypeSelect = document.getElementById('idType');
+            const options = Array.from(idTypeSelect.options);
+            const matchingOption = options.find(option => option.textContent.trim() === userData.id_type);
+            if (matchingOption) {
+                idTypeSelect.value = matchingOption.value;
+            } else {
+                idTypeSelect.value = userData.id_type;
+            }
+        }
+        
+        if (userData.age >= 15 && userData.age <= 17) {
+            if (userData.parent_name) document.getElementById('parentName').value = userData.parent_name.toUpperCase();
+            
+            if (userData.parent_relationship) {
+                const parentRelationshipSelect = document.getElementById('parentRelationship');
+                const options = Array.from(parentRelationshipSelect.options);
+                const matchingOption = options.find(option => option.value === userData.parent_relationship);
+                if (matchingOption) {
+                    parentRelationshipSelect.value = userData.parent_relationship;
+                }
+            }
+            
+            if (userData.parent_contact_number) document.getElementById('parentContactNumber').value = userData.parent_contact_number;
+            if (userData.consent_date) document.getElementById('consentDate').value = userData.consent_date;
+        }
+        
+        document.getElementById('password').required = false;
+        document.getElementById('confirmPassword').required = false;
+        
+        const passwordHint = document.querySelector('.input-hint');
+        if (passwordHint) {
+            passwordHint.textContent = 'Leave blank to keep current password';
+        }
+        
+        const existingPassword = document.getElementById('password');
+        const existingConfirmPassword = document.getElementById('confirmPassword');
+        
+        existingPassword.placeholder = 'Leave blank to keep current password';
+        existingConfirmPassword.placeholder = 'Leave blank to keep current password';
+        
+        showMessage('Your waitlist information has been loaded! You can update your information and complete registration.', 'success');
+        
+        goToSegment(1);
+    }
+    
     document.querySelectorAll('.form-segment').forEach(segment => {
         segment.style.display = 'none';
     });
@@ -767,4 +1050,5 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupInputConstraints();
     updateProgress();
+    setupWaitlistModal();
 });

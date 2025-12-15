@@ -31,6 +31,9 @@ urlpatterns = [
     path('api/register_user_with_files/', views.register_user_with_files, name='register_user_with_files'),
     path('api/resend-otp/', views.resend_otp, name='resend_otp'),
 
+    path('api/check-waitlist/', views.check_waitlist, name='check_waitlist'),
+    path('api/update-waitlist-user/', views.update_waitlist_user, name='update_waitlist_user'),
+
     path('forgot-password/', views.forgot_password_view, name='forgot_password'),
     path('api/initiate-password-reset/', views.initiate_password_reset, name='initiate_password_reset'),
     path('api/verify-reset-otp/', views.verify_reset_otp, name='verify_reset_otp'),
@@ -126,6 +129,10 @@ urlpatterns = [
     path('server/user-management/user/<int:user_id>/toggle-status/', views.toggle_user_status, name='toggle_user_status'),
     path('server/user-management/user/<int:user_id>/details/', views.get_user_details, name='get_user_details'),
     path('server/user-management/user/<int:user_id>/reject/', views.reject_user, name='reject_user'),
+
+
+    path('user/<int:user_id>/approve-waitlist/', views.approve_waitlist_user, name='approve_waitlist_user'),
+    path('user/<int:user_id>/request-info/', views.request_more_info, name='request_more_info'),
 
     path('server/announcement-management/', views.server_announcement_management, name='server_announcement_management'),
     path('server/announcements/create/', views.create_announcement, name='create_announcement'),

@@ -45,7 +45,7 @@ class EncryptedField(models.TextField):
 class YouthUser(models.Model):
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128) 
+    password = models.CharField(max_length=128)
     
     first_name = EncryptedField(max_length=100)
     last_name = EncryptedField(max_length=100)
@@ -110,7 +110,7 @@ class YouthUser(models.Model):
     ]
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
     
-    birthdate = EncryptedField(max_length=10)  
+    birthdate = EncryptedField(max_length=10)
     age = models.PositiveIntegerField(default=0)
     contact_number = EncryptedField(max_length=15)
     
@@ -191,6 +191,17 @@ class YouthUser(models.Model):
     is_admin_verified = models.BooleanField(default=False)
     admin_verification_date = models.DateTimeField(blank=True, null=True)
     
+    WAITLIST_STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('needs_info', 'Needs More Information'),
+    ]
+    waitlist_status = models.CharField(max_length=20, choices=WAITLIST_STATUS_CHOICES, blank=True, null=True)
+    waitlist_reason = models.TextField(blank=True, null=True)
+    waitlist_data = models.JSONField(default=dict, blank=True)
+    waitlist_date = models.DateTimeField(blank=True, null=True)
+    
     is_active = models.BooleanField(default=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -247,6 +258,42 @@ class YouthUser(models.Model):
     
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
+    
+    def add_to_waitlist(self, reason=None, data=None):
+        self.waitlist_status = 'pending'
+        self.waitlist_reason = reason
+        self.waitlist_data = data or {}
+        self.waitlist_date = timezone.now()
+        self.is_active = False
+        self.save()
+    
+    def remove_from_waitlist(self):
+        self.waitlist_status = None
+        self.waitlist_reason = None
+        self.waitlist_data = {}
+        self.waitlist_date = None
+        self.save()
+    
+    def approve_waitlist(self):
+        self.waitlist_status = 'approved'
+        self.is_active = True
+        self.is_admin_verified = True
+        self.admin_verification_date = timezone.now()
+        self.save()
+    
+    def reject_waitlist(self, reason):
+        self.waitlist_status = 'rejected'
+        self.waitlist_reason = reason
+        self.save()
+    
+    def request_more_info_waitlist(self, reason):
+        self.waitlist_status = 'needs_info'
+        self.waitlist_reason = reason
+        self.save()
+    
+    @property
+    def is_on_waitlist(self):
+        return self.waitlist_status in ['pending', 'needs_info']
     
     @property
     def community_points(self):
