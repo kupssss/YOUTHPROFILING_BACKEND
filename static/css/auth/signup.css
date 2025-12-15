@@ -877,12 +877,12 @@ body {
 /* Waitlist Modal */
 #waitlistModal .modal-content {
     max-width: 500px;
-    background: linear-gradient(135deg, #00c3e6 0%, #c5b6d3a4 100%);
+    background: linear-gradient(135deg, #0267ff 0%, #c5b6d3be 100%);
     color: white;
 }
 
 #waitlistModal .modal-header {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.952);
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
