@@ -1,10 +1,12 @@
-# Create .gitignore if it doesn't exist
-echo "venv/" >> .gitignore
-echo "__pycache__/" >> .gitignore
-echo "*.pyc" >> .gitignore
-echo "*.pyo" >> .gitignore
-echo "*.pyd" >> .gitignore
-echo ".Python" >> .gitignore
-echo "*.db" >> .gitignore
-echo ".env" >> .gitignore
-echo ".DS_Store" >> .gitignore
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.DS_Store
+.env.production
+.env.local
+instance/
+*.log
