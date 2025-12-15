@@ -784,7 +784,7 @@ body {
     text-align: center;
     margin-top: 30px;
     padding: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #002fff 0%, #764ba262 100%);
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     position: relative;
@@ -812,7 +812,7 @@ body {
 }
 
 .btn-waitlist {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #3469fa 0%, #f0dcde 100%);
     color: white;
     border: none;
     padding: 15px 30px;
@@ -824,7 +824,7 @@ body {
     align-items: center;
     gap: 10px;
     transition: all 0.3s ease;
-    box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+    box-shadow: 0 5px 20px rgba(0, 204, 255, 0.4);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -877,7 +877,7 @@ body {
 /* Waitlist Modal */
 #waitlistModal .modal-content {
     max-width: 500px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #00c3e6 0%, #c5b6d3a4 100%);
     color: white;
 }
 
@@ -961,14 +961,14 @@ body {
 }
 
 
-/* Waitlist Loading Screen */
+
 .waitlist-loading {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #002fff 0%, #63339273 100%);
     display: none;
     justify-content: center;
     align-items: center;
