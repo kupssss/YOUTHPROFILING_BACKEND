@@ -338,23 +338,6 @@ def check_auth(request):
     return JsonResponse({'success': False, 'authenticated': False})
 
 
-def signup_view(request):
-    genders = Gender.objects.all()
-    civil_statuses = CivilStatus.objects.all()
-    age_groups = AgeGroup.objects.all()
-    education_levels = EducationLevel.objects.all()
-    youth_classifications = YouthClassification.objects.all()
-    work_statuses = WorkStatus.objects.all()
-    
-    context = {
-        'genders': genders,
-        'civil_statuses': civil_statuses,
-        'age_groups': age_groups,
-        'education_levels': education_levels,
-        'youth_classifications': youth_classifications,
-        'work_statuses': work_statuses,
-    }
-    return render(request, 'auth/signup.html', context)
 
 
 
@@ -457,17 +440,38 @@ def check_email(request):
     return JsonResponse({'available': False, 'message': 'Invalid request method'})
 
 
-
-
+def signup_view(request):
+    genders = Gender.objects.all()
+    civil_statuses = CivilStatus.objects.all()
+    education_levels = EducationLevel.objects.all()
+    youth_classifications = YouthClassification.objects.all()
+    work_statuses = WorkStatus.objects.all()
+    
+    context = {
+        'genders': [{'id': g.id, 'name': g.name} for g in genders],
+        'civil_statuses': [{'id': cs.id, 'name': cs.name} for cs in civil_statuses],
+        'education_levels': [{'id': el.id, 'name': el.name} for el in education_levels],
+        'youth_classifications': [{'id': yc.id, 'name': yc.name} for yc in youth_classifications],
+        'work_statuses': [{'id': ws.id, 'name': ws.name} for ws in work_statuses],
+    }
+    return render(request, 'auth/signup.html', context)
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
+import json
+import traceback
 
 @csrf_exempt
 def register_user_with_files(request):
     if request.method == 'POST':
         try:
+            # Debug: Print all received data
+            print("=== DEBUG: Received POST Data ===")
+            for key, value in request.POST.items():
+                print(f"{key}: {value}")
+            
+            # Get form data - These should be TEXT VALUES, not IDs
             username = request.POST.get('username')
             email = request.POST.get('email')
             password = request.POST.get('password')
@@ -477,20 +481,29 @@ def register_user_with_files(request):
             suffix = request.POST.get('suffix', '')
             address = request.POST.get('address')
             purok_zone = request.POST.get('purokZone')
-            gender = request.POST.get('gender')
+            gender = request.POST.get('gender')  # Should be "Male", "Female", etc.
             birthdate = request.POST.get('birthdate')
             age = int(request.POST.get('age', 0))
             contact_number = request.POST.get('contactNumber')
-            civil_status = request.POST.get('civilStatus')
+            civil_status = request.POST.get('civilStatus')  # Should be "Single", "Married", etc.
             age_group = request.POST.get('ageGroup')
-            education = request.POST.get('education')
-            youth_classification = request.POST.get('youthClassification')
-            work_status = request.POST.get('workStatus')
+            education = request.POST.get('education')  # Should be "High School", "College", etc.
+            youth_classification = request.POST.get('youthClassification')  # Should be "Student", "Working", etc.
+            work_status = request.POST.get('workStatus')  # Should be "Employed", "Student", etc.
             sk_voter = request.POST.get('skVoter') == 'Yes'
             id_type = request.POST.get('idType')
             
             is_waitlist_update = request.POST.get('is_waitlist_update') == 'true'
             
+            # Debug: Print demographic values
+            print("=== DEBUG: Demographic Values ===")
+            print(f"Gender: {gender}")
+            print(f"Civil Status: {civil_status}")
+            print(f"Education: {education}")
+            print(f"Youth Classification: {youth_classification}")
+            print(f"Work Status: {work_status}")
+            
+            # Validate age
             if age < 15:
                 return JsonResponse({
                     'success': False, 
@@ -502,6 +515,7 @@ def register_user_with_files(request):
                     'message': 'You exceed the maximum age allowed to register. The system is designed for youth aged 15-30 years old only.'
                 })
             
+            # Validate required files for new registrations
             if not is_waitlist_update:
                 if 'profilePicture' not in request.FILES:
                     return JsonResponse({'success': False, 'message': 'Profile picture is required.'})
@@ -509,6 +523,7 @@ def register_user_with_files(request):
                 if 'idPicture' not in request.FILES:
                     return JsonResponse({'success': False, 'message': 'ID picture is required.'})
             
+            # Determine age group if not provided
             if not age_group:
                 if 15 <= age <= 17:
                     age_group = 'Child Youth (15-17 years)'
@@ -525,12 +540,14 @@ def register_user_with_files(request):
                     'message': 'Age group could not be determined. Please check your birthdate.'
                 })
             
+            # Validate parent consent fields for ages 15-17
             if age >= 15 and age <= 17:
                 parent_fields = ['parentName', 'parentRelationship', 'parentContactNumber', 'consentDate']
                 for field in parent_fields:
                     if field in request.POST and not request.POST[field]:
                         return JsonResponse({'success': False, 'message': f'Parent {field} is required for youth aged 15-17.'})
             
+            # Validate all required fields
             required_fields = [
                 'username', 'email', 'firstName', 'lastName', 
                 'address', 'purokZone', 'gender', 'birthdate', 'contactNumber',
@@ -542,13 +559,22 @@ def register_user_with_files(request):
                 if field not in request.POST or not request.POST[field]:
                     return JsonResponse({'success': False, 'message': f'{field} is required'})
             
-            try:
-                user = YouthUser.objects.get(email=email)
+            # WAITLIST UPDATE PROCESS
+            if is_waitlist_update:
+                waitlist_user_id = request.POST.get('waitlist_user_id')
+                if not waitlist_user_id:
+                    return JsonResponse({'success': False, 'message': 'Waitlist user ID is required for waitlist updates.'})
                 
-                if user.is_on_waitlist:
+                try:
+                    user = YouthUser.objects.get(id=waitlist_user_id, email=email)
+                    
+                    if not user.is_on_waitlist:
+                        return JsonResponse({'success': False, 'message': 'User is not on waitlist.'})
+                    
                     if username != user.username and YouthUser.objects.filter(username=username).exclude(id=user.id).exists():
                         return JsonResponse({'success': False, 'message': 'Username already taken'})
                     
+                    # Update user fields - THESE ARE NOW TEXT VALUES
                     user.username = username
                     user.first_name = first_name
                     user.last_name = last_name
@@ -556,21 +582,22 @@ def register_user_with_files(request):
                     user.suffix = suffix
                     user.address = address
                     user.purok_zone = purok_zone
-                    user.gender = gender
+                    user.gender = gender  # TEXT: "Male", "Female", etc.
                     user.birthdate = birthdate
                     user.age = age
                     user.contact_number = contact_number
-                    user.civil_status = civil_status
+                    user.civil_status = civil_status  # TEXT: "Single", "Married", etc.
                     user.age_group = age_group
-                    user.education = education
-                    user.youth_classification = youth_classification
-                    user.work_status = work_status
+                    user.education = education  # TEXT: "High School", "College", etc.
+                    user.youth_classification = youth_classification  # TEXT: "Student", "Working", etc.
+                    user.work_status = work_status  # TEXT: "Employed", "Student", etc.
                     user.sk_voter = sk_voter
                     user.id_type = id_type
                     
                     if password:
                         user.set_password(password)
                     
+                    # Handle parent consent for ages 15-17
                     if age >= 15 and age <= 17:
                         user.parent_name = request.POST.get('parentName')
                         user.parent_relationship = request.POST.get('parentRelationship')
@@ -583,6 +610,7 @@ def register_user_with_files(request):
                         if 'parentIdPicture' in request.FILES:
                             user.parent_id_picture = request.FILES['parentIdPicture']
                     
+                    # Handle file uploads
                     if 'profilePicture' in request.FILES:
                         user.profile_picture = request.FILES['profilePicture']
                     
@@ -592,129 +620,131 @@ def register_user_with_files(request):
                     if 'birthCertificate' in request.FILES:
                         user.birth_certificate = request.FILES['birthCertificate']
                     
-                    user.waitlist_status = 'approved'
-                    user.is_active = True
-                    user.is_admin_verified = True
-                    user.admin_verification_date = timezone.now()
+                    # Update waitlist status
+                    user.waitlist_status = '-'
+                    user.waitlist_date = timezone.now()
+                    user.is_active = False
+                    user.is_admin_verified = False
+                    user.admin_verification_date = None
                     
                     user.save()
                     
                     return JsonResponse({
                         'success': True, 
-                        'message': 'Registration completed successfully! Your account is now active.',
+                        'message': 'Waitlist information updated successfully! Your application is now pending admin review.',
                         'registrationNo': user.registration_no,
                         'userId': user.id,
                         'is_waitlist_update': True
                     })
-                else:
-                    if not is_waitlist_update:
-                        if YouthUser.objects.filter(username=username).exists():
-                            return JsonResponse({'success': False, 'message': 'Username already taken'})
-                        
-                        if YouthUser.objects.filter(email=email).exists():
-                            return JsonResponse({'success': False, 'message': 'Email already registered'})
-                        
-                        return JsonResponse({'success': False, 'message': 'Email already exists but not on waitlist.'})
-                    else:
-                        return JsonResponse({'success': False, 'message': 'You are not on our waitlist.'})
-                    
-            except YouthUser.DoesNotExist:
-                if not is_waitlist_update:
-                    if YouthUser.objects.filter(username=username).exists():
-                        return JsonResponse({'success': False, 'message': 'Username already taken'})
-                    
-                    if YouthUser.objects.filter(email=email).exists():
-                        return JsonResponse({'success': False, 'message': 'Email already registered'})
-                    
+                except YouthUser.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Waitlist user not found.'})
+                except Exception as e:
+                    print(f"Error updating waitlist user: {str(e)}")
+                    return JsonResponse({'success': False, 'message': f'Error updating waitlist: {str(e)}'})
+            
+            # NEW REGISTRATION PROCESS
+            else:
+                if YouthUser.objects.filter(username=username).exists():
+                    return JsonResponse({'success': False, 'message': 'Username already taken'})
+                
+                if YouthUser.objects.filter(email=email).exists():
+                    return JsonResponse({'success': False, 'message': 'Email already registered'})
+                
+                # Verify OTP
+                try:
+                    otp_record = OTPVerification.objects.filter(email=email, is_verified=True).latest('created_at')
+                    if otp_record.is_expired():
+                        return JsonResponse({'success': False, 'message': 'OTP verification has expired. Please verify your email again.'})
+                except OTPVerification.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Email not verified. Please complete OTP verification first.'})
+                
+                # Generate registration number
+                current_year = datetime.now().year
+                
+                last_user = YouthUser.objects.filter(
+                    registration_no__startswith=f'SKM-{current_year}-'
+                ).order_by('-registration_no').first()
+                
+                if last_user and last_user.registration_no:
                     try:
-                        otp_record = OTPVerification.objects.filter(email=email, is_verified=True).latest('created_at')
-                        if otp_record.is_expired():
-                            return JsonResponse({'success': False, 'message': 'OTP verification has expired. Please verify your email again.'})
-                    except OTPVerification.DoesNotExist:
-                        return JsonResponse({'success': False, 'message': 'Email not verified. Please complete OTP verification first.'})
-                    
-                    current_year = datetime.now().year
-                    
-                    last_user = YouthUser.objects.filter(
-                        registration_no__startswith=f'SKM-{current_year}-'
-                    ).order_by('-registration_no').first()
-                    
-                    if last_user and last_user.registration_no:
-                        try:
-                            last_number = int(last_user.registration_no.split('-')[-1])
-                            new_number = last_number + 1
-                        except (ValueError, IndexError):
-                            new_number = 1
-                    else:
+                        last_number = int(last_user.registration_no.split('-')[-1])
+                        new_number = last_number + 1
+                    except (ValueError, IndexError):
                         new_number = 1
-                        
-                    registration_no = f'SKM-{current_year}-{new_number:03d}'
-                    
-                    user = YouthUser(
-                        username=username,
-                        email=email,
-                        first_name=first_name,
-                        last_name=last_name,
-                        middle_name=middle_name,
-                        suffix=suffix,
-                        address=address,
-                        purok_zone=purok_zone,
-                        gender=gender,
-                        birthdate=birthdate,
-                        age=age,
-                        contact_number=contact_number,
-                        civil_status=civil_status,
-                        age_group=age_group,
-                        education=education,
-                        youth_classification=youth_classification,
-                        work_status=work_status,
-                        sk_voter=sk_voter,
-                        registration_no=registration_no,
-                        id_type=id_type,
-                        is_active=False,
-                        is_email_verified=True
-                    )
-                    
-                    if age >= 15 and age <= 17:
-                        user.parent_name = request.POST.get('parentName')
-                        user.parent_relationship = request.POST.get('parentRelationship')
-                        user.parent_contact_number = request.POST.get('parentContactNumber')
-                        user.consent_date = request.POST.get('consentDate')
-                        
-                        if 'parentConsentLetter' in request.FILES:
-                            user.parent_consent_letter = request.FILES['parentConsentLetter']
-                        
-                        if 'parentIdPicture' in request.FILES:
-                            user.parent_id_picture = request.FILES['parentIdPicture']
-                    
-                    if 'profilePicture' in request.FILES:
-                        user.profile_picture = request.FILES['profilePicture']
-                    
-                    if 'idPicture' in request.FILES:
-                        user.id_picture = request.FILES['idPicture']
-                    
-                    if 'birthCertificate' in request.FILES:
-                        user.birth_certificate = request.FILES['birthCertificate']
-                    
-                    user.set_password(password)
-                    user.save()
-                    
-                    return JsonResponse({
-                        'success': True, 
-                        'message': 'Registration successful! Your account will be activated after verification.',
-                        'registrationNo': registration_no,
-                        'userId': user.id,
-                        'is_waitlist_update': False
-                    })
                 else:
-                    return JsonResponse({
-                        'success': False,
-                        'is_waitlist_update': False,
-                        'message': 'No waitlist account found with this email. Please register a new account.'
-                    })
+                    new_number = 1
+                    
+                registration_no = f'SKM-{current_year}-{new_number:03d}'
+                
+                # Create new user with TEXT VALUES (not IDs)
+                user = YouthUser(
+                    username=username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    middle_name=middle_name,
+                    suffix=suffix,
+                    address=address,
+                    purok_zone=purok_zone,
+                    gender=gender,  # TEXT: "Male", "Female", etc.
+                    birthdate=birthdate,
+                    age=age,
+                    contact_number=contact_number,
+                    civil_status=civil_status,  # TEXT: "Single", "Married", etc.
+                    age_group=age_group,
+                    education=education,  # TEXT: "High School", "College", etc.
+                    youth_classification=youth_classification,  # TEXT: "Student", "Working", etc.
+                    work_status=work_status,  # TEXT: "Employed", "Student", etc.
+                    sk_voter=sk_voter,
+                    registration_no=registration_no,
+                    id_type=id_type,
+                    is_active=False,
+                    is_email_verified=True
+                )
+                
+                # Handle parent consent for ages 15-17
+                if age >= 15 and age <= 17:
+                    user.parent_name = request.POST.get('parentName')
+                    user.parent_relationship = request.POST.get('parentRelationship')
+                    user.parent_contact_number = request.POST.get('parentContactNumber')
+                    user.consent_date = request.POST.get('consentDate')
+                    
+                    if 'parentConsentLetter' in request.FILES:
+                        user.parent_consent_letter = request.FILES['parentConsentLetter']
+                    
+                    if 'parentIdPicture' in request.FILES:
+                        user.parent_id_picture = request.FILES['parentIdPicture']
+                
+                # Handle file uploads
+                if 'profilePicture' in request.FILES:
+                    user.profile_picture = request.FILES['profilePicture']
+                
+                if 'idPicture' in request.FILES:
+                    user.id_picture = request.FILES['idPicture']
+                
+                if 'birthCertificate' in request.FILES:
+                    user.birth_certificate = request.FILES['birthCertificate']
+                
+                # Set password and save
+                user.set_password(password)
+                user.save()
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Registration successful! Your account will be activated after verification.',
+                    'registrationNo': registration_no,
+                    'userId': user.id,
+                    'is_waitlist_update': False
+                })
             
         except Exception as e:
-            return JsonResponse({'success': False, 'message': f'Registration failed: {str(e)}'})
+            print(f"=== DEBUG: Exception in register_user_with_files ===")
+            print(f"Error: {str(e)}")
+            print(traceback.format_exc())
+            return JsonResponse({
+                'success': False, 
+                'message': f'Registration failed: {str(e)}'
+            })
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
@@ -833,11 +863,6 @@ def resend_otp(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-
 @csrf_exempt
 def check_waitlist(request):
     if request.method == 'POST':
@@ -852,6 +877,13 @@ def check_waitlist(request):
                 user = YouthUser.objects.get(email=email)
                 
                 if user.is_on_waitlist:
+                    # Get lookup values by matching with database tables
+                    gender_value = user.gender
+                    civil_status_value = user.civil_status
+                    education_value = user.education
+                    youth_class_value = user.youth_classification
+                    work_status_value = user.work_status
+                    
                     user_data = {
                         'id': user.id,
                         'first_name': str(user.first_name),
@@ -860,15 +892,18 @@ def check_waitlist(request):
                         'suffix': str(user.suffix) if user.suffix else '',
                         'address': str(user.address),
                         'purok_zone': user.purok_zone,
-                        'gender': user.gender,
+                        
+                        # Pass the actual stored values
+                        'gender': gender_value,
+                        'civil_status': civil_status_value,
+                        'education': education_value,
+                        'youth_classification': youth_class_value,
+                        'work_status': work_status_value,
+                        
                         'birthdate': str(user.birthdate),
                         'age': user.age,
                         'contact_number': str(user.contact_number),
-                        'civil_status': user.civil_status,
                         'age_group': user.age_group,
-                        'education': user.education,
-                        'youth_classification': user.youth_classification,
-                        'work_status': user.work_status,
                         'sk_voter': user.sk_voter,
                         'email': user.email,
                         'username': user.username,
@@ -877,6 +912,7 @@ def check_waitlist(request):
                         'parent_relationship': user.parent_relationship if user.parent_relationship else '',
                         'parent_contact_number': str(user.parent_contact_number) if user.parent_contact_number else '',
                         'consent_date': str(user.consent_date) if user.consent_date else None,
+                        
                         'waitlist_status': user.waitlist_status,
                         'waitlist_reason': user.waitlist_reason,
                     }
@@ -902,6 +938,9 @@ def check_waitlist(request):
                 })
                 
         except Exception as e:
+            import traceback
+            print(f"Error in check_waitlist: {str(e)}")
+            print(traceback.format_exc())
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
@@ -945,6 +984,8 @@ def update_waitlist_user(request):
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
 
 
 

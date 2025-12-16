@@ -245,13 +245,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         formData.append('username', document.getElementById('username').value);
         formData.append('email', document.getElementById('email').value);
-        formData.append('password', document.getElementById('password').value);
+        if (document.getElementById('password').value) {
+            formData.append('password', document.getElementById('password').value);
+        }
         formData.append('firstName', document.getElementById('firstName').value);
         formData.append('lastName', document.getElementById('lastName').value);
         formData.append('middleName', document.getElementById('middleName').value);
         formData.append('suffix', document.getElementById('suffix').value);
         formData.append('address', document.getElementById('address').value);
         formData.append('purokZone', document.getElementById('purokZone').value);
+        
+        // Get the VALUE (which should be the ID) from dropdowns
         formData.append('gender', document.getElementById('gender').value);
         formData.append('birthdate', document.getElementById('birthdate').value);
         formData.append('age', document.getElementById('age').value);
@@ -260,7 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('education', document.getElementById('education').value);
         formData.append('youthClassification', document.getElementById('youthClassification').value);
         formData.append('workStatus', document.getElementById('workStatus').value);
-        formData.append('skVoter', document.querySelector('input[name="skVoter"]:checked')?.value);
+        
+        const skVoterRadio = document.querySelector('input[name="skVoter"]:checked');
+        formData.append('skVoter', skVoterRadio ? skVoterRadio.value : '');
+        
         formData.append('idType', document.getElementById('idType').value);
         formData.append('ageGroup', document.getElementById('ageGroup').value);
         
@@ -387,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (existingButton) existingButton.remove();
                 
                 const registerButton = document.createElement('button');
-                registerButton.textContent = isWaitlistUser ? 'Complete Registration & Activate Account' : 'Complete Registration';
+                registerButton.textContent = isWaitlistUser ? 'Complete Registration Update' : 'Complete Registration';
                 registerButton.className = 'btn-register';
                 registerButton.style.cssText = `
                     background: #4F46E5;
@@ -414,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         goToSegment(5);
                     } else {
                         showMessage(registrationResult.message, 'error');
-                        registerButton.textContent = isWaitlistUser ? 'Complete Registration & Activate Account' : 'Complete Registration';
+                        registerButton.textContent = isWaitlistUser ? 'Complete Registration Update' : 'Complete Registration';
                         registerButton.disabled = false;
                         
                         if (registrationResult.message.includes('Username already taken') || 
@@ -439,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const inputs = document.querySelectorAll(`[data-segment="${segment}"] input[required], [data-segment="${segment}"] select[required]`);
         inputs.forEach(input => {
-            if (!input.value) {
+            if (!input.value && input.type !== 'file') {
                 input.style.borderColor = '#EF4444';
                 isValid = false;
                 
@@ -451,9 +458,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const fileInputs = document.querySelectorAll(`[data-segment="${segment}"] input[type="file"][required]`);
         fileInputs.forEach(input => {
-            if (!input.files || input.files.length === 0) {
-                isValid = false;
-                errorMessages.push(`${input.labels[0].textContent.trim()} is required`);
+            if (!isWaitlistUser || (isWaitlistUser && segment !== 3)) {
+                if (!input.files || input.files.length === 0) {
+                    isValid = false;
+                    errorMessages.push(`${input.labels[0].textContent.trim()} is required`);
+                }
             }
         });
         
@@ -476,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (age >= 15 && age <= 17) {
                 const parentFields = document.querySelectorAll('#parentConsentSegment input[required], #parentConsentSegment select[required]');
                 parentFields.forEach(field => {
-                    if (!field.value) {
+                    if (!field.value && field.type !== 'file') {
                         field.style.borderColor = '#EF4444';
                         isValid = false;
                         errorMessages.push('All parent consent fields are required for youth aged 15-17');
@@ -485,40 +494,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const parentFiles = document.querySelectorAll('#parentConsentSegment input[type="file"][required]');
                 parentFiles.forEach(fileInput => {
-                    if (!fileInput.files || fileInput.files.length === 0) {
-                        isValid = false;
-                        errorMessages.push(`${fileInput.labels[0].textContent.trim()} is required for youth aged 15-17`);
+                    if (!isWaitlistUser) {
+                        if (!fileInput.files || fileInput.files.length === 0) {
+                            isValid = false;
+                            errorMessages.push(`${fileInput.labels[0].textContent.trim()} is required for youth aged 15-17`);
+                        }
                     }
                 });
             }
         }
         
         if (segment === 3) {
-            const password = document.getElementById('password');
-            const confirmPassword = document.getElementById('confirmPassword');
-            
-            if (password.value !== confirmPassword.value) {
-                confirmPassword.style.borderColor = '#EF4444';
-                isValid = false;
-                errorMessages.push('Passwords do not match');
+            if (!isWaitlistUser) {
+                const password = document.getElementById('password');
+                const confirmPassword = document.getElementById('confirmPassword');
                 
-                confirmPassword.addEventListener('input', function() {
-                    if (password.value === this.value) {
-                        this.style.borderColor = '#D1D5DB';
-                    }
-                });
-            }
-            
-            const passwordValue = password.value;
-            const hasUpperCase = /[A-Z]/.test(passwordValue);
-            const hasLowerCase = /[a-z]/.test(passwordValue);
-            const hasNumbers = /\d/.test(passwordValue);
-            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(passwordValue);
-            const isLongEnough = passwordValue.length >= 8;
-            
-            if (!isLongEnough || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
-                isValid = false;
-                errorMessages.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+                if (password.value !== confirmPassword.value) {
+                    confirmPassword.style.borderColor = '#EF4444';
+                    isValid = false;
+                    errorMessages.push('Passwords do not match');
+                    
+                    confirmPassword.addEventListener('input', function() {
+                        if (password.value === this.value) {
+                            this.style.borderColor = '#D1D5DB';
+                        }
+                    });
+                }
+                
+                const passwordValue = password.value;
+                const hasUpperCase = /[A-Z]/.test(passwordValue);
+                const hasLowerCase = /[a-z]/.test(passwordValue);
+                const hasNumbers = /\d/.test(passwordValue);
+                const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(passwordValue);
+                const isLongEnough = passwordValue.length >= 8;
+                
+                if (!isLongEnough || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+                    isValid = false;
+                    errorMessages.push('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+                }
             }
             
             const email = document.getElementById('email').value;
@@ -533,13 +546,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMessages.push('Contact number must be 11 digits starting with 09');
             }
             
-            const requiredFiles = document.querySelectorAll('#profilePicture[required], #idPicture[required]');
-            requiredFiles.forEach(fileInput => {
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    isValid = false;
-                    errorMessages.push(`${fileInput.labels[0].textContent.trim()} is required`);
-                }
-            });
+            if (!isWaitlistUser) {
+                const requiredFiles = document.querySelectorAll('#profilePicture[required], #idPicture[required]');
+                requiredFiles.forEach(fileInput => {
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        isValid = false;
+                        errorMessages.push(`${fileInput.labels[0].textContent.trim()} is required`);
+                    }
+                });
+            }
         }
         
         if (!isValid) {
@@ -917,30 +932,51 @@ document.addEventListener('DOMContentLoaded', function() {
         isWaitlistUser = true;
         waitlistUserId = userData.id;
         
+        // Text fields
         if (userData.first_name) document.getElementById('firstName').value = userData.first_name.toUpperCase();
         if (userData.last_name) document.getElementById('lastName').value = userData.last_name.toUpperCase();
         if (userData.middle_name) document.getElementById('middleName').value = userData.middle_name.toUpperCase();
         if (userData.suffix) document.getElementById('suffix').value = userData.suffix.toUpperCase();
         if (userData.address) document.getElementById('address').value = userData.address;
         
+        // Purok zone
         if (userData.purok_zone) {
             const purokSelect = document.getElementById('purokZone');
-            const options = Array.from(purokSelect.options);
-            const matchingOption = options.find(option => option.value === userData.purok_zone);
-            if (matchingOption) {
-                purokSelect.value = userData.purok_zone;
-            }
+            purokSelect.value = userData.purok_zone;
         }
         
-        if (userData.gender) {
-            const genderSelect = document.getElementById('gender');
-            const options = Array.from(genderSelect.options);
-            const matchingOption = options.find(option => option.textContent.trim() === userData.gender);
-            if (matchingOption) {
-                genderSelect.value = matchingOption.value;
-            }
-        }
+        // Demographic fields - match by VALUE
+        const dropdownMappings = {
+            'gender': userData.gender,
+            'civilStatus': userData.civil_status,
+            'education': userData.education,
+            'youthClassification': userData.youth_classification,
+            'workStatus': userData.work_status,
+            'idType': userData.id_type
+        };
         
+        Object.entries(dropdownMappings).forEach(([fieldId, fieldValue]) => {
+            if (fieldValue) {
+                const selectElement = document.getElementById(fieldId);
+                if (selectElement) {
+                    // Try to set directly by value
+                    selectElement.value = fieldValue;
+                    
+                    // If not found, try to find by text
+                    if (selectElement.value !== fieldValue) {
+                        const options = Array.from(selectElement.options);
+                        const matchingOption = options.find(option => 
+                            option.textContent.trim() === fieldValue
+                        );
+                        if (matchingOption) {
+                            selectElement.value = matchingOption.value;
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Birthdate and age
         if (userData.birthdate) {
             document.getElementById('birthdate').value = userData.birthdate;
             document.getElementById('age').value = userData.age;
@@ -949,42 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (userData.contact_number) document.getElementById('contactNumber').value = userData.contact_number;
         
-        if (userData.civil_status) {
-            const civilStatusSelect = document.getElementById('civilStatus');
-            const options = Array.from(civilStatusSelect.options);
-            const matchingOption = options.find(option => option.textContent.trim() === userData.civil_status);
-            if (matchingOption) {
-                civilStatusSelect.value = matchingOption.value;
-            }
-        }
-        
-        if (userData.education) {
-            const educationSelect = document.getElementById('education');
-            const options = Array.from(educationSelect.options);
-            const matchingOption = options.find(option => option.textContent.trim() === userData.education);
-            if (matchingOption) {
-                educationSelect.value = matchingOption.value;
-            }
-        }
-        
-        if (userData.youth_classification) {
-            const youthClassificationSelect = document.getElementById('youthClassification');
-            const options = Array.from(youthClassificationSelect.options);
-            const matchingOption = options.find(option => option.textContent.trim() === userData.youth_classification);
-            if (matchingOption) {
-                youthClassificationSelect.value = matchingOption.value;
-            }
-        }
-        
-        if (userData.work_status) {
-            const workStatusSelect = document.getElementById('workStatus');
-            const options = Array.from(workStatusSelect.options);
-            const matchingOption = options.find(option => option.textContent.trim() === userData.work_status);
-            if (matchingOption) {
-                workStatusSelect.value = matchingOption.value;
-            }
-        }
-        
+        // SK Voter
         if (userData.sk_voter !== undefined) {
             const skVoterRadios = document.querySelectorAll('input[name="skVoter"]');
             skVoterRadios.forEach(radio => {
@@ -997,51 +998,33 @@ document.addEventListener('DOMContentLoaded', function() {
             if (userData.username) document.getElementById('username').value = userData.username;
         }
         
-        if (userData.id_type) {
-            const idTypeSelect = document.getElementById('idType');
-            const options = Array.from(idTypeSelect.options);
-            const matchingOption = options.find(option => option.textContent.trim() === userData.id_type);
-            if (matchingOption) {
-                idTypeSelect.value = matchingOption.value;
-            } else {
-                idTypeSelect.value = userData.id_type;
-            }
-        }
-        
+        // Parent consent fields
         if (userData.age >= 15 && userData.age <= 17) {
             if (userData.parent_name) document.getElementById('parentName').value = userData.parent_name.toUpperCase();
             
             if (userData.parent_relationship) {
                 const parentRelationshipSelect = document.getElementById('parentRelationship');
-                const options = Array.from(parentRelationshipSelect.options);
-                const matchingOption = options.find(option => option.value === userData.parent_relationship);
-                if (matchingOption) {
-                    parentRelationshipSelect.value = userData.parent_relationship;
-                }
+                parentRelationshipSelect.value = userData.parent_relationship;
             }
             
             if (userData.parent_contact_number) document.getElementById('parentContactNumber').value = userData.parent_contact_number;
             if (userData.consent_date) document.getElementById('consentDate').value = userData.consent_date;
         }
         
+        // Make password fields optional
         document.getElementById('password').required = false;
         document.getElementById('confirmPassword').required = false;
         
-        const passwordHint = document.querySelector('.input-hint');
-        if (passwordHint) {
-            passwordHint.textContent = 'Leave blank to keep current password';
-        }
-        
-        const existingPassword = document.getElementById('password');
-        const existingConfirmPassword = document.getElementById('confirmPassword');
-        
-        existingPassword.placeholder = 'Leave blank to keep current password';
-        existingConfirmPassword.placeholder = 'Leave blank to keep current password';
+        const passwordInputs = document.querySelectorAll('#password, #confirmPassword');
+        passwordInputs.forEach(input => {
+            input.placeholder = 'Leave blank to keep current password';
+        });
         
         showMessage('Your waitlist information has been loaded! You can update your information and complete registration.', 'success');
         
         goToSegment(1);
     }
+
     
     document.querySelectorAll('.form-segment').forEach(segment => {
         segment.style.display = 'none';

@@ -298,7 +298,6 @@ class YouthUser(models.Model):
     @property
     def community_points(self):
         try:
-            # Import here to avoid circular imports
             from .models import CommunityPoints
             return self.points.points
         except CommunityPoints.DoesNotExist:
@@ -324,7 +323,6 @@ class YouthUser(models.Model):
             notification_title = "Account Deactivation Warning"
             notification_message = "You have missed multiple events. Your account is at risk of deactivation. Please contact SK Mambugan administration."
         
-        # Import here to avoid circular imports
         from .models import AttendanceViolation, UserNotification, CommunityPoints, PointsHistory
         
         AttendanceViolation.objects.create(
@@ -429,17 +427,14 @@ class YouthUser(models.Model):
                 is_email_verified=True,
                 is_admin_verified=True
             )
-            # Import here to avoid circular imports
             from .models import CommunityPoints
             CommunityPoints.objects.create(user=admin_user, points=1000)
         return admin_user
     
-    # Add this method to fix the age_group property issue
     @property
     def age_group_display(self):
         return dict(self.AGE_GROUP_CHOICES).get(self.age_group, self.age_group)
     
-    # Add this method if you want to use it in admin
     def get_community_points_display(self):
         return self.community_points
     
@@ -1584,7 +1579,6 @@ def update_download_counts(sender, instance, **kwargs):
     analytics.direct_downloads = APKDownload.objects.filter(download_method='direct').count()
     analytics.button_downloads = APKDownload.objects.filter(download_method='button').count()
     analytics.save()
-
 
 
 

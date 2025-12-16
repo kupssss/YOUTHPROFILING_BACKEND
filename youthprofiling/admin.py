@@ -160,7 +160,6 @@ class YouthUserAdmin(admin.ModelAdmin):
     get_last_no_show_date.short_description = 'Last No-Show'
     get_last_no_show_date.admin_order_field = 'last_no_show_date'
     
-    # Custom methods for readonly_fields
     def get_is_email_verified(self, obj):
         return 'Yes' if obj.is_email_verified else 'No'
     get_is_email_verified.short_description = 'Email Verified (Display)'
@@ -185,7 +184,7 @@ class YouthUserAdmin(admin.ModelAdmin):
     get_violation_count.short_description = 'Attendance Violations'
     
     def get_violation_history(self, obj):
-        violations = AttendanceViolation.objects.filter(user=obj).order_by('-created_at')
+        violations = AttendanceViolation.objects.filter(user=obj).order_by('-violation_date')
         if not violations:
             return "No attendance violations"
         
@@ -487,7 +486,7 @@ class YouthUserAdmin(admin.ModelAdmin):
         
         super().save_model(request, obj, form, change)
 
-# Register the admin class
+
 admin.site.register(YouthUser, YouthUserAdmin)
     
 
@@ -1291,8 +1290,6 @@ admin.site.register(DownloadAnalytics, DownloadAnalyticsAdmin)
 
 
 
-# Add this after all your existing admin registrations
-
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
@@ -1334,16 +1331,16 @@ class UserNotificationAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} notifications marked as unread.")
     mark_as_unread.short_description = "Mark selected notifications as unread"
 
+
+
 @admin.register(AttendanceViolation)
-
-
 class AttendanceViolationAdmin(admin.ModelAdmin):
     list_display = ('user', 'violation_type', 'event_info', 'violation_date', 'is_resolved', 'resolved_at')
     list_filter = ('violation_type', 'is_resolved', 'violation_date')
     search_fields = ('user__username', 'user__email', 'event_registration__event__title')
     readonly_fields = ('violation_date', 'resolved_at')
     actions = ['mark_as_resolved', 'mark_as_unresolved']
-    date_hierarchy = 'violation_date'
+    date_hierarchy = 'violation_date' 
     
     def event_info(self, obj):
         if obj.event_registration and obj.event_registration.event:
