@@ -1,12 +1,40 @@
+# Virtual Environment
 venv/
+env/
+ENV/
+
+# Python Cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Python
 .Python
+
+# Environment Files
 .env
-.DS_Store
-.env.production
 .env.local
-instance/
+.env.production
+
+# Database
+db.sqlite3
+
+# Logs
 *.log
+
+# macOS
+.DS_Store
+
+# Flask/Django instance folder
+instance/
+
+# VSCode (optional)
+.vscode/
+
+# JetBrains IDEs (optional)
+.idea/
+
+# Static build/cache (optional)
+dist/
+build/
